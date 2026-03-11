@@ -174,5 +174,27 @@ public sealed class BrowserSessionOfflineQueueService
         {
             throw new ArgumentOutOfRangeException(paramName, cursor.AppliedThroughSequence, "Applied-through sequence cannot be negative.");
         }
+
+        var session = cursor.Session;
+        ArgumentNullException.ThrowIfNull(session, $"{paramName}.Session");
+        if (string.IsNullOrWhiteSpace(session.SessionId))
+        {
+            throw new ArgumentException("Session id is required.", $"{paramName}.Session.SessionId");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.SceneId))
+        {
+            throw new ArgumentException("Scene id is required.", $"{paramName}.Session.SceneId");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.SceneRevision))
+        {
+            throw new ArgumentException("Scene revision is required.", $"{paramName}.Session.SceneRevision");
+        }
+
+        if (string.IsNullOrWhiteSpace(session.RuntimeFingerprint))
+        {
+            throw new ArgumentException("Runtime fingerprint is required.", $"{paramName}.Session.RuntimeFingerprint");
+        }
     }
 }

@@ -155,12 +155,15 @@ rg -n 'TryValidateCursor\(request\.Cursor, out var cursorError\)' src/Chummer.Pl
 rg -n 'pending events cannot contain blank values' src/Chummer.Play.Web >/dev/null
 rg -n 'SessionLineage\.IsStoredLineageAligned\(' src/Chummer.Play.Web >/dev/null
 rg -n 'VerifySyncPrefixAcknowledgementAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyEventLogRejectsMalformedAppendAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyStoredLineageStaleResponsesAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyOfflineQueueRejectsStaleLineageAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyStoredLineageAlignment\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'IsLedgerAligned\(' src/Chummer.Play.Web/SessionLineage.cs >/dev/null
 rg -n 'Math\.Max\(ledgerBeforeAppend\.LastKnownSequence, cursor\.AppliedThroughSequence\) \+ 1' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'EnsureStoredLineageAlignedAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
+rg -n 'Session id is required\.|Scene id is required\.|Scene revision is required\.|Runtime fingerprint is required\.' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'UseDefaultFiles\(\);' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'UseStaticFiles\(\);' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'AcknowledgePendingEventsAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null

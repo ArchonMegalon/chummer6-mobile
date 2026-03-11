@@ -21,6 +21,9 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
     )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sceneId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sceneRevision);
+        ArgumentException.ThrowIfNullOrWhiteSpace(runtimeFingerprint);
         cancellationToken.ThrowIfCancellationRequested();
 
         var key = PlayBrowserStateKeys.Ledger(sessionId);
@@ -62,7 +65,28 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
     )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sceneId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sceneRevision);
+        ArgumentException.ThrowIfNullOrWhiteSpace(runtimeFingerprint);
         ArgumentNullException.ThrowIfNull(pendingEvents);
+        if (lastKnownSequence < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lastKnownSequence), lastKnownSequence, "Last-known sequence cannot be negative.");
+        }
+
+        var pendingEventList = pendingEvents.ToArray();
+        if (pendingEventList.Length == 0)
+        {
+            throw new ArgumentException("pending events payload cannot be empty.", nameof(pendingEvents));
+        }
+
+        for (var i = 0; i < pendingEventList.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(pendingEventList[i]))
+            {
+                throw new ArgumentException("pending events cannot contain blank values.", nameof(pendingEvents));
+            }
+        }
 
         var current = await GetOrCreateAsync(sessionId, sceneId, sceneRevision, runtimeFingerprint, cancellationToken);
         var updated = current with
@@ -70,7 +94,7 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
             SceneId = sceneId,
             SceneRevision = sceneRevision,
             RuntimeFingerprint = runtimeFingerprint,
-            PendingEvents = current.PendingEvents.Concat(pendingEvents).ToArray(),
+            PendingEvents = current.PendingEvents.Concat(pendingEventList).ToArray(),
             LastKnownSequence = lastKnownSequence,
             UpdatedAtUtc = DateTimeOffset.UtcNow,
         };

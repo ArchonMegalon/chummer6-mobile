@@ -21,8 +21,10 @@ await VerifyConcurrentEnqueueSequenceOwnershipAsync();
 await VerifySyncPrefixAcknowledgementAsync();
 await VerifySyncPreservesNewerLedgerSequenceAsync();
 VerifyCursorValidationRejectsNegativeSequence();
+await VerifyEventLogRejectsMalformedAppendAsync();
 await VerifyOfflineQueueRejectsMalformedPendingEventsAsync();
 await VerifyOfflineQueueRejectsNegativeSequenceAsync();
+await VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync();
 await VerifyOfflineQueueRejectsStaleLineageAsync();
 await VerifyReconnectLineageTransitionContinuityAsync();
 await VerifyStoredLineageStaleResponsesAsync();
@@ -192,6 +194,31 @@ static async Task VerifyOfflineQueueRejectsMalformedPendingEventsAsync()
     );
 }
 
+static async Task VerifyEventLogRejectsMalformedAppendAsync()
+{
+    var store = new BrowserSessionEventLogStore(new InMemoryBrowserKeyValueStore());
+
+    await AssertThrowsAsync<ArgumentException>(
+        () => store.GetOrCreateAsync("session-eventlog-invalid", "", "scene-r1", "runtime-a"),
+        "event-log get/create must reject blank scene id"
+    );
+
+    await AssertThrowsAsync<ArgumentException>(
+        () => store.AppendPendingEventsAsync("session-eventlog-invalid", "scene-a", "scene-r1", "runtime-a", Array.Empty<string>(), 0),
+        "event-log append must reject empty pending event payloads"
+    );
+
+    await AssertThrowsAsync<ArgumentException>(
+        () => store.AppendPendingEventsAsync("session-eventlog-invalid", "scene-a", "scene-r1", "runtime-a", ["evt-1", " "], 0),
+        "event-log append must reject blank pending events"
+    );
+
+    await AssertThrowsAsync<ArgumentOutOfRangeException>(
+        () => store.AppendPendingEventsAsync("session-eventlog-invalid", "scene-a", "scene-r1", "runtime-a", ["evt-1"], -1),
+        "event-log append must reject negative sequence ownership"
+    );
+}
+
 static async Task VerifyOfflineQueueRejectsNegativeSequenceAsync()
 {
     var store = new BrowserSessionEventLogStore(new InMemoryBrowserKeyValueStore());
@@ -208,6 +235,31 @@ static async Task VerifyOfflineQueueRejectsNegativeSequenceAsync()
     await AssertThrowsAsync<ArgumentOutOfRangeException>(
         () => queue.SyncReplayAsync(new PlaySyncRequest(negativeCursor, ["evt-1"])),
         "offline queue sync must reject negative applied-through sequence values"
+    );
+}
+
+static async Task VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync()
+{
+    var store = new BrowserSessionEventLogStore(new InMemoryBrowserKeyValueStore());
+    var cache = new BrowserSessionOfflineCacheService(new InMemoryBrowserKeyValueStore());
+    var queue = new BrowserSessionOfflineQueueService(store, cache);
+
+    var missingSceneId = new EngineSessionCursor(
+        new EngineSessionEnvelope("session-envelope-invalid", "", "scene-r1", "runtime-a"),
+        0
+    );
+    await AssertThrowsAsync<ArgumentException>(
+        () => queue.EnqueueAsync(missingSceneId, "evt-1"),
+        "offline queue enqueue must reject blank scene id in direct callers"
+    );
+
+    var missingRuntime = new EngineSessionCursor(
+        new EngineSessionEnvelope("session-envelope-invalid", "scene-a", "scene-r1", ""),
+        0
+    );
+    await AssertThrowsAsync<ArgumentException>(
+        () => queue.SyncReplayAsync(new PlaySyncRequest(missingRuntime, ["evt-1"])),
+        "offline queue sync must reject blank runtime fingerprint in direct callers"
     );
 }
 
