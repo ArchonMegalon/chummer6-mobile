@@ -32,6 +32,7 @@ await VerifyOfflineCacheRejectsMalformedCheckpointAndRuntimeEntryAsync();
 await VerifyOfflineCacheDropsMalformedStoredEntriesAsync();
 await VerifyOfflineCacheDropsUnparseableStoredEntriesAsync();
 await VerifyOfflineCacheRuntimeBundleQuotaEvictionAsync();
+await VerifyOfflineCacheReadTouchAffectsQuotaEvictionAsync();
 await VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync();
 await VerifyEventLogDropsMalformedStoredLedgerAsync();
 await VerifyEventLogDropsUnparseableStoredLedgerKeysAsync();
@@ -484,6 +485,46 @@ static async Task VerifyOfflineCacheRuntimeBundleQuotaEvictionAsync()
     var pressure = await cache.GetCachePressureAsync();
     Assert(pressure.RuntimeBundleCount == 8, "offline cache pressure must report bounded runtime bundle count");
     Assert(pressure.BackpressureActive, "offline cache pressure must report near-quota state at runtime bundle limit");
+}
+
+static async Task VerifyOfflineCacheReadTouchAffectsQuotaEvictionAsync()
+{
+    var cache = new BrowserSessionOfflineCacheService(new InMemoryBrowserKeyValueStore());
+    var baseTime = DateTimeOffset.UtcNow.AddMinutes(-30);
+
+    for (var i = 1; i <= 8; i++)
+    {
+        await cache.CacheRuntimeBundleAsync(
+            new RuntimeBundleCacheEntry(
+                $"session-cache-touch-{i}",
+                $"runtime-touch-{i}",
+                $"scene-touch-r{i}",
+                $"bundle-touch-{i}",
+                baseTime.AddMinutes(i),
+                baseTime.AddMinutes(i)
+            )
+        );
+    }
+
+    var touched = await cache.GetRuntimeBundleAsync("session-cache-touch-1");
+    Assert(touched is not null, "offline cache read-touch test requires a readable runtime bundle");
+
+    await cache.CacheRuntimeBundleAsync(
+        new RuntimeBundleCacheEntry(
+            "session-cache-touch-9",
+            "runtime-touch-9",
+            "scene-touch-r9",
+            "bundle-touch-9",
+            baseTime.AddMinutes(9),
+            baseTime.AddMinutes(9)
+        )
+    );
+
+    var oldestUntouched = await cache.GetRuntimeBundleAsync("session-cache-touch-2");
+    Assert(oldestUntouched is null, "quota eviction must evict the oldest untouched runtime bundle after read-touch");
+
+    var touchedAfterEviction = await cache.GetRuntimeBundleAsync("session-cache-touch-1");
+    Assert(touchedAfterEviction is not null, "read-touch must keep recently validated runtime bundles through quota eviction");
 }
 
 static async Task VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync()

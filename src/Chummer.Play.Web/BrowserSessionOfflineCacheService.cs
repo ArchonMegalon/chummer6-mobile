@@ -119,7 +119,12 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
             return null;
         }
 
-        return entry is null ? null : ToRuntimeBundleMetadata(entry);
+        var refreshedEntry = entry with
+        {
+            LastValidatedAtUtc = DateTimeOffset.UtcNow,
+        };
+        await _browserStore.SetAsync(key, refreshedEntry, cancellationToken);
+        return ToRuntimeBundleMetadata(refreshedEntry);
     }
 
     public Task SetCheckpointAsync(SyncCheckpoint checkpoint, CancellationToken cancellationToken = default)
