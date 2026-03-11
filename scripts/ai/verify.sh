@@ -156,6 +156,7 @@ rg -n 'pending events cannot contain blank values' src/Chummer.Play.Web >/dev/nu
 rg -n 'SessionLineage\.IsStoredLineageAligned\(' src/Chummer.Play.Web >/dev/null
 rg -n 'VerifySyncPrefixAcknowledgementAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyEventLogRejectsMalformedAppendAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyEventLogRejectsSequenceRegressionAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyStoredLineageStaleResponsesAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyOfflineQueueRejectsStaleLineageAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null

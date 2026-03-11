@@ -89,6 +89,13 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
         }
 
         var current = await GetOrCreateAsync(sessionId, sceneId, sceneRevision, runtimeFingerprint, cancellationToken);
+        if (lastKnownSequence < current.LastKnownSequence)
+        {
+            throw new InvalidOperationException(
+                $"Last-known sequence {lastKnownSequence} cannot regress below stored sequence {current.LastKnownSequence} for session '{sessionId}'."
+            );
+        }
+
         var updated = current with
         {
             SceneId = sceneId,

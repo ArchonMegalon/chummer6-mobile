@@ -22,6 +22,7 @@ await VerifySyncPrefixAcknowledgementAsync();
 await VerifySyncPreservesNewerLedgerSequenceAsync();
 VerifyCursorValidationRejectsNegativeSequence();
 await VerifyEventLogRejectsMalformedAppendAsync();
+await VerifyEventLogRejectsSequenceRegressionAsync();
 await VerifyOfflineQueueRejectsMalformedPendingEventsAsync();
 await VerifyOfflineQueueRejectsNegativeSequenceAsync();
 await VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync();
@@ -216,6 +217,32 @@ static async Task VerifyEventLogRejectsMalformedAppendAsync()
     await AssertThrowsAsync<ArgumentOutOfRangeException>(
         () => store.AppendPendingEventsAsync("session-eventlog-invalid", "scene-a", "scene-r1", "runtime-a", ["evt-1"], -1),
         "event-log append must reject negative sequence ownership"
+    );
+}
+
+static async Task VerifyEventLogRejectsSequenceRegressionAsync()
+{
+    var store = new BrowserSessionEventLogStore(new InMemoryBrowserKeyValueStore());
+
+    await store.AppendPendingEventsAsync(
+        "session-eventlog-sequence-regression",
+        "scene-a",
+        "scene-r1",
+        "runtime-a",
+        ["evt-1"],
+        4
+    );
+
+    await AssertThrowsAsync<InvalidOperationException>(
+        () => store.AppendPendingEventsAsync(
+            "session-eventlog-sequence-regression",
+            "scene-a",
+            "scene-r1",
+            "runtime-a",
+            ["evt-2"],
+            3
+        ),
+        "event-log append must reject regressing sequence ownership for direct callers"
     );
 }
 
