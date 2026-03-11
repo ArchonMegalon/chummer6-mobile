@@ -30,8 +30,11 @@ await VerifyOfflineQueueRejectsNegativeSequenceAsync();
 await VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync();
 await VerifyOfflineCacheRejectsMalformedCheckpointAndRuntimeEntryAsync();
 await VerifyOfflineCacheDropsMalformedStoredEntriesAsync();
+await VerifyOfflineCacheDropsUnparseableStoredEntriesAsync();
 await VerifyOfflineCacheRuntimeBundleQuotaEvictionAsync();
+await VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync();
 await VerifyEventLogDropsMalformedStoredLedgerAsync();
+await VerifyEventLogDropsUnparseableStoredLedgerKeysAsync();
 await VerifyOfflineQueueRejectsStaleLineageAsync();
 await VerifyReconnectLineageTransitionContinuityAsync();
 await VerifyStoredLineageStaleResponsesAsync();
@@ -303,6 +306,22 @@ static async Task VerifyEventLogDropsMalformedStoredLedgerAsync()
     Assert(!keys.Contains(key, StringComparer.Ordinal), "event-log should remove malformed ledger keys from browser storage");
 }
 
+static async Task VerifyEventLogDropsUnparseableStoredLedgerKeysAsync()
+{
+    var browserStore = new InMemoryBrowserKeyValueStore();
+    var store = new BrowserSessionEventLogStore(browserStore);
+    const string sessionId = "session-eventlog-unparseable-read";
+    var key = PlayBrowserStateKeys.Ledger(sessionId);
+
+    await browserStore.SetAsync<object>(key, "tampered-ledger-value");
+
+    var existing = await store.GetExistingAsync(sessionId);
+    Assert(existing is null, "event-log should treat unparseable stored ledger snapshots as missing");
+
+    var keys = await browserStore.ListKeysAsync("play:ledger:");
+    Assert(!keys.Contains(key, StringComparer.Ordinal), "event-log should remove unparseable ledger keys from browser storage");
+}
+
 static async Task VerifyOfflineQueueRejectsNegativeSequenceAsync()
 {
     var store = new BrowserSessionEventLogStore(new InMemoryBrowserKeyValueStore());
@@ -415,6 +434,28 @@ static async Task VerifyOfflineCacheDropsMalformedStoredEntriesAsync()
     Assert(!keys.Contains(runtimeBundleKey, StringComparer.Ordinal), "offline cache should remove malformed runtime bundle keys");
 }
 
+static async Task VerifyOfflineCacheDropsUnparseableStoredEntriesAsync()
+{
+    var browserStore = new InMemoryBrowserKeyValueStore();
+    var cache = new BrowserSessionOfflineCacheService(browserStore);
+    const string sessionId = "session-cache-unparseable-read";
+    var checkpointKey = PlayBrowserStateKeys.Checkpoint(sessionId);
+    var runtimeBundleKey = PlayBrowserStateKeys.RuntimeBundle(sessionId);
+
+    await browserStore.SetAsync<object>(checkpointKey, "tampered-checkpoint-value");
+    await browserStore.SetAsync<object>(runtimeBundleKey, 42);
+
+    var checkpoint = await cache.GetCheckpointAsync(sessionId);
+    Assert(checkpoint is null, "offline cache should treat unparseable checkpoints as missing");
+
+    var runtimeBundle = await cache.GetRuntimeBundleAsync(sessionId);
+    Assert(runtimeBundle is null, "offline cache should treat unparseable runtime bundle metadata as missing");
+
+    var keys = await browserStore.ListKeysAsync("play:");
+    Assert(!keys.Contains(checkpointKey, StringComparer.Ordinal), "offline cache should remove unparseable checkpoint keys");
+    Assert(!keys.Contains(runtimeBundleKey, StringComparer.Ordinal), "offline cache should remove unparseable runtime bundle keys");
+}
+
 static async Task VerifyOfflineCacheRuntimeBundleQuotaEvictionAsync()
 {
     var cache = new BrowserSessionOfflineCacheService(new InMemoryBrowserKeyValueStore());
@@ -443,6 +484,40 @@ static async Task VerifyOfflineCacheRuntimeBundleQuotaEvictionAsync()
     var pressure = await cache.GetCachePressureAsync();
     Assert(pressure.RuntimeBundleCount == 8, "offline cache pressure must report bounded runtime bundle count");
     Assert(pressure.BackpressureActive, "offline cache pressure must report near-quota state at runtime bundle limit");
+}
+
+static async Task VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync()
+{
+    var browserStore = new InMemoryBrowserKeyValueStore();
+    var cache = new BrowserSessionOfflineCacheService(browserStore);
+    var baseTime = DateTimeOffset.UtcNow.AddMinutes(-60);
+
+    var malformedKeyA = PlayBrowserStateKeys.RuntimeBundle("session-cache-malformed-a");
+    var malformedKeyB = PlayBrowserStateKeys.RuntimeBundle("session-cache-malformed-b");
+    await browserStore.SetAsync<object>(malformedKeyA, "tampered-runtime-a");
+    await browserStore.SetAsync<object>(malformedKeyB, "tampered-runtime-b");
+
+    for (var i = 1; i <= 8; i++)
+    {
+        await cache.CacheRuntimeBundleAsync(
+            new RuntimeBundleCacheEntry(
+                $"session-cache-clean-{i}",
+                $"runtime-clean-{i}",
+                $"scene-clean-r{i}",
+                $"bundle-clean-{i}",
+                baseTime.AddMinutes(i),
+                baseTime.AddMinutes(i)
+            )
+        );
+    }
+
+    var oldestValid = await cache.GetRuntimeBundleAsync("session-cache-clean-1");
+    Assert(oldestValid is not null, "quota should not evict valid runtime bundles because of unparseable key residue");
+
+    var keys = await browserStore.ListKeysAsync(PlayBrowserStateKeys.RuntimeBundlePrefix);
+    Assert(keys.Count == 8, "runtime-bundle keyspace should contain only bounded valid entries after pruning unparseable keys");
+    Assert(!keys.Contains(malformedKeyA, StringComparer.Ordinal), "runtime-bundle cache should prune unparseable keys before quota accounting");
+    Assert(!keys.Contains(malformedKeyB, StringComparer.Ordinal), "runtime-bundle cache should prune all unparseable keys before quota accounting");
 }
 
 static async Task VerifyOfflineQueueRejectsStaleLineageAsync()

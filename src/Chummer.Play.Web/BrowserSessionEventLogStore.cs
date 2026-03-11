@@ -133,6 +133,7 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
         var current = await _browserStore.GetAsync<OfflineLedgerEnvelope>(key, cancellationToken);
         if (current is null)
         {
+            await RemoveIfKeyPresentAsync(key, cancellationToken);
             throw new InvalidOperationException($"No offline ledger exists for session '{sessionId}'.");
         }
 
@@ -163,6 +164,7 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
         var existing = await _browserStore.GetAsync<OfflineLedgerEnvelope>(key, cancellationToken);
         if (existing is null)
         {
+            await RemoveIfKeyPresentAsync(key, cancellationToken);
             return null;
         }
 
@@ -173,6 +175,15 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
         }
 
         return existing;
+    }
+
+    private async Task RemoveIfKeyPresentAsync(string key, CancellationToken cancellationToken)
+    {
+        var matchingKeys = await _browserStore.ListKeysAsync(key, cancellationToken);
+        if (matchingKeys.Contains(key, StringComparer.Ordinal))
+        {
+            await _browserStore.RemoveAsync(key, cancellationToken);
+        }
     }
 
     private static bool IsLedgerValid(OfflineLedgerEnvelope ledger)
