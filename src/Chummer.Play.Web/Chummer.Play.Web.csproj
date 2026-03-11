@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <AssemblyName>Chummer.Play.Web</AssemblyName>
+    <RootNamespace>Chummer.Play.Web</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Chummer.Play.Core\Chummer.Play.Core.csproj" />
+    <ProjectReference Include="..\Chummer.Play.Components\Chummer.Play.Components.csproj" />
+    <ProjectReference Include="..\Chummer.Play.Player\Chummer.Play.Player.csproj" />
+    <ProjectReference Include="..\Chummer.Play.Gm\Chummer.Play.Gm.csproj" />
+  </ItemGroup>
+</Project>
