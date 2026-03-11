@@ -2,7 +2,7 @@
 
 ## Mission
 
-`chummer-play` owns the player and GM play-mode shell, offline ledger/cache, sync client behavior, installable play/mobile UX, and play-safe live-session surfaces.
+`chummer6-mobile` owns the player and GM play-mode shell, offline ledger/cache, sync client behavior, installable play/mobile UX, and play-safe live-session surfaces.
 
 ## Owns
 
@@ -51,7 +51,7 @@ If it looks like a builder, publisher, moderator, or rules engine job, it does n
 
 ## External integration note
 
-`chummer-play` may render upstream projections, previews, docs/help links, and provider-assisted artifact references.
+`chummer6-mobile` may render upstream projections, previews, docs/help links, and provider-assisted artifact references.
 
 It must not own:
 

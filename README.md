@@ -1,11 +1,11 @@
-# Chummer Play
+# chummer6-mobile
 
-Chummer Play is the mobile and play-mode frontend for Chummer.
+Player, GM, and session-shell frontend for Chummer6.
 
 Current scope:
-- player and GM play-mode shells
+- player and GM play shells
 - local-first session ledger handling
-- runtime bundle consumption
+- runtime stack consumption
 - play-scoped coach and Spider surfaces
 - offline and media caching
 - dedicated `/api/play/*` route ownership
@@ -42,25 +42,6 @@ bash scripts/ai/with-package-plane.sh build Chummer.Play.slnx --nologo
 To run the published-feed package-plane cutover path for `Chummer.Play.Contracts` and `Chummer.Ui.Kit`, provide semicolon-delimited restore sources:
 
 ```bash
-CHUMMER_PUBLISHED_FEED_SOURCES="https://api.nuget.org/v3/index.json;https://<internal-feed>/v3/index.json" \
+CHUMMER_PUBLISHED_FEED_SOURCES="https://api.nuget.org/v3/index.json;https://packages.example.invalid/v3/index.json" \
   bash scripts/ai/with-package-plane.sh build Chummer.Play.slnx --nologo
 ```
-
-The same published-feed inputs also drive `verify.sh`:
-
-```bash
-CHUMMER_PUBLISHED_FEED_SOURCES="https://api.nuget.org/v3/index.json;https://<internal-feed>/v3/index.json" \
-  bash scripts/ai/verify.sh
-```
-
-When published feeds use package versions different from local preview defaults, optionally pin them for compatibility checks:
-
-```bash
-CHUMMER_PUBLISHED_FEED_SOURCES="https://api.nuget.org/v3/index.json;https://<internal-feed>/v3/index.json" \
-CHUMMER_PUBLISHED_ENGINE_CONTRACTS_VERSION="0.1.0-preview.42" \
-CHUMMER_PUBLISHED_PLAY_CONTRACTS_VERSION="0.1.0-preview.42" \
-CHUMMER_PUBLISHED_UI_KIT_VERSION="0.1.0-preview.42" \
-  bash scripts/ai/verify.sh
-```
-
-If `CHUMMER_PUBLISHED_FEED_SOURCES` is unset, verification falls back to repo-local package stubs so package-plane checks stay executable in offline environments.
