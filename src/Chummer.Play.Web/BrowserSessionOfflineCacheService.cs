@@ -53,6 +53,7 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
     )
     {
         ArgumentNullException.ThrowIfNull(entry);
+        ValidateRuntimeBundleEntry(entry);
 
         var evictedSessionIds = new List<string>();
         var runtimeBundleKey = PlayBrowserStateKeys.RuntimeBundle(entry.SessionId);
@@ -100,6 +101,7 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
     public Task SetCheckpointAsync(SyncCheckpoint checkpoint, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(checkpoint);
+        ValidateCheckpoint(checkpoint);
         return _browserStore.SetAsync(PlayBrowserStateKeys.Checkpoint(checkpoint.SessionId), checkpoint, cancellationToken);
     }
 
@@ -140,4 +142,28 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
             evictedSessionIds,
             DateTimeOffset.UtcNow
         );
+
+    private static void ValidateCheckpoint(SyncCheckpoint checkpoint)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkpoint.SessionId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkpoint.SceneId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkpoint.SceneRevision);
+        ArgumentException.ThrowIfNullOrWhiteSpace(checkpoint.ProjectionFingerprint);
+        if (checkpoint.AppliedThroughSequence < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(checkpoint.AppliedThroughSequence),
+                checkpoint.AppliedThroughSequence,
+                "Applied-through sequence cannot be negative."
+            );
+        }
+    }
+
+    private static void ValidateRuntimeBundleEntry(RuntimeBundleCacheEntry entry)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(entry.SessionId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(entry.RuntimeFingerprint);
+        ArgumentException.ThrowIfNullOrWhiteSpace(entry.SceneRevision);
+        ArgumentException.ThrowIfNullOrWhiteSpace(entry.BundleTag);
+    }
 }

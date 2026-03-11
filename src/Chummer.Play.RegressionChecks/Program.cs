@@ -26,6 +26,7 @@ await VerifyEventLogRejectsSequenceRegressionAsync();
 await VerifyOfflineQueueRejectsMalformedPendingEventsAsync();
 await VerifyOfflineQueueRejectsNegativeSequenceAsync();
 await VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync();
+await VerifyOfflineCacheRejectsMalformedCheckpointAndRuntimeEntryAsync();
 await VerifyOfflineQueueRejectsStaleLineageAsync();
 await VerifyReconnectLineageTransitionContinuityAsync();
 await VerifyStoredLineageStaleResponsesAsync();
@@ -287,6 +288,39 @@ static async Task VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync()
     await AssertThrowsAsync<ArgumentException>(
         () => queue.SyncReplayAsync(new PlaySyncRequest(missingRuntime, ["evt-1"])),
         "offline queue sync must reject blank runtime fingerprint in direct callers"
+    );
+}
+
+static async Task VerifyOfflineCacheRejectsMalformedCheckpointAndRuntimeEntryAsync()
+{
+    var cache = new BrowserSessionOfflineCacheService(new InMemoryBrowserKeyValueStore());
+
+    await AssertThrowsAsync<ArgumentException>(
+        () => cache.SetCheckpointAsync(
+            new SyncCheckpoint("session-cache-invalid", "scene-a", "scene-r1", "", 0, DateTimeOffset.UtcNow)
+        ),
+        "offline cache must reject checkpoints with blank runtime fingerprint in direct callers"
+    );
+
+    await AssertThrowsAsync<ArgumentOutOfRangeException>(
+        () => cache.SetCheckpointAsync(
+            new SyncCheckpoint("session-cache-invalid", "scene-a", "scene-r1", "runtime-a", -1, DateTimeOffset.UtcNow)
+        ),
+        "offline cache must reject checkpoints with negative sequence ownership in direct callers"
+    );
+
+    await AssertThrowsAsync<ArgumentException>(
+        () => cache.CacheRuntimeBundleAsync(
+            new RuntimeBundleCacheEntry(
+                "session-cache-invalid",
+                "runtime-a",
+                "scene-r1",
+                "",
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow
+            )
+        ),
+        "offline cache must reject runtime bundle metadata with blank bundle tags in direct callers"
     );
 }
 
@@ -778,10 +812,11 @@ static async Task VerifyResumeNormalizesCheckpointToLedgerLineageAsync()
     );
 
     Assert(resumeState.Checkpoint is not null, "resume must emit a checkpoint");
-    Assert(resumeState.Checkpoint.SceneId == "scene-ledger", "resume must normalize checkpoint scene id to ledger lineage");
-    Assert(resumeState.Checkpoint.SceneRevision == "scene-r8", "resume must normalize checkpoint revision to ledger lineage");
-    Assert(resumeState.Checkpoint.ProjectionFingerprint == "runtime-ledger", "resume must normalize checkpoint runtime to ledger lineage");
-    Assert(resumeState.Checkpoint.AppliedThroughSequence == 7, "resume must advance checkpoint sequence to ledger ownership");
+    var checkpoint = resumeState.Checkpoint!;
+    Assert(checkpoint.SceneId == "scene-ledger", "resume must normalize checkpoint scene id to ledger lineage");
+    Assert(checkpoint.SceneRevision == "scene-r8", "resume must normalize checkpoint revision to ledger lineage");
+    Assert(checkpoint.ProjectionFingerprint == "runtime-ledger", "resume must normalize checkpoint runtime to ledger lineage");
+    Assert(checkpoint.AppliedThroughSequence == 7, "resume must advance checkpoint sequence to ledger ownership");
 }
 
 static void VerifyStoredStaleStatePrefersLedgerOverOlderCheckpoint()
