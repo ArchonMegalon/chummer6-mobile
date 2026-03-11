@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Chummer.Play.Components/Chummer.Play.Components.csproj" />
+    <Project Path="src/Chummer.Play.Core/Chummer.Play.Core.csproj" />
+    <Project Path="src/Chummer.Play.Gm/Chummer.Play.Gm.csproj" />
+    <Project Path="src/Chummer.Play.Player/Chummer.Play.Player.csproj" />
+    <Project Path="src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj" />
+    <Project Path="src/Chummer.Play.Web/Chummer.Play.Web.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Chummer.Play.Components</AssemblyName>
+    <RootNamespace>Chummer.Play.Components</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Chummer.Play.Core\Chummer.Play.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="$(ChummerUiKitPackageId)" />
+  </ItemGroup>
+</Project>
