@@ -1,6 +1,6 @@
 # Sync Model
 
-`chummer-play` uses a local-first sync model:
+`chummer6-mobile` uses a local-first sync model:
 
 - queue local session events first
 - persist scene id, scene revision, and runtime fingerprint with every sync checkpoint

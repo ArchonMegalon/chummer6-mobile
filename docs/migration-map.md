@@ -1,6 +1,6 @@
 # Migration Map
 
-Initial extraction seam from `chummer-presentation` into `chummer-play`:
+Initial extraction seam from `chummer-presentation` into `chummer6-mobile`:
 
 - `Chummer.Session.Web/Program.cs` -> `src/Chummer.Play.Web/Program.cs`
 - `Chummer.Session.Web/BrowserSessionApiClient.cs` -> `src/Chummer.Play.Web/BrowserSessionApiClient.cs`

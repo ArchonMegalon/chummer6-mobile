@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export DOTNET_CLI_HOME="${DOTNET_CLI_HOME:-/tmp/dotnet-chummer-play}"
+export DOTNET_CLI_HOME="${DOTNET_CLI_HOME:-/tmp/dotnet-chummer6-mobile}"
 export HOME="${HOME:-/tmp}"
 export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -10,6 +10,8 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 package_plane_runner="${repo_root}/scripts/ai/with-package-plane.sh"
 published_feed_sources="${CHUMMER_PUBLISHED_FEED_SOURCES:-}"
 
+cd "${repo_root}"
+
 test -f README.md
 test -f AGENTS.md
 test -f WORKLIST.md
@@ -17,7 +19,9 @@ test -f Chummer.Play.slnx
 test -f Directory.Build.props
 test -f Directory.Packages.props
 test -f global.json
+test -f docs/chummer6-mobile.design.v1.md
 test -f docs/chummer-play.design.v1.md
+test -f docs/rejoin-resume-guarantees.md
 test -f docs/sync-model.md
 test -f docs/offline-storage.md
 test -f docs/migration-map.md
@@ -57,22 +61,27 @@ test -f eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj
 test -f eng/package-stubs/UiKitStub/UiKitStub.csproj
 
 if rg -n "Chummer\\.Contracts/" . >/dev/null 2>&1; then
-  echo "copied contract source paths are not allowed in chummer-play" >&2
+  echo "copied contract source paths are not allowed in chummer6-mobile" >&2
   exit 1
 fi
 
 if rg -n "<ProjectReference Include=\"\\.\\.\\\\\\.\\.\\\\|<ProjectReference Include=\"\\.\\./\\.\\./" src >/dev/null 2>&1; then
-  echo "cross-repo project references are not allowed in chummer-play" >&2
+  echo "cross-repo project references are not allowed in chummer6-mobile" >&2
   exit 1
 fi
 
 if find . -type d -name "Chummer.Contracts" | grep -q .; then
-  echo "duplicated shared contract source is not allowed in chummer-play" >&2
+  echo "duplicated shared contract source is not allowed in chummer6-mobile" >&2
   exit 1
 fi
 
 if find . -type d \( -name "Chummer.Engine.Contracts" -o -name "Chummer.Play.Contracts" -o -name "Chummer.Ui.Kit" \) | grep -q .; then
-  echo "shared package source trees are not allowed in chummer-play" >&2
+  echo "shared package source trees are not allowed in chummer6-mobile" >&2
+  exit 1
+fi
+
+if rg -n '\\b(class|record)\\s+(TokenCanon|ThemeCompiler|ShellChrome|AccessibilityState)\\b|\\b(static\\s+)?UiAdapterPayload\\s+Adapt(ShellChrome|AccessibilityState)\\s*\\(' src -g '*.cs' >/dev/null 2>&1; then
+  echo "source-copied ui-kit token/theme/shell/accessibility primitives are not allowed in chummer6-mobile" >&2
   exit 1
 fi
 
@@ -111,18 +120,43 @@ for package_reference in "${package_references[@]}"; do
       exit 1
       ;;
     Chummer.*)
-      echo "unsupported Chummer package reference in play repo: ${package_reference}" >&2
+      echo "unsupported Chummer package reference in chummer6-mobile: ${package_reference}" >&2
       exit 1
       ;;
   esac
 done
 
-rg -n 'WL-012 .*dedicated `/api/play/\*` surface' WORKLIST.md >/dev/null
-rg -n 'WL-013 .*browser offline cache ownership' WORKLIST.md >/dev/null
-rg -n 'WL-014 .*installable play shell for PWA usage' WORKLIST.md >/dev/null
-rg -n 'WL-009 .* done .*bootstrap' WORKLIST.md >/dev/null
-rg -n 'WL-010 .* done .*BrowserSessionApiClient' WORKLIST.md >/dev/null
-rg -n 'WL-011 .* done .*BrowserSessionEventLogStore' WORKLIST.md >/dev/null
+require_worklist_or_audit_pattern() {
+  local pattern="$1"
+  if rg -n "${pattern}" WORKLIST.md AUDIT_LOG.md >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "missing queue/audit traceability pattern: ${pattern}" >&2
+  exit 1
+}
+
+require_worklist_or_audit_pattern 'WL-012 .*dedicated `/api/play/\*` surface'
+require_worklist_or_audit_pattern 'WL-013 .*browser offline cache ownership'
+require_worklist_or_audit_pattern 'WL-014 .*installable play shell for PWA usage'
+require_worklist_or_audit_pattern 'WL-020 .* done .*executable mobile backlog slices'
+require_worklist_or_audit_pattern 'WL-021 .* done .*Close M10 hardening evidence gates'
+require_worklist_or_audit_pattern 'WL-022 .* done .*Close M11 finished-play-shell release gate'
+require_worklist_or_audit_pattern 'M10 .*WL-005, WL-020, WL-021'
+require_worklist_or_audit_pattern 'M11 .*WL-020, WL-022'
+require_worklist_or_audit_pattern 'TG-M10-AX .* done .*executable regression coverage'
+require_worklist_or_audit_pattern 'TG-M10-PF .* done .*verify.sh'
+require_worklist_or_audit_pattern 'TG-M10-RR .* done .*RegressionChecks/Program.cs'
+require_worklist_or_audit_pattern 'TG-M11-RG .* done '
+require_worklist_or_audit_pattern 'TG-M11-RG .*VerifyBootstrapRoleShellEntryPointsAsync.*VerifyQuickActionRejectsCrossRoleAuthorizationAsync'
+require_worklist_or_audit_pattern 'TG-M11-OC .* done '
+require_worklist_or_audit_pattern 'TG-M11-OC .*PlayApiRoutes.ContinuityClaim.*PlayApiRoutes.Observe'
+require_worklist_or_audit_pattern 'TG-M11-OC .*VerifyContinuityClaimRejectsStaleLineageWithoutMutationAsync.*VerifyObserveReturnsLineageSafeContinuityAsync'
+require_worklist_or_audit_pattern 'TG-M11-RC .* done '
+require_worklist_or_audit_pattern 'TG-M11-RC .*WL-021.*WL-022.*scripts/ai/verify.sh'
+require_worklist_or_audit_pattern 'WL-009 .* done .*bootstrap'
+require_worklist_or_audit_pattern 'WL-010 .* done .*BrowserSessionApiClient'
+require_worklist_or_audit_pattern 'WL-011 .* done .*BrowserSessionEventLogStore'
 rg -n 'published-feed cutover for `Chummer.Play.Contracts` and `Chummer.Ui.Kit`' docs/chummer-play.design.v1.md >/dev/null
 rg -n 'Milestone 4 dedicated play API ownership: `WL-004` aligns the contract family and `WL-012` owns the executable `/api/play/projection`, `/api/play/reconnect`, and `/api/play/sync` route surface' docs/chummer-play.design.v1.md >/dev/null
 rg -n 'Milestone 6 offline cache and local-first replay ownership: `WL-005` remains the sync/storage umbrella, `WL-011` owns browser-backed event-ledger persistence, and `WL-013` owns runtime bundle lineage, replay checkpoints, and resume metadata in browser storage' docs/chummer-play.design.v1.md >/dev/null
@@ -132,6 +166,8 @@ rg -n 'BrowserSessionOfflineCacheService.*owns runtime bundle cache metadata' do
 rg -n '/api/play/projection.* /api/play/reconnect.* /api/play/sync|/api/play/bootstrap.*role-aware shell bootstrap' docs/sync-model.md >/dev/null
 rg -n 'PlayApiRoutes\.Projection' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.Reconnect' src/Chummer.Play.Web >/dev/null
+rg -n 'PlayApiRoutes\.ContinuityClaim' src/Chummer.Play.Web >/dev/null
+rg -n 'PlayApiRoutes\.Observe' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.Sync' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.Resume' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.CachePressure' src/Chummer.Play.Web >/dev/null
@@ -160,6 +196,12 @@ rg -n 'VerifyEventLogRejectsSequenceRegressionAsync\(' src/Chummer.Play.Regressi
 rg -n 'VerifyStoredLineageStaleResponsesAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyOfflineQueueRejectsStaleLineageAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyIndexShellAccessibilityContractAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyBootstrapRoleShellEntryPointsAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyQuickActionRejectsCrossRoleAuthorizationAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyCachePressureBudgetContractAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'ClaimContinuityAsync\(' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
+rg -n 'ObserveAsync\(' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
 rg -n 'VerifyStoredLineageAlignment\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'IsLedgerAligned\(' src/Chummer.Play.Web/SessionLineage.cs >/dev/null
 rg -n 'Math\.Max\(ledgerBeforeAppend\.LastKnownSequence, cursor\.AppliedThroughSequence\) \+ 1' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
@@ -177,6 +219,7 @@ rg -n 'PlayCachePressureSnapshot' src/Chummer.Play.Core/PlayApi/PlaySessionModel
 rg -n 'PlayResumeResponse' src/Chummer.Play.Core/PlayApi/PlaySessionModels.cs >/dev/null
 rg -n '"start_url": "/index.html"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
 rg -n 'navigator\.serviceWorker\.register' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'role="status" aria-live="polite" aria-atomic="true"' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
 rg -n 'CACHE_VERSION' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'MEDIA_CACHE' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'MEDIA_MAX_ENTRIES' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
@@ -258,4 +301,4 @@ else
     bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
 fi
 
-echo "chummer-play verify ok"
+echo "chummer6-mobile verify ok"

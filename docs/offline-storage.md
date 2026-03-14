@@ -1,13 +1,13 @@
 # Offline Storage
 
-Initial storage rules for `chummer-play`:
+Initial storage rules for `chummer6-mobile`:
 
 - keep a local event ledger per session
 - keep runtime bundle fingerprints and sync checkpoints locally
 - cache play-safe media with bounded lifecycle rules
 - preserve enough state for reconnect + replay after offline use
 
-The storage layer belongs to `chummer-play`, not `chummer.run-services`.
+The storage layer belongs to `chummer6-mobile`, not `chummer6-hub`.
 
 Executable ownership in this repo:
 

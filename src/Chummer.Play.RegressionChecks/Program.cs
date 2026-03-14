@@ -12,45 +12,86 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
-await VerifyLedgerLineageResetAsync();
-await VerifyBootstrapProjectionPreservesReplayStateAsync();
-await VerifyMonotonicSequenceOwnershipAsync();
-await VerifyConcurrentEnqueueSequenceOwnershipAsync();
-await VerifySyncPrefixAcknowledgementAsync();
-await VerifySyncPreservesNewerLedgerSequenceAsync();
-VerifyCursorValidationRejectsNegativeSequence();
-await VerifyEventLogRejectsMalformedAppendAsync();
-await VerifyEventLogRejectsSequenceRegressionAsync();
-await VerifyEventLogPersistsAcrossServiceInstancesAsync();
-await VerifyOfflineQueueRejectsMalformedPendingEventsAsync();
-await VerifyOfflineQueueRejectsNegativeSequenceAsync();
-await VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync();
-await VerifyOfflineCacheRejectsMalformedCheckpointAndRuntimeEntryAsync();
-await VerifyOfflineCacheDropsMalformedStoredEntriesAsync();
-await VerifyOfflineCacheDropsUnparseableStoredEntriesAsync();
-await VerifyOfflineCacheRuntimeBundleQuotaEvictionAsync();
-await VerifyOfflineCacheReadTouchAffectsQuotaEvictionAsync();
-await VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync();
-await VerifyEventLogDropsMalformedStoredLedgerAsync();
-await VerifyEventLogDropsUnparseableStoredLedgerKeysAsync();
-await VerifyOfflineQueueRejectsStaleLineageAsync();
-await VerifyReconnectLineageTransitionContinuityAsync();
-await VerifyStoredLineageStaleResponsesAsync();
-await VerifyReconnectRejectsStaleLineageWithoutMutationAsync();
-await VerifyReconnectClientThrowsTypedStaleAsync();
-await VerifyQueueMutationLineageExceptionReturnsStaleAsync();
-await VerifyBootstrapRejectsStaleLineageWithoutLedgerResetAsync();
-await VerifyProjectionPrefersStoredLedgerWithoutCheckpointAsync();
-VerifyStoredStaleStatePrefersLedgerOverOlderCheckpoint();
-await VerifyResumePreservesLedgerWhenRuntimeBundleDriftsAsync();
-await VerifyResumeNormalizesCheckpointToLedgerLineageAsync();
-VerifyCheckpointLineageAlignment();
-VerifyStoredLineageAlignment();
+await RunCheckAsync(nameof(VerifyLedgerLineageResetAsync), VerifyLedgerLineageResetAsync);
+await RunCheckAsync(nameof(VerifyBootstrapProjectionPreservesReplayStateAsync), VerifyBootstrapProjectionPreservesReplayStateAsync);
+await RunCheckAsync(nameof(VerifyMonotonicSequenceOwnershipAsync), VerifyMonotonicSequenceOwnershipAsync);
+await RunCheckAsync(nameof(VerifyConcurrentEnqueueSequenceOwnershipAsync), VerifyConcurrentEnqueueSequenceOwnershipAsync);
+await RunCheckAsync(nameof(VerifySyncPrefixAcknowledgementAsync), VerifySyncPrefixAcknowledgementAsync);
+await RunCheckAsync(nameof(VerifySyncPreservesNewerLedgerSequenceAsync), VerifySyncPreservesNewerLedgerSequenceAsync);
+RunCheck(nameof(VerifyCursorValidationRejectsNegativeSequence), VerifyCursorValidationRejectsNegativeSequence);
+await RunCheckAsync(nameof(VerifyEventLogRejectsMalformedAppendAsync), VerifyEventLogRejectsMalformedAppendAsync);
+await RunCheckAsync(nameof(VerifyEventLogRejectsSequenceRegressionAsync), VerifyEventLogRejectsSequenceRegressionAsync);
+await RunCheckAsync(nameof(VerifyEventLogPersistsAcrossServiceInstancesAsync), VerifyEventLogPersistsAcrossServiceInstancesAsync);
+await RunCheckAsync(nameof(VerifyOfflineQueueRejectsMalformedPendingEventsAsync), VerifyOfflineQueueRejectsMalformedPendingEventsAsync);
+await RunCheckAsync(nameof(VerifyOfflineQueueRejectsNegativeSequenceAsync), VerifyOfflineQueueRejectsNegativeSequenceAsync);
+await RunCheckAsync(nameof(VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync), VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync);
+await RunCheckAsync(nameof(VerifyOfflineCacheRejectsMalformedCheckpointAndRuntimeEntryAsync), VerifyOfflineCacheRejectsMalformedCheckpointAndRuntimeEntryAsync);
+await RunCheckAsync(nameof(VerifyOfflineCacheDropsMalformedStoredEntriesAsync), VerifyOfflineCacheDropsMalformedStoredEntriesAsync);
+await RunCheckAsync(nameof(VerifyOfflineCacheDropsUnparseableStoredEntriesAsync), VerifyOfflineCacheDropsUnparseableStoredEntriesAsync);
+await RunCheckAsync(nameof(VerifyOfflineCacheRuntimeBundleQuotaEvictionAsync), VerifyOfflineCacheRuntimeBundleQuotaEvictionAsync);
+await RunCheckAsync(nameof(VerifyOfflineCacheReadsDoNotMutateQuotaEvictionAsync), VerifyOfflineCacheReadsDoNotMutateQuotaEvictionAsync);
+await RunCheckAsync(nameof(VerifyOfflineCacheReadDoesNotRewriteStoredMetadataAsync), VerifyOfflineCacheReadDoesNotRewriteStoredMetadataAsync);
+await RunCheckAsync(nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync), VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync);
+await RunCheckAsync(nameof(VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync), VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync);
+await RunCheckAsync(nameof(VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync), VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync);
+await RunCheckAsync(nameof(VerifyIndexShellAccessibilityContractAsync), VerifyIndexShellAccessibilityContractAsync);
+await RunCheckAsync(nameof(VerifyBootstrapRoleShellEntryPointsAsync), VerifyBootstrapRoleShellEntryPointsAsync);
+await RunCheckAsync(nameof(VerifyQuickActionRejectsCrossRoleAuthorizationAsync), VerifyQuickActionRejectsCrossRoleAuthorizationAsync);
+await RunCheckAsync(nameof(VerifyCachePressureBudgetContractAsync), VerifyCachePressureBudgetContractAsync);
+await RunCheckAsync(nameof(VerifyEventLogDropsMalformedStoredLedgerAsync), VerifyEventLogDropsMalformedStoredLedgerAsync);
+await RunCheckAsync(nameof(VerifyEventLogDropsUnparseableStoredLedgerKeysAsync), VerifyEventLogDropsUnparseableStoredLedgerKeysAsync);
+await RunCheckAsync(nameof(VerifyOfflineQueueRejectsStaleLineageAsync), VerifyOfflineQueueRejectsStaleLineageAsync);
+await RunCheckAsync(nameof(VerifyReconnectLineageTransitionContinuityAsync), VerifyReconnectLineageTransitionContinuityAsync);
+await RunCheckAsync(nameof(VerifyStoredLineageStaleResponsesAsync), VerifyStoredLineageStaleResponsesAsync);
+await RunCheckAsync(nameof(VerifyReconnectRejectsStaleLineageWithoutMutationAsync), VerifyReconnectRejectsStaleLineageWithoutMutationAsync);
+await RunCheckAsync(nameof(VerifyReconnectClientThrowsTypedStaleAsync), VerifyReconnectClientThrowsTypedStaleAsync);
+await RunCheckAsync(nameof(VerifyContinuityClaimRejectsStaleLineageWithoutMutationAsync), VerifyContinuityClaimRejectsStaleLineageWithoutMutationAsync);
+await RunCheckAsync(nameof(VerifyContinuityClaimRejectsUnknownSessionWithoutMutationAsync), VerifyContinuityClaimRejectsUnknownSessionWithoutMutationAsync);
+await RunCheckAsync(nameof(VerifyObserveDoesNotSeedStateForEmptySessionAsync), VerifyObserveDoesNotSeedStateForEmptySessionAsync);
+await RunCheckAsync(nameof(VerifyObserveDoesNotMutateStoredStateOrReturnStaleRuntimeBundleAsync), VerifyObserveDoesNotMutateStoredStateOrReturnStaleRuntimeBundleAsync);
+await RunCheckAsync(nameof(VerifyObserveKeepsRequestedSessionIdWhenStoredCheckpointDriftsAsync), VerifyObserveKeepsRequestedSessionIdWhenStoredCheckpointDriftsAsync);
+await RunCheckAsync(nameof(VerifyObserveReturnsLineageSafeContinuityAsync), VerifyObserveReturnsLineageSafeContinuityAsync);
+await RunCheckAsync(nameof(VerifyObservePreservesContinuityWhenClaimCursorLeadsLedgerAsync), VerifyObservePreservesContinuityWhenClaimCursorLeadsLedgerAsync);
+await RunCheckAsync(nameof(VerifyObserveRouteRoundTripAsync), VerifyObserveRouteRoundTripAsync);
+await RunCheckAsync(nameof(VerifyQueueMutationLineageExceptionReturnsStaleAsync), VerifyQueueMutationLineageExceptionReturnsStaleAsync);
+await RunCheckAsync(nameof(VerifyBootstrapRejectsStaleLineageWithoutLedgerResetAsync), VerifyBootstrapRejectsStaleLineageWithoutLedgerResetAsync);
+await RunCheckAsync(nameof(VerifyProjectionPrefersStoredLedgerWithoutCheckpointAsync), VerifyProjectionPrefersStoredLedgerWithoutCheckpointAsync);
+RunCheck(nameof(VerifyStoredStaleStatePrefersLedgerOverOlderCheckpoint), VerifyStoredStaleStatePrefersLedgerOverOlderCheckpoint);
+await RunCheckAsync(nameof(VerifyResumePreservesLedgerWhenRuntimeBundleDriftsAsync), VerifyResumePreservesLedgerWhenRuntimeBundleDriftsAsync);
+await RunCheckAsync(nameof(VerifyResumeNormalizesCheckpointToLedgerLineageAsync), VerifyResumeNormalizesCheckpointToLedgerLineageAsync);
+await RunCheckAsync(nameof(VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync), VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync);
+RunCheck(nameof(VerifyCheckpointLineageAlignment), VerifyCheckpointLineageAlignment);
+RunCheck(nameof(VerifyStoredLineageAlignment), VerifyStoredLineageAlignment);
 
-Console.WriteLine("chummer-play regression checks ok");
+Console.WriteLine("chummer6-mobile regression checks ok");
+
+static void RunCheck(string name, Action action)
+{
+    TraceCheckBoundary("START", name);
+    action();
+    TraceCheckBoundary("OK", name);
+}
+
+static async Task RunCheckAsync(string name, Func<Task> action)
+{
+    TraceCheckBoundary("START", name);
+    await action();
+    TraceCheckBoundary("OK", name);
+}
+
+static void TraceCheckBoundary(string phase, string name)
+{
+    if (!string.Equals(Environment.GetEnvironmentVariable("CHUMMER_REGRESSION_TRACE"), "1", StringComparison.Ordinal))
+    {
+        return;
+    }
+
+    Console.Error.WriteLine($"{phase} {name}");
+}
 
 static async Task VerifyLedgerLineageResetAsync()
 {
@@ -487,7 +528,7 @@ static async Task VerifyOfflineCacheRuntimeBundleQuotaEvictionAsync()
     Assert(pressure.BackpressureActive, "offline cache pressure must report near-quota state at runtime bundle limit");
 }
 
-static async Task VerifyOfflineCacheReadTouchAffectsQuotaEvictionAsync()
+static async Task VerifyOfflineCacheReadsDoNotMutateQuotaEvictionAsync()
 {
     var cache = new BrowserSessionOfflineCacheService(new InMemoryBrowserKeyValueStore());
     var baseTime = DateTimeOffset.UtcNow.AddMinutes(-30);
@@ -520,11 +561,99 @@ static async Task VerifyOfflineCacheReadTouchAffectsQuotaEvictionAsync()
         )
     );
 
-    var oldestUntouched = await cache.GetRuntimeBundleAsync("session-cache-touch-2");
-    Assert(oldestUntouched is null, "quota eviction must evict the oldest untouched runtime bundle after read-touch");
-
     var touchedAfterEviction = await cache.GetRuntimeBundleAsync("session-cache-touch-1");
-    Assert(touchedAfterEviction is not null, "read-touch must keep recently validated runtime bundles through quota eviction");
+    Assert(touchedAfterEviction is null, "runtime-bundle reads must not rewrite cache order or shield the oldest entry from quota eviction");
+
+    var nextOldest = await cache.GetRuntimeBundleAsync("session-cache-touch-2");
+    Assert(nextOldest is not null, "quota eviction must preserve newer entries when reads do not mutate stored runtime metadata");
+}
+
+static async Task VerifyOfflineCacheReadDoesNotRewriteStoredMetadataAsync()
+{
+    var browserStore = new InMemoryBrowserKeyValueStore();
+    var cache = new BrowserSessionOfflineCacheService(browserStore);
+    const string sessionId = "session-cache-touch-no-write";
+    var baseTime = DateTimeOffset.UtcNow.AddMinutes(-5);
+    var key = PlayBrowserStateKeys.RuntimeBundle(sessionId);
+    var initialTimestamp = baseTime;
+
+    await cache.CacheRuntimeBundleAsync(
+        new RuntimeBundleCacheEntry(
+            sessionId,
+            "runtime-initial",
+            "scene-r1",
+            "bundle-initial",
+            initialTimestamp,
+            initialTimestamp
+        )
+    );
+
+    var readResult = await cache.GetRuntimeBundleAsync(sessionId);
+    Assert(readResult is not null, "runtime bundle read regression requires a readable entry");
+    Assert(readResult.LastValidatedAtUtc >= initialTimestamp, "runtime bundle reads should still surface a fresh validation timestamp to callers");
+
+    var storedEntry = await browserStore.GetAsync<RuntimeBundleCacheEntry>(key);
+    Assert(storedEntry is not null, "runtime bundle entry must remain stored after read");
+    Assert(storedEntry.RuntimeFingerprint == "runtime-initial", "runtime bundle reads must not rewrite stored runtime fingerprint metadata");
+    Assert(storedEntry.SceneRevision == "scene-r1", "runtime bundle reads must not rewrite stored scene revision metadata");
+    Assert(storedEntry.BundleTag == "bundle-initial", "runtime bundle reads must not rewrite stored bundle tag metadata");
+    Assert(storedEntry.LastValidatedAtUtc == initialTimestamp, "runtime bundle reads must not persist a write-on-read timestamp update");
+}
+
+static async Task VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync()
+{
+    const string sessionId = "session-cache-touch-same-session";
+    var key = PlayBrowserStateKeys.RuntimeBundle(sessionId);
+    var gate = new GateableGetBrowserStore(key);
+    var cache = new BrowserSessionOfflineCacheService(gate);
+    var initialTimestamp = DateTimeOffset.UtcNow.AddMinutes(-10);
+
+    await cache.CacheRuntimeBundleAsync(
+        new RuntimeBundleCacheEntry(
+            sessionId,
+            "runtime-initial",
+            "scene-r1",
+            "bundle-initial",
+            initialTimestamp,
+            initialTimestamp
+        )
+    );
+    gate.EnableGate();
+    TraceCheckBoundary("STEP", $"{nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync)} seeded initial entry");
+
+    var readTask = Task.Run(() => cache.GetRuntimeBundleAsync(sessionId));
+    TraceCheckBoundary("STEP", $"{nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync)} waiting for gated read");
+    await gate.WaitForGetAsync();
+    TraceCheckBoundary("STEP", $"{nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync)} gated read started");
+
+    var updatedTimestamp = initialTimestamp.AddMinutes(5);
+    var writeTask = Task.Run(() => cache.CacheRuntimeBundleAsync(
+        new RuntimeBundleCacheEntry(
+            sessionId,
+            "runtime-updated",
+            "scene-r2",
+            "bundle-updated",
+            updatedTimestamp,
+            updatedTimestamp
+        )
+    ));
+    TraceCheckBoundary("STEP", $"{nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync)} queued concurrent write");
+
+    gate.ReleaseGet();
+    TraceCheckBoundary("STEP", $"{nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync)} released gated read");
+    var readResult = await readTask;
+    TraceCheckBoundary("STEP", $"{nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync)} read completed");
+    await writeTask;
+    TraceCheckBoundary("STEP", $"{nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync)} write completed");
+
+    Assert(readResult is not null, "same-session interleaving regression requires the read side to complete");
+    var storedEntry = await gate.GetAsync<RuntimeBundleCacheEntry>(key);
+    Assert(storedEntry is not null, "same-session interleaving regression requires the runtime bundle entry to remain stored");
+    Assert(storedEntry.RuntimeFingerprint == "runtime-updated", "same-session read/write interleaving must preserve the newest runtime fingerprint");
+    Assert(storedEntry.SceneRevision == "scene-r2", "same-session read/write interleaving must preserve the newest scene revision");
+    Assert(storedEntry.BundleTag == "bundle-updated", "same-session read/write interleaving must preserve the newest bundle tag");
+    Assert(storedEntry.CachedAtUtc == updatedTimestamp, "same-session read/write interleaving must preserve the newest cache timestamp");
+    Assert(storedEntry.LastValidatedAtUtc == updatedTimestamp, "same-session read/write interleaving must not let the read path clobber stored validation time");
 }
 
 static async Task VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync()
@@ -559,6 +688,184 @@ static async Task VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsyn
     Assert(keys.Count == 8, "runtime-bundle keyspace should contain only bounded valid entries after pruning unparseable keys");
     Assert(!keys.Contains(malformedKeyA, StringComparer.Ordinal), "runtime-bundle cache should prune unparseable keys before quota accounting");
     Assert(!keys.Contains(malformedKeyB, StringComparer.Ordinal), "runtime-bundle cache should prune all unparseable keys before quota accounting");
+}
+
+static async Task VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync()
+{
+    var browserStore = new DelayedMutationBrowserStore(TimeSpan.FromMilliseconds(25));
+    var cache = new BrowserSessionOfflineCacheService(browserStore);
+    var baseTime = DateTimeOffset.UtcNow.AddMinutes(-90);
+    var releaseWriters = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    var readyCount = 0;
+
+    for (var i = 1; i <= 8; i++)
+    {
+        await cache.CacheRuntimeBundleAsync(
+            new RuntimeBundleCacheEntry(
+                $"session-cache-concurrent-{i}",
+                $"runtime-concurrent-{i}",
+                $"scene-concurrent-r{i}",
+                $"bundle-concurrent-{i}",
+                baseTime.AddMinutes(i),
+                baseTime.AddMinutes(i)
+            )
+        );
+    }
+
+    Task writeNine = Task.Run(async () =>
+    {
+        if (Interlocked.Increment(ref readyCount) == 2)
+        {
+            releaseWriters.TrySetResult();
+        }
+
+        await releaseWriters.Task;
+        await cache.CacheRuntimeBundleAsync(
+            new RuntimeBundleCacheEntry(
+                "session-cache-concurrent-9",
+                "runtime-concurrent-9",
+                "scene-concurrent-r9",
+                "bundle-concurrent-9",
+                baseTime.AddMinutes(9),
+                baseTime.AddMinutes(9)
+            )
+        );
+    });
+
+    Task writeTen = Task.Run(async () =>
+    {
+        if (Interlocked.Increment(ref readyCount) == 2)
+        {
+            releaseWriters.TrySetResult();
+        }
+
+        await releaseWriters.Task;
+        await cache.CacheRuntimeBundleAsync(
+            new RuntimeBundleCacheEntry(
+                "session-cache-concurrent-10",
+                "runtime-concurrent-10",
+                "scene-concurrent-r10",
+                "bundle-concurrent-10",
+                baseTime.AddMinutes(10),
+                baseTime.AddMinutes(10)
+            )
+        );
+    });
+
+    await Task.WhenAll(writeNine, writeTen);
+
+    var keys = await browserStore.ListKeysAsync(PlayBrowserStateKeys.RuntimeBundlePrefix);
+    Assert(keys.Count == 8, "concurrent cross-session quota writes must preserve the global runtime-bundle quota");
+    Assert(await cache.GetRuntimeBundleAsync("session-cache-concurrent-1") is null, "first oldest runtime bundle must be evicted under concurrent quota pressure");
+    Assert(await cache.GetRuntimeBundleAsync("session-cache-concurrent-2") is null, "second oldest runtime bundle must be evicted under concurrent quota pressure");
+    Assert(await cache.GetRuntimeBundleAsync("session-cache-concurrent-9") is not null, "first concurrent write must survive quota reconciliation");
+    Assert(await cache.GetRuntimeBundleAsync("session-cache-concurrent-10") is not null, "second concurrent write must survive quota reconciliation");
+}
+
+static async Task VerifyIndexShellAccessibilityContractAsync()
+{
+    var indexHtmlPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "index.html");
+    var html = await File.ReadAllTextAsync(indexHtmlPath);
+
+    Assert(html.Contains("<html lang=\"en\">", StringComparison.Ordinal), "play shell must declare an explicit document language");
+    Assert(html.Contains("<main>", StringComparison.Ordinal), "play shell must expose a main landmark");
+    Assert(html.Contains("<h1>Chummer Play</h1>", StringComparison.Ordinal), "play shell must expose a top-level heading");
+    Assert(html.Contains("id=\"output\" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"", StringComparison.Ordinal), "play shell resume status region must expose polite live updates");
+}
+
+static Task VerifyBootstrapRoleShellEntryPointsAsync()
+{
+    var playerCapabilities = PlayRouteHandlers.ResolveRoleCapabilities(
+        PlayRouteHandlers.ToSnapshot(PlayerShellModule.CreateDescriptor())
+    );
+    var gmCapabilities = PlayRouteHandlers.ResolveRoleCapabilities(
+        PlayRouteHandlers.ToSnapshot(GmTacticalShellModule.CreateDescriptor())
+    );
+    var playerActions = PlayRouteHandlers.BuildQuickActions(PlaySurfaceRole.Player, playerCapabilities);
+    var gmActions = PlayRouteHandlers.BuildQuickActions(PlaySurfaceRole.GameMaster, gmCapabilities);
+
+    Assert(playerActions.Count > 0, "player bootstrap entry points must expose quick actions");
+    Assert(gmActions.Count > 0, "gm bootstrap entry points must expose quick actions");
+    Assert(playerActions.All(action => !action.ActionId.StartsWith("gm-", StringComparison.Ordinal)), "player role entry points must not expose gm quick actions");
+    Assert(gmActions.All(action => !action.ActionId.StartsWith("player-", StringComparison.Ordinal)), "gm role entry points must not expose player quick actions");
+    Assert(playerActions.All(action => !string.IsNullOrWhiteSpace(action.Label)), "player role entry points must expose non-empty action labels");
+    Assert(gmActions.All(action => !string.IsNullOrWhiteSpace(action.Label)), "gm role entry points must expose non-empty action labels");
+    return Task.CompletedTask;
+}
+
+static async Task VerifyQuickActionRejectsCrossRoleAuthorizationAsync()
+{
+    const string sessionId = "session-role-gate";
+    var store = new BrowserSessionEventLogStore(new InMemoryBrowserKeyValueStore());
+    var cache = new BrowserSessionOfflineCacheService(new InMemoryBrowserKeyValueStore());
+    var queue = new BrowserSessionOfflineQueueService(store, cache);
+    var session = new EngineSessionEnvelope(sessionId, "scene-role", "scene-r2", "runtime-role");
+    await store.AppendPendingEventsAsync(
+        session.SessionId,
+        session.SceneId,
+        session.SceneRevision,
+        session.RuntimeFingerprint,
+        ["evt-existing"],
+        5
+    );
+    await cache.SetCheckpointAsync(
+        new SyncCheckpoint(
+            session.SessionId,
+            session.SceneId,
+            session.SceneRevision,
+            session.RuntimeFingerprint,
+            5,
+            DateTimeOffset.UtcNow
+        )
+    );
+
+    var response = await ExecuteResultAsync<PlayQuickActionResponse>(
+        await PlayRouteHandlers.HandleQuickActionAsync(
+            new PlayQuickActionRequest(new EngineSessionCursor(session, 5), PlaySurfaceRole.Player, "gm-advance-initiative"),
+            cache,
+            store,
+            queue,
+            PlayerShellModule.CreateDescriptor(),
+            GmTacticalShellModule.CreateDescriptor(),
+            CancellationToken.None
+        )
+    );
+
+    Assert(!response.Accepted, "cross-role quick action must be denied");
+    Assert(!response.Stale, "cross-role quick action denial must be authorization-based, not stale-lineage");
+    Assert(response.Reason == "action not permitted for role capabilities", "cross-role quick action denial must return deterministic reason");
+    Assert(response.Projection.Cursor.AppliedThroughSequence == 5, "cross-role quick action denial must preserve sequence ownership");
+    Assert(response.Projection.Cursor.Session.SceneId == "scene-role", "cross-role quick action denial must preserve lineage");
+
+    var ledger = await store.GetExistingAsync(sessionId);
+    Assert(ledger is not null, "cross-role quick action denial must preserve existing ledger");
+    Assert(ledger!.LastKnownSequence == 5, "cross-role quick action denial must not mutate sequence ownership");
+    Assert(ledger.PendingEvents.SequenceEqual(["evt-existing"]), "cross-role quick action denial must not mutate pending events");
+}
+
+static async Task VerifyCachePressureBudgetContractAsync()
+{
+    var cache = new BrowserSessionOfflineCacheService(new InMemoryBrowserKeyValueStore());
+    var baseTime = DateTimeOffset.UtcNow.AddMinutes(-30);
+
+    for (var i = 1; i <= 9; i++)
+    {
+        await cache.CacheRuntimeBundleAsync(
+            new RuntimeBundleCacheEntry(
+                $"session-budget-{i}",
+                $"runtime-budget-{i}",
+                $"scene-budget-r{i}",
+                $"bundle-budget-{i}",
+                baseTime.AddMinutes(i),
+                baseTime.AddMinutes(i)
+            )
+        );
+    }
+
+    var pressure = await cache.GetCachePressureAsync();
+    Assert(pressure.RuntimeBundleCount == pressure.RuntimeBundleQuota, "runtime-bundle cache pressure must stay bounded at quota");
+    Assert(pressure.RuntimeBundleQuota == 8, "runtime-bundle cache pressure must preserve the M10 quota budget");
+    Assert(pressure.BackpressureActive, "runtime-bundle cache pressure must report backpressure when at budget");
 }
 
 static async Task VerifyOfflineQueueRejectsStaleLineageAsync()
@@ -881,6 +1188,429 @@ static async Task VerifyReconnectClientThrowsTypedStaleAsync()
     Assert(staleException.Checkpoint.AppliedThroughSequence == 12, "typed stale reconnect exception must include stored checkpoint sequence ownership");
 }
 
+static async Task VerifyContinuityClaimRejectsStaleLineageWithoutMutationAsync()
+{
+    const string sessionId = "session-continuity-stale";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var store = app.Services.GetRequiredService<BrowserSessionEventLogStore>();
+        var cache = app.Services.GetRequiredService<BrowserSessionOfflineCacheService>();
+        await store.AppendPendingEventsAsync(sessionId, "scene-stored", "scene-r7", "runtime-stored", ["evt-stored"], 6);
+        await cache.SetCheckpointAsync(
+            new SyncCheckpoint(sessionId, "scene-stored", "scene-r7", "runtime-stored", 6, DateTimeOffset.UtcNow)
+        );
+
+        var staleResultResponse = await PlayRouteHandlers.HandleContinuityClaimAsync(
+            new PlayContinuityClaimRequest(
+                new EngineSessionCursor(
+                    new EngineSessionEnvelope(sessionId, "scene-request", "scene-r1", "runtime-request"),
+                    2
+                ),
+                PlaySurfaceRole.Player,
+                "device-request",
+                "observer-request"
+            ),
+            store,
+            cache,
+            app.Services.GetRequiredService<IBrowserKeyValueStore>(),
+            CancellationToken.None
+        );
+        var staleResult = await ExecuteResultAsync<PlayContinuityClaimResponse>(staleResultResponse);
+
+        Assert(!staleResult.Accepted, "stale continuity claim must not be accepted");
+        Assert(staleResult.Stale, "stale continuity claim must mark stale lineage");
+        Assert(staleResult.Reason == "session lineage changed", "stale continuity claim must return stale reason");
+        Assert(staleResult.Projection.Cursor.Session.SceneId == "scene-stored", "stale continuity claim must preserve stored scene lineage");
+        Assert(staleResult.Checkpoint.SceneRevision == "scene-r7", "stale continuity claim must preserve stored checkpoint lineage");
+
+        var ledgerAfterClaim = await store.GetExistingAsync(sessionId);
+        Assert(ledgerAfterClaim is not null, "stale continuity claim must keep existing ledger");
+        Assert(ledgerAfterClaim!.SceneId == "scene-stored", "stale continuity claim must not mutate stored ledger scene");
+        Assert(ledgerAfterClaim.LastKnownSequence == 6, "stale continuity claim must not mutate stored sequence ownership");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyContinuityClaimRejectsUnknownSessionWithoutMutationAsync()
+{
+    const string sessionId = "session-continuity-unknown";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var store = app.Services.GetRequiredService<BrowserSessionEventLogStore>();
+        var cache = app.Services.GetRequiredService<BrowserSessionOfflineCacheService>();
+        var browserStore = app.Services.GetRequiredService<IBrowserKeyValueStore>();
+
+        var resultResponse = await PlayRouteHandlers.HandleContinuityClaimAsync(
+            new PlayContinuityClaimRequest(
+                new EngineSessionCursor(
+                    new EngineSessionEnvelope(sessionId, "scene-unknown", "scene-r1", "runtime-unknown"),
+                    3
+                ),
+                PlaySurfaceRole.Player,
+                "device-unknown",
+                "observer-unknown"
+            ),
+            store,
+            cache,
+            browserStore,
+            CancellationToken.None
+        );
+        var result = await ExecuteResultAsync<PlayContinuityClaimResponse>(resultResponse);
+
+        Assert(!result.Accepted, "unknown-session continuity claim must not be accepted");
+        Assert(!result.Stale, "unknown-session continuity claim must not report stale lineage");
+        Assert(result.Reason == "session not bootstrapped", "unknown-session continuity claim must require trusted bootstrap lineage");
+
+        var ledgerAfterClaim = await store.GetExistingAsync(sessionId);
+        Assert(ledgerAfterClaim is null, "unknown-session continuity claim must not create ledger state");
+
+        var checkpointAfterClaim = await cache.GetCheckpointAsync(sessionId);
+        Assert(checkpointAfterClaim is null, "unknown-session continuity claim must not create checkpoint state");
+
+        var continuityAfterClaim = await browserStore.GetAsync<ObserverContinuityEntry>(PlayBrowserStateKeys.Continuity(sessionId));
+        Assert(continuityAfterClaim is null, "unknown-session continuity claim must not create continuity state");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyObserveReturnsLineageSafeContinuityAsync()
+{
+    const string sessionId = "session-observe-continuity";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var store = app.Services.GetRequiredService<BrowserSessionEventLogStore>();
+        var cache = app.Services.GetRequiredService<BrowserSessionOfflineCacheService>();
+        var browserStore = app.Services.GetRequiredService<IBrowserKeyValueStore>();
+        await store.AppendPendingEventsAsync(sessionId, "scene-observe", "scene-r9", "runtime-observe", ["evt-pending"], 9);
+        await cache.SetCheckpointAsync(
+            new SyncCheckpoint(sessionId, "scene-observe", "scene-r9", "runtime-observe", 9, DateTimeOffset.UtcNow)
+        );
+        await cache.CacheRuntimeBundleAsync(sessionId, "runtime-observe", "scene-r9", "bundle:scene-observe:runtime-observe");
+
+        var claimResult = await PlayRouteHandlers.HandleContinuityClaimAsync(
+            new PlayContinuityClaimRequest(
+                new EngineSessionCursor(
+                    new EngineSessionEnvelope(sessionId, "scene-observe", "scene-r9", "runtime-observe"),
+                    9
+                ),
+                PlaySurfaceRole.GameMaster,
+                "device-gm-a",
+                "observer-gm-a"
+            ),
+            store,
+            cache,
+            browserStore,
+            CancellationToken.None
+        );
+        var continuityClaim = await ExecuteResultAsync<PlayContinuityClaimResponse>(claimResult);
+        Assert(continuityClaim.Accepted, "continuity claim must be accepted for aligned lineage");
+        Assert(!continuityClaim.Stale, "continuity claim must not be stale for aligned lineage");
+
+        var observeResult = await PlayRouteHandlers.HandleObserveAsync(
+            sessionId,
+            store,
+            cache,
+            browserStore,
+            CancellationToken.None
+        );
+        var observe = await ExecuteResultAsync<PlayObserveResponse>(observeResult);
+        Assert(observe.Continuity is not null, "observe must return continuity metadata after accepted claim");
+        Assert(observe.Continuity!.ObserverId == "observer-gm-a", "observe must return stored observer id");
+        Assert(observe.Continuity.DeviceId == "device-gm-a", "observe must return stored device id");
+        Assert(observe.Continuity.ObservedThroughSequence == 9, "observe must preserve continuity sequence ownership");
+        Assert(observe.RuntimeBundle is not null, "observe must return runtime bundle metadata for cross-device resume");
+        Assert(observe.Projection.Timeline.Contains("pending:evt-pending", StringComparer.Ordinal), "observe must preserve stored pending replay events");
+
+        await browserStore.SetAsync(
+            PlayBrowserStateKeys.Continuity(sessionId),
+            new ObserverContinuityEntry(
+                sessionId,
+                "scene-old",
+                "scene-r1",
+                "runtime-old",
+                "observer-old",
+                "device-old",
+                PlaySurfaceRole.Player,
+                12,
+                DateTimeOffset.UtcNow,
+                "old-token"
+            )
+        );
+
+        var observeAfterTamperResult = await PlayRouteHandlers.HandleObserveAsync(
+            sessionId,
+            store,
+            cache,
+            browserStore,
+            CancellationToken.None
+        );
+        var observeAfterTamper = await ExecuteResultAsync<PlayObserveResponse>(observeAfterTamperResult);
+        Assert(observeAfterTamper.Continuity is null, "observe must drop stale/mismatched continuity metadata");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyObserveDoesNotSeedStateForEmptySessionAsync()
+{
+    const string sessionId = "session-observe-empty";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var store = app.Services.GetRequiredService<BrowserSessionEventLogStore>();
+        var cache = app.Services.GetRequiredService<BrowserSessionOfflineCacheService>();
+        var browserStore = app.Services.GetRequiredService<IBrowserKeyValueStore>();
+
+        var observeResult = await PlayRouteHandlers.HandleObserveAsync(
+            sessionId,
+            store,
+            cache,
+            browserStore,
+            CancellationToken.None
+        );
+        var observe = await ExecuteResultAsync<PlayObserveResponse>(observeResult);
+
+        Assert(observe.SessionId == sessionId, "observe must preserve requested session id on empty state");
+        Assert(observe.Checkpoint.SceneId == "scene-main", "observe must return fallback scene metadata on empty state");
+        Assert(observe.Checkpoint.ProjectionFingerprint == "runtime-local", "observe must return fallback runtime metadata on empty state");
+        Assert(observe.Projection.Cursor.AppliedThroughSequence == 0, "observe must start empty-state projections at sequence zero");
+        Assert(observe.Continuity is null, "observe must not synthesize continuity metadata on empty state");
+
+        var ledgerAfterObserve = await store.GetExistingAsync(sessionId);
+        var checkpointAfterObserve = await cache.GetCheckpointAsync(sessionId);
+        Assert(ledgerAfterObserve is null, "observe must not create a ledger for an empty session");
+        Assert(checkpointAfterObserve is null, "observe must not persist a checkpoint for an empty session");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyObserveDoesNotMutateStoredStateOrReturnStaleRuntimeBundleAsync()
+{
+    const string sessionId = "session-observe-stored";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var store = app.Services.GetRequiredService<BrowserSessionEventLogStore>();
+        var cache = app.Services.GetRequiredService<BrowserSessionOfflineCacheService>();
+        var browserStore = app.Services.GetRequiredService<IBrowserKeyValueStore>();
+        await store.AppendPendingEventsAsync(sessionId, "scene-observe", "scene-r9", "runtime-observe", ["evt-pending"], 9);
+        await cache.SetCheckpointAsync(
+            new SyncCheckpoint(sessionId, "scene-observe", "scene-r9", "runtime-observe", 9, DateTimeOffset.UtcNow.AddMinutes(-5))
+        );
+        await cache.CacheRuntimeBundleAsync(sessionId, "runtime-stale", "scene-r1", "bundle:scene-observe:runtime-stale");
+
+        var ledgerBeforeObserve = await store.GetExistingAsync(sessionId);
+        var checkpointBeforeObserve = await cache.GetCheckpointAsync(sessionId);
+
+        var observeResult = await PlayRouteHandlers.HandleObserveAsync(
+            sessionId,
+            store,
+            cache,
+            browserStore,
+            CancellationToken.None
+        );
+        var observe = await ExecuteResultAsync<PlayObserveResponse>(observeResult);
+
+        var ledgerAfterObserve = await store.GetExistingAsync(sessionId);
+        var checkpointAfterObserve = await cache.GetCheckpointAsync(sessionId);
+
+        Assert(observe.RuntimeBundle is null, "observe must drop runtime bundle metadata when its lineage no longer matches stored state");
+        Assert(observe.Checkpoint.SceneRevision == "scene-r9", "observe must keep stored checkpoint scene revision");
+        Assert(observe.Checkpoint.ProjectionFingerprint == "runtime-observe", "observe must keep stored checkpoint runtime fingerprint");
+        Assert(observe.Projection.Timeline.Contains("pending:evt-pending", StringComparer.Ordinal), "observe must preserve stored pending replay events");
+        Assert(Equals(ledgerBeforeObserve, ledgerAfterObserve), "observe must not mutate the stored ledger during a read path");
+        Assert(Equals(checkpointBeforeObserve, checkpointAfterObserve), "observe must not rewrite the stored checkpoint during a read path");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyObserveKeepsRequestedSessionIdWhenStoredCheckpointDriftsAsync()
+{
+    const string sessionId = "session-observe-route";
+    const string driftedSessionId = "session-observe-drift";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var browserStore = app.Services.GetRequiredService<IBrowserKeyValueStore>();
+        await browserStore.SetAsync(
+            PlayBrowserStateKeys.Checkpoint(sessionId),
+            new SyncCheckpoint(driftedSessionId, "scene-observe", "scene-r11", "runtime-observe", 11, DateTimeOffset.UtcNow)
+        );
+        await browserStore.SetAsync(
+            PlayBrowserStateKeys.Continuity(driftedSessionId),
+            new ObserverContinuityEntry(
+                driftedSessionId,
+                "scene-observe",
+                "scene-r11",
+                "runtime-observe",
+                "observer-drift",
+                "device-drift",
+                PlaySurfaceRole.Player,
+                11,
+                DateTimeOffset.UtcNow,
+                "token-drift"
+            )
+        );
+        await browserStore.SetAsync(
+            PlayBrowserStateKeys.Continuity(sessionId),
+            new ObserverContinuityEntry(
+                sessionId,
+                "scene-observe",
+                "scene-r11",
+                "runtime-observe",
+                "observer-route",
+                "device-route",
+                PlaySurfaceRole.GameMaster,
+                11,
+                DateTimeOffset.UtcNow,
+                "token-route"
+            )
+        );
+
+        var observe = await ExecuteRouteRequestAsync<PlayObserveResponse>(
+            app,
+            HttpMethod.Get,
+            PlayApiRoutes.Observe,
+            routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId }
+        );
+
+        Assert(observe.SessionId == sessionId, "observe route must preserve the requested session id");
+        Assert(observe.Checkpoint.SessionId == sessionId, "observe checkpoint must normalize corrupted stored session ids back to the route session id");
+        Assert(observe.Projection.Cursor.Session.SessionId == sessionId, "observe projection must keep the route session id authoritative");
+        Assert(observe.Continuity is not null, "observe should return continuity stored under the requested session id when lineage matches");
+        Assert(observe.Continuity!.ObserverId == "observer-route", "observe must not read continuity data from a drifted stored session id");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyObservePreservesContinuityWhenClaimCursorLeadsLedgerAsync()
+{
+    const string sessionId = "session-observe-claim-ahead";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var store = app.Services.GetRequiredService<BrowserSessionEventLogStore>();
+        var cache = app.Services.GetRequiredService<BrowserSessionOfflineCacheService>();
+        var browserStore = app.Services.GetRequiredService<IBrowserKeyValueStore>();
+        await store.AppendPendingEventsAsync(sessionId, "scene-observe", "scene-r12", "runtime-observe", ["evt-pending"], 9);
+        await cache.SetCheckpointAsync(
+            new SyncCheckpoint(sessionId, "scene-observe", "scene-r12", "runtime-observe", 9, DateTimeOffset.UtcNow)
+        );
+
+        var claimResult = await PlayRouteHandlers.HandleContinuityClaimAsync(
+            new PlayContinuityClaimRequest(
+                new EngineSessionCursor(
+                    new EngineSessionEnvelope(sessionId, "scene-observe", "scene-r12", "runtime-observe"),
+                    12
+                ),
+                PlaySurfaceRole.Player,
+                "device-player-a",
+                "observer-player-a"
+            ),
+            store,
+            cache,
+            browserStore,
+            CancellationToken.None
+        );
+        var continuityClaim = await ExecuteResultAsync<PlayContinuityClaimResponse>(claimResult);
+        Assert(continuityClaim.Accepted, "continuity claim should be accepted when cursor leads ledger but lineage matches");
+        Assert(continuityClaim.Checkpoint.AppliedThroughSequence == 12, "continuity claim must align checkpoint to the leading cursor sequence");
+
+        var observeResult = await PlayRouteHandlers.HandleObserveAsync(
+            sessionId,
+            store,
+            cache,
+            browserStore,
+            CancellationToken.None
+        );
+        var observe = await ExecuteResultAsync<PlayObserveResponse>(observeResult);
+        Assert(observe.Continuity is not null, "observe must preserve continuity metadata after a leading-cursor claim");
+        Assert(observe.Continuity!.ObservedThroughSequence == 12, "observe continuity sequence must match checkpoint-aligned claim sequence");
+        Assert(observe.Checkpoint.AppliedThroughSequence == 12, "observe checkpoint sequence must stay checkpoint-aligned");
+        Assert(observe.Projection.Cursor.AppliedThroughSequence == 12, "observe projection cursor sequence must align with checkpoint sequence");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyObserveRouteRoundTripAsync()
+{
+    const string sessionId = "session-observe-routes";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var store = app.Services.GetRequiredService<BrowserSessionEventLogStore>();
+        var cache = app.Services.GetRequiredService<BrowserSessionOfflineCacheService>();
+        var browserStore = app.Services.GetRequiredService<IBrowserKeyValueStore>();
+        await store.AppendPendingEventsAsync(sessionId, "scene-observe", "scene-r13", "runtime-observe", ["evt-pending"], 13);
+        await cache.SetCheckpointAsync(
+            new SyncCheckpoint(sessionId, "scene-observe", "scene-r13", "runtime-observe", 13, DateTimeOffset.UtcNow)
+        );
+
+        var claim = await PlayRouteHandlers.HandleContinuityClaimAsync(
+            new PlayContinuityClaimRequest(
+                new EngineSessionCursor(
+                    new EngineSessionEnvelope(sessionId, "scene-observe", "scene-r13", "runtime-observe"),
+                    13
+                ),
+                PlaySurfaceRole.GameMaster,
+                "device-routes",
+                "observer-routes"
+            ),
+            store,
+            cache,
+            browserStore,
+            CancellationToken.None
+        );
+        var continuityClaim = await ExecuteResultAsync<PlayContinuityClaimResponse>(claim);
+        Assert(continuityClaim.Accepted, "continuity claim setup must accept aligned lineage before route observe");
+
+        var observe = await ExecuteRouteRequestAsync<PlayObserveResponse>(
+            app,
+            HttpMethod.Get,
+            PlayApiRoutes.Observe,
+            routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId }
+        );
+        Assert(observe.Continuity is not null, "observe route must round-trip continuity metadata");
+        Assert(observe.Continuity!.ObserverId == "observer-routes", "observe route must serialize continuity payloads correctly");
+        Assert(observe.Projection.Cursor.AppliedThroughSequence == 13, "observe route must preserve checkpoint-aligned sequence state");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
 static async Task VerifyQueueMutationLineageExceptionReturnsStaleAsync()
 {
     const string sessionId = "session-race";
@@ -1056,6 +1786,53 @@ static async Task VerifyResumeNormalizesCheckpointToLedgerLineageAsync()
     Assert(checkpoint.AppliedThroughSequence == 7, "resume must advance checkpoint sequence to ledger ownership");
 }
 
+static async Task VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync()
+{
+    const string sessionId = "session-runtime-lock-cancel";
+    var browserStore = new CoordinatedRuntimeWriteBrowserStore(sessionId);
+    var cache = new BrowserSessionOfflineCacheService(browserStore);
+    browserStore.EnableReadTouchWriteBarrier();
+
+    var holdTask = cache.CacheRuntimeBundleAsync(
+        new RuntimeBundleCacheEntry(
+            sessionId,
+            "runtime-initial",
+            "scene-r1",
+            "bundle-lock-initial",
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow
+        ),
+        CancellationToken.None
+    );
+    await browserStore.WaitForBlockedReadTouchWriteAsync();
+
+    using var cancelSource = new CancellationTokenSource();
+    cancelSource.Cancel();
+    await AssertThrowsAsync<OperationCanceledException>(
+        () => cache.GetRuntimeBundleAsync(sessionId, cancelSource.Token),
+        "runtime-bundle lock acquire cancellation must propagate operation canceled"
+    );
+
+    browserStore.ReleaseReadTouchWriteBarrier();
+    await holdTask;
+    await cache.GetRuntimeBundleAsync(sessionId, CancellationToken.None);
+
+    var lockCount = GetRuntimeBundleSessionLockCount();
+    Assert(lockCount == 0, "runtime-bundle session locks must be released after canceled acquire attempts");
+}
+
+static int GetRuntimeBundleSessionLockCount()
+{
+    var field = typeof(BrowserSessionOfflineCacheService).GetField(
+        "RuntimeBundleSessionLocks",
+        BindingFlags.NonPublic | BindingFlags.Static
+    ) ?? throw new InvalidOperationException("Could not access runtime bundle lock state for regression validation.");
+
+    var dictionary = field.GetValue(null) as System.Collections.IDictionary
+        ?? throw new InvalidOperationException("Runtime bundle lock state has an unexpected type.");
+    return dictionary.Count;
+}
+
 static void VerifyStoredStaleStatePrefersLedgerOverOlderCheckpoint()
 {
     var requestSession = new EngineSessionEnvelope("session-stale-priority", "scene-request", "scene-r9", "runtime-request");
@@ -1197,12 +1974,29 @@ static BrowserSessionApiClient CreateApiClient(HttpMessageHandler handler) =>
         }
     );
 
+static string GetRepoRoot()
+{
+    var directory = new DirectoryInfo(AppContext.BaseDirectory);
+    while (directory is not null)
+    {
+        if (File.Exists(Path.Combine(directory.FullName, "WORKLIST.md")))
+        {
+            return directory.FullName;
+        }
+
+        directory = directory.Parent;
+    }
+
+    throw new InvalidOperationException("Could not locate repository root from regression checks runtime directory.");
+}
+
 static async Task<TResponse> ExecuteRouteRequestAsync<TResponse>(
     WebApplication app,
     HttpMethod method,
     string route,
     string query = "",
     string? jsonBody = null,
+    IReadOnlyDictionary<string, string>? routeValues = null,
     int expectedStatusCode = StatusCodes.Status200OK
 )
 {
@@ -1229,6 +2023,13 @@ static async Task<TResponse> ExecuteRouteRequestAsync<TResponse>(
     context.Request.Path = NormalizePath(route);
     context.Request.QueryString = new QueryString(query);
     context.Response.Body = new MemoryStream();
+    if (routeValues is not null)
+    {
+        foreach (var routeValue in routeValues)
+        {
+            context.Request.RouteValues[routeValue.Key] = routeValue.Value;
+        }
+    }
 
     if (!string.IsNullOrWhiteSpace(jsonBody))
     {
@@ -1287,6 +2088,152 @@ file sealed record ReconnectConflictPayload(
     PlaySessionProjection Projection,
     SyncCheckpoint Checkpoint
 );
+
+file sealed class CoordinatedRuntimeWriteBrowserStore : IBrowserKeyValueStore
+{
+    private readonly InMemoryBrowserKeyValueStore _inner = new();
+    private readonly string _runtimeBundleKey;
+    private readonly TaskCompletionSource _readTouchWriteBlocked =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _readTouchWriteRelease =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private volatile bool _barrierEnabled;
+
+    public CoordinatedRuntimeWriteBrowserStore(string sessionId)
+    {
+        _runtimeBundleKey = PlayBrowserStateKeys.RuntimeBundle(sessionId);
+    }
+
+    public void EnableReadTouchWriteBarrier() => _barrierEnabled = true;
+
+    public async Task WaitForBlockedReadTouchWriteAsync()
+    {
+        await _readTouchWriteBlocked.Task;
+    }
+
+    public void ReleaseReadTouchWriteBarrier()
+    {
+        _readTouchWriteRelease.TrySetResult();
+    }
+
+    public Task<TValue?> GetAsync<TValue>(string key, CancellationToken cancellationToken = default)
+    {
+        return _inner.GetAsync<TValue>(key, cancellationToken);
+    }
+
+    public async Task SetAsync<TValue>(string key, TValue value, CancellationToken cancellationToken = default)
+    {
+        if (_barrierEnabled
+            && string.Equals(key, _runtimeBundleKey, StringComparison.Ordinal)
+            && value is RuntimeBundleCacheEntry runtimeBundleEntry
+            && string.Equals(runtimeBundleEntry.RuntimeFingerprint, "runtime-initial", StringComparison.Ordinal))
+        {
+            _readTouchWriteBlocked.TrySetResult();
+            await _readTouchWriteRelease.Task.WaitAsync(cancellationToken);
+        }
+
+        await _inner.SetAsync(key, value, cancellationToken);
+    }
+
+    public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
+    {
+        return _inner.RemoveAsync(key, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken cancellationToken = default)
+    {
+        return _inner.ListKeysAsync(prefix, cancellationToken);
+    }
+}
+
+file sealed class DelayedMutationBrowserStore : IBrowserKeyValueStore
+{
+    private readonly InMemoryBrowserKeyValueStore _inner = new();
+    private readonly TimeSpan _mutationDelay;
+
+    public DelayedMutationBrowserStore(TimeSpan mutationDelay)
+    {
+        _mutationDelay = mutationDelay;
+    }
+
+    public Task<TValue?> GetAsync<TValue>(string key, CancellationToken cancellationToken = default)
+    {
+        return _inner.GetAsync<TValue>(key, cancellationToken);
+    }
+
+    public async Task SetAsync<TValue>(string key, TValue value, CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(_mutationDelay, cancellationToken);
+        await _inner.SetAsync(key, value, cancellationToken);
+    }
+
+    public async Task RemoveAsync(string key, CancellationToken cancellationToken = default)
+    {
+        await Task.Delay(_mutationDelay, cancellationToken);
+        await _inner.RemoveAsync(key, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken cancellationToken = default)
+    {
+        return _inner.ListKeysAsync(prefix, cancellationToken);
+    }
+}
+
+file sealed class GateableGetBrowserStore : IBrowserKeyValueStore
+{
+    private readonly InMemoryBrowserKeyValueStore _inner = new();
+    private readonly string _gatedKey;
+    private readonly TaskCompletionSource _getStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _releaseGet = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private volatile bool _gateEnabled;
+
+    public GateableGetBrowserStore(string gatedKey)
+    {
+        _gatedKey = gatedKey;
+    }
+
+    public void EnableGate()
+    {
+        _gateEnabled = true;
+    }
+
+    public async Task<TValue?> GetAsync<TValue>(string key, CancellationToken cancellationToken = default)
+    {
+        if (_gateEnabled && string.Equals(key, _gatedKey, StringComparison.Ordinal))
+        {
+            _getStarted.TrySetResult();
+            using var registration = cancellationToken.Register(() => _releaseGet.TrySetCanceled(cancellationToken));
+            await _releaseGet.Task.WaitAsync(cancellationToken);
+        }
+
+        return await _inner.GetAsync<TValue>(key, cancellationToken);
+    }
+
+    public Task SetAsync<TValue>(string key, TValue value, CancellationToken cancellationToken = default)
+    {
+        return _inner.SetAsync(key, value, cancellationToken);
+    }
+
+    public Task RemoveAsync(string key, CancellationToken cancellationToken = default)
+    {
+        return _inner.RemoveAsync(key, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken cancellationToken = default)
+    {
+        return _inner.ListKeysAsync(prefix, cancellationToken);
+    }
+
+    public Task WaitForGetAsync()
+    {
+        return _getStarted.Task;
+    }
+
+    public void ReleaseGet()
+    {
+        _releaseGet.TrySetResult();
+    }
+}
 
 file sealed class ThrowingLineageDriftQueueService : IPlayOfflineQueueService
 {

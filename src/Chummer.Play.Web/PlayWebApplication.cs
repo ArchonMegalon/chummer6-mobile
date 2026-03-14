@@ -106,7 +106,7 @@ public static class PlayWebApplication
 
                 return Results.Json(
                     new PlayBootstrapResponse(
-                        "chummer-play",
+                        "chummer6-mobile",
                         projection,
                         activeShell,
                         [activeShell],
@@ -157,6 +157,36 @@ public static class PlayWebApplication
                     cancellationToken
                 )
         );
+        app.MapPost(
+            PlayApiRoutes.ContinuityClaim,
+            (PlayContinuityClaimRequest request,
+                IPlayEventLogStore eventLogStore,
+                IPlayOfflineCacheService offlineCacheService,
+                IBrowserKeyValueStore browserStore,
+                CancellationToken cancellationToken) =>
+                PlayRouteHandlers.HandleContinuityClaimAsync(
+                    request,
+                    eventLogStore,
+                    offlineCacheService,
+                    browserStore,
+                    cancellationToken
+                )
+        );
+        app.MapGet(
+            PlayApiRoutes.Observe,
+            (string sessionId,
+                IPlayEventLogStore eventLogStore,
+                IPlayOfflineCacheService offlineCacheService,
+                IBrowserKeyValueStore browserStore,
+                CancellationToken cancellationToken) =>
+                PlayRouteHandlers.HandleObserveAsync(
+                    sessionId,
+                    eventLogStore,
+                    offlineCacheService,
+                    browserStore,
+                    cancellationToken
+                )
+        );
         app.MapGet(
             PlayApiRoutes.Resume,
             async (
@@ -182,7 +212,7 @@ public static class PlayWebApplication
                     resumeState.Ledger.PendingEvents
                 );
                 var bootstrap = new PlayBootstrapResponse(
-                    "chummer-play",
+                    "chummer6-mobile",
                     projection,
                     activeShell,
                     [activeShell],
