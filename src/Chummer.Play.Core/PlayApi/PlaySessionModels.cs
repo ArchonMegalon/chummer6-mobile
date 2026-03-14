@@ -7,6 +7,8 @@ public static class PlayApiRoutes
     public const string Bootstrap = "/api/play/bootstrap";
     public const string Projection = "/api/play/projection/{sessionId}";
     public const string Reconnect = "/api/play/reconnect";
+    public const string Observe = "/api/play/observe/{sessionId}";
+    public const string ContinuityClaim = "/api/play/continuity/claim";
     public const string Sync = "/api/play/sync";
     public const string QuickAction = "/api/play/quick-action";
     public const string Resume = "/api/play/resume/{sessionId}";
@@ -82,6 +84,40 @@ public sealed record PlayReconnectResponse(
     PlaySessionProjection Projection,
     Sync.SyncCheckpoint ResumeCheckpoint,
     Offline.OfflineLedgerEnvelope Ledger
+);
+
+public sealed record PlayContinuityClaimRequest(
+    EngineSessionCursor Cursor,
+    PlaySurfaceRole Role,
+    string DeviceId,
+    string ObserverId
+);
+
+public sealed record PlayObserverContinuity(
+    string ObserverId,
+    string DeviceId,
+    PlaySurfaceRole Role,
+    long ObservedThroughSequence,
+    DateTimeOffset ObservedAtUtc,
+    string ContinuityToken
+);
+
+public sealed record PlayContinuityClaimResponse(
+    bool Accepted,
+    bool Stale,
+    string Reason,
+    PlaySessionProjection Projection,
+    Sync.SyncCheckpoint Checkpoint,
+    PlayObserverContinuity Continuity,
+    string DeepLinkOwnerRoute
+);
+
+public sealed record PlayObserveResponse(
+    string SessionId,
+    PlaySessionProjection Projection,
+    Sync.SyncCheckpoint Checkpoint,
+    PlayObserverContinuity? Continuity,
+    PlayRuntimeBundleMetadata? RuntimeBundle
 );
 
 public sealed record PlaySyncRequest(

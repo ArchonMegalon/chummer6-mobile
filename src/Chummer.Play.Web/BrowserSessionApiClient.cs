@@ -65,6 +65,30 @@ public sealed class BrowserSessionApiClient
             ?? throw new InvalidOperationException("Play reconnect response was empty.");
     }
 
+    public async Task<PlayContinuityClaimResponse> ClaimContinuityAsync(
+        PlayContinuityClaimRequest request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var response = await _httpClient.PostAsJsonAsync(PlayApiRoutes.ContinuityClaim, request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<PlayContinuityClaimResponse>(cancellationToken: cancellationToken)
+            ?? throw new InvalidOperationException("Play continuity-claim response was empty.");
+    }
+
+    public async Task<PlayObserveResponse> ObserveAsync(
+        string sessionId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        var route = PlayApiRoutes.Observe.Replace("{sessionId}", Uri.EscapeDataString(sessionId));
+        return await _httpClient.GetFromJsonAsync<PlayObserveResponse>(route, cancellationToken)
+            ?? throw new InvalidOperationException("Play observe response was empty.");
+    }
+
     public async Task<PlaySyncResponse> SyncAsync(PlaySyncRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);

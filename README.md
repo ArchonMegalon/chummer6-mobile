@@ -18,12 +18,24 @@ This repo must consume canonical shared packages only:
 
 It must not copy shared contracts from other Chummer repos.
 
+## What rejoin and resume guarantee
+
+- rejoin never invents a second truth about session state
+- resume is lineage-safe, not "best effort and pray"
+- replay catches a device back up without mutating the canonical ledger out of order
+
+Public guarantee note: [docs/rejoin-resume-guarantees.md](/docker/chummercomplete/chummer6-mobile/docs/rejoin-resume-guarantees.md)
+
 ## Design Mirror
 
 Repo-local Chummer design mirror files live under `.codex-design/`:
 - `.codex-design/product/README.md`
 - `.codex-design/repo/IMPLEMENTATION_SCOPE.md`
 - `.codex-design/review/REVIEW_CONTEXT.md`
+
+Historical compatibility note:
+
+- the older design draft name `docs/chummer-play.design.v1.md` is still present for compatibility, but `chummer6-mobile` is the live repo identity
 
 ## Verification
 

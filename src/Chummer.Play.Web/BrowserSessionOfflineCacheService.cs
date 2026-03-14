@@ -1,6 +1,7 @@
 using Chummer.Play.Core.Sync;
 using Chummer.Play.Core.PlayApi;
 using Chummer.Play.Web.BrowserState;
+using System.Collections.Concurrent;
 
 namespace Chummer.Play.Web;
 
@@ -8,6 +9,9 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
 {
     private const int RuntimeBundleQuota = 8;
     private readonly IBrowserKeyValueStore _browserStore;
+    private static readonly SemaphoreSlim RuntimeBundleQuotaLock = new(1, 1);
+    private static readonly ConcurrentDictionary<string, SessionLockEntry> RuntimeBundleSessionLocks = new(StringComparer.Ordinal);
+    private static readonly object RuntimeBundleSessionLocksGate = new();
 
     public BrowserSessionOfflineCacheService(IBrowserKeyValueStore browserStore)
     {
@@ -54,42 +58,48 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
     {
         ArgumentNullException.ThrowIfNull(entry);
         ValidateRuntimeBundleEntry(entry);
-
-        var evictedSessionIds = new List<string>();
-        var runtimeBundleKey = PlayBrowserStateKeys.RuntimeBundle(entry.SessionId);
-        var existingEntry = await _browserStore.GetAsync<RuntimeBundleCacheEntry>(runtimeBundleKey, cancellationToken);
-        if (existingEntry is null)
-        {
-            await RemoveIfKeyPresentAsync(runtimeBundleKey, cancellationToken);
-        }
-        else
-        {
-            try
+        return await ExecuteRuntimeBundleSessionLockedAsync(
+            entry.SessionId,
+            () => ExecuteRuntimeBundleQuotaLockedAsync(async () =>
             {
-                ValidateRuntimeBundleEntry(existingEntry);
-            }
-            catch (ArgumentException)
-            {
-                await _browserStore.RemoveAsync(runtimeBundleKey, cancellationToken);
-                existingEntry = null;
-            }
-        }
+                var evictedSessionIds = new List<string>();
+                var runtimeBundleKey = PlayBrowserStateKeys.RuntimeBundle(entry.SessionId);
+                var existingEntry = await _browserStore.GetAsync<RuntimeBundleCacheEntry>(runtimeBundleKey, cancellationToken);
+                if (existingEntry is null)
+                {
+                    await RemoveIfKeyPresentAsync(runtimeBundleKey, cancellationToken);
+                }
+                else
+                {
+                    try
+                    {
+                        ValidateRuntimeBundleEntry(existingEntry);
+                    }
+                    catch (ArgumentException)
+                    {
+                        await _browserStore.RemoveAsync(runtimeBundleKey, cancellationToken);
+                        existingEntry = null;
+                    }
+                }
 
-        var runtimeBundleEntries = await GetValidatedRuntimeBundleEntriesAsync(cancellationToken);
+                var runtimeBundleEntries = await GetValidatedRuntimeBundleEntriesAsync(cancellationToken);
 
-        if (existingEntry is null && runtimeBundleEntries.Count >= RuntimeBundleQuota)
-        {
-            var neededEvictions = (runtimeBundleEntries.Count - RuntimeBundleQuota) + 1;
-            foreach (var candidate in runtimeBundleEntries.OrderBy(item => item.Entry.LastValidatedAtUtc).Take(neededEvictions))
-            {
-                await _browserStore.RemoveAsync(candidate.Key, cancellationToken);
-                evictedSessionIds.Add(PlayBrowserStateKeys.SessionIdFromRuntimeBundleKey(candidate.Key));
-            }
-        }
+                if (existingEntry is null && runtimeBundleEntries.Count >= RuntimeBundleQuota)
+                {
+                    var neededEvictions = (runtimeBundleEntries.Count - RuntimeBundleQuota) + 1;
+                    foreach (var candidate in runtimeBundleEntries.OrderBy(item => item.Entry.LastValidatedAtUtc).Take(neededEvictions))
+                    {
+                        await _browserStore.RemoveAsync(candidate.Key, cancellationToken);
+                        evictedSessionIds.Add(PlayBrowserStateKeys.SessionIdFromRuntimeBundleKey(candidate.Key));
+                    }
+                }
 
-        await _browserStore.SetAsync(runtimeBundleKey, entry, cancellationToken);
-        var finalEntries = await GetValidatedRuntimeBundleEntriesAsync(cancellationToken);
-        return BuildPressureSnapshot(finalEntries.Count, evictedSessionIds.Count, evictedSessionIds);
+                await _browserStore.SetAsync(runtimeBundleKey, entry, cancellationToken);
+                var finalEntries = await GetValidatedRuntimeBundleEntriesAsync(cancellationToken);
+                return BuildPressureSnapshot(finalEntries.Count, evictedSessionIds.Count, evictedSessionIds);
+            }, cancellationToken),
+            cancellationToken
+        );
     }
 
     public async Task<PlayRuntimeBundleMetadata?> GetRuntimeBundleAsync(
@@ -98,33 +108,40 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
     )
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
-        var key = PlayBrowserStateKeys.RuntimeBundle(sessionId);
-        var entry = await _browserStore.GetAsync<RuntimeBundleCacheEntry>(
-            key,
+        return await ExecuteRuntimeBundleSessionLockedAsync(
+            sessionId,
+            async () =>
+            {
+                var key = PlayBrowserStateKeys.RuntimeBundle(sessionId);
+                var entry = await _browserStore.GetAsync<RuntimeBundleCacheEntry>(
+                    key,
+                    cancellationToken
+                );
+                if (entry is null)
+                {
+                    await RemoveIfKeyPresentAsync(key, cancellationToken);
+                    return null;
+                }
+
+                try
+                {
+                    ValidateRuntimeBundleEntry(entry);
+                }
+                catch (ArgumentException)
+                {
+                    await _browserStore.RemoveAsync(key, cancellationToken);
+                    return null;
+                }
+
+                return ToRuntimeBundleMetadata(
+                    entry with
+                    {
+                        LastValidatedAtUtc = DateTimeOffset.UtcNow,
+                    }
+                );
+            },
             cancellationToken
         );
-        if (entry is null)
-        {
-            await RemoveIfKeyPresentAsync(key, cancellationToken);
-            return null;
-        }
-
-        try
-        {
-            ValidateRuntimeBundleEntry(entry);
-        }
-        catch (ArgumentException)
-        {
-            await _browserStore.RemoveAsync(key, cancellationToken);
-            return null;
-        }
-
-        var refreshedEntry = entry with
-        {
-            LastValidatedAtUtc = DateTimeOffset.UtcNow,
-        };
-        await _browserStore.SetAsync(key, refreshedEntry, cancellationToken);
-        return ToRuntimeBundleMetadata(refreshedEntry);
     }
 
     public Task SetCheckpointAsync(SyncCheckpoint checkpoint, CancellationToken cancellationToken = default)
@@ -260,5 +277,75 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
         {
             await _browserStore.RemoveAsync(key, cancellationToken);
         }
+    }
+
+    private static async Task<T> ExecuteRuntimeBundleQuotaLockedAsync<T>(
+        Func<Task<T>> action,
+        CancellationToken cancellationToken
+    )
+    {
+        await RuntimeBundleQuotaLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await action();
+        }
+        finally
+        {
+            RuntimeBundleQuotaLock.Release();
+        }
+    }
+
+    private async Task<T> ExecuteRuntimeBundleSessionLockedAsync<T>(
+        string sessionId,
+        Func<Task<T>> action,
+        CancellationToken cancellationToken
+    )
+    {
+        SessionLockEntry lockEntry;
+        lock (RuntimeBundleSessionLocksGate)
+        {
+            lockEntry = RuntimeBundleSessionLocks.GetOrAdd(sessionId, _ => new SessionLockEntry());
+            lockEntry.RefCount++;
+        }
+
+        var lockAcquired = false;
+        try
+        {
+            await lockEntry.Semaphore.WaitAsync(cancellationToken);
+            lockAcquired = true;
+            return await action();
+        }
+        finally
+        {
+            if (lockAcquired)
+            {
+                lockEntry.Semaphore.Release();
+            }
+
+            var shouldDispose = false;
+            lock (RuntimeBundleSessionLocksGate)
+            {
+                lockEntry.RefCount--;
+                if (lockEntry.RefCount == 0
+                    && RuntimeBundleSessionLocks.TryGetValue(sessionId, out var currentEntry)
+                    && ReferenceEquals(currentEntry, lockEntry))
+                {
+                    RuntimeBundleSessionLocks.TryRemove(sessionId, out _);
+                    shouldDispose = true;
+                }
+            }
+
+            if (shouldDispose)
+            {
+                lockEntry.Semaphore.Dispose();
+            }
+        }
+    }
+
+    private sealed class SessionLockEntry
+    {
+        public SemaphoreSlim Semaphore { get; } = new(1, 1);
+
+        public int RefCount { get; set; }
     }
 }

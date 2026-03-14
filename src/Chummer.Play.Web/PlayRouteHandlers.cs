@@ -2,6 +2,7 @@ using Chummer.Play.Core.Application;
 using Chummer.Play.Core.Offline;
 using Chummer.Play.Core.PlayApi;
 using Chummer.Play.Core.Sync;
+using Chummer.Play.Web.BrowserState;
 using Microsoft.AspNetCore.Http;
 
 namespace Chummer.Play.Web;
@@ -67,6 +68,210 @@ public static class PlayRouteHandlers
                 ),
                 reconnectCheckpoint,
                 ledger
+            )
+        );
+    }
+
+    public static async Task<IResult> HandleContinuityClaimAsync(
+        PlayContinuityClaimRequest request,
+        IPlayEventLogStore eventLogStore,
+        IPlayOfflineCacheService offlineCacheService,
+        IBrowserKeyValueStore browserStore,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TryValidateCursor(request.Cursor, out var cursorError))
+        {
+            return Results.BadRequest(new { error = cursorError });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DeviceId))
+        {
+            return Results.BadRequest(new { error = "device id is required." });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ObserverId))
+        {
+            return Results.BadRequest(new { error = "observer id is required." });
+        }
+
+        var requestSession = request.Cursor.Session;
+        var checkpoint = await offlineCacheService.GetCheckpointAsync(requestSession.SessionId, cancellationToken);
+        var existingLedger = await eventLogStore.GetExistingAsync(requestSession.SessionId, cancellationToken);
+        var hasStoredLineage = checkpoint is not null || existingLedger is not null;
+
+        if (!hasStoredLineage)
+        {
+            var continuity = new PlayObserverContinuity(
+                request.ObserverId,
+                request.DeviceId,
+                request.Role,
+                request.Cursor.AppliedThroughSequence,
+                DateTimeOffset.UtcNow,
+                BuildContinuityToken(requestSession.SessionId, request.Cursor.AppliedThroughSequence)
+            );
+            var emptyProjection = BuildProjection(requestSession, request.Cursor.AppliedThroughSequence, Array.Empty<string>());
+            return Results.Json(
+                new PlayContinuityClaimResponse(
+                    false,
+                    false,
+                    "session not bootstrapped",
+                    emptyProjection,
+                    CreateAlignedCheckpoint(requestSession, request.Cursor.AppliedThroughSequence, checkpoint),
+                    continuity,
+                    "/play/{sessionId}"
+                )
+            );
+        }
+
+        if (!SessionLineage.IsStoredLineageAligned(requestSession, checkpoint, existingLedger))
+        {
+            var (staleProjection, staleCheckpoint) = BuildStoredStaleState(requestSession, request.Cursor, checkpoint, existingLedger);
+            var staleContinuity = new PlayObserverContinuity(
+                request.ObserverId,
+                request.DeviceId,
+                request.Role,
+                staleProjection.Cursor.AppliedThroughSequence,
+                DateTimeOffset.UtcNow,
+                BuildContinuityToken(requestSession.SessionId, staleProjection.Cursor.AppliedThroughSequence)
+            );
+            return Results.Json(
+                new PlayContinuityClaimResponse(
+                    false,
+                    true,
+                    "session lineage changed",
+                    staleProjection,
+                    staleCheckpoint,
+                    staleContinuity,
+                    "/play/{sessionId}"
+                )
+            );
+        }
+
+        var effectiveSession = ResolveStoredSession(requestSession, checkpoint, existingLedger);
+        var ledger = existingLedger is not null
+            && SessionLineage.IsLedgerAligned(
+                existingLedger,
+                effectiveSession.SessionId,
+                effectiveSession.SceneId,
+                effectiveSession.SceneRevision,
+                effectiveSession.RuntimeFingerprint
+            )
+                ? existingLedger
+                : await eventLogStore.GetOrCreateAsync(
+                    effectiveSession.SessionId,
+                    effectiveSession.SceneId,
+                    effectiveSession.SceneRevision,
+                    effectiveSession.RuntimeFingerprint,
+                    cancellationToken
+                );
+        var continuitySequence = Math.Max(ledger.LastKnownSequence, request.Cursor.AppliedThroughSequence);
+        var alignedCheckpoint = CreateAlignedCheckpoint(effectiveSession, continuitySequence, checkpoint);
+        await offlineCacheService.SetCheckpointAsync(alignedCheckpoint, cancellationToken);
+
+        var continuityToken = BuildContinuityToken(effectiveSession.SessionId, continuitySequence);
+        var continuityEntry = new ObserverContinuityEntry(
+            effectiveSession.SessionId,
+            effectiveSession.SceneId,
+            effectiveSession.SceneRevision,
+            effectiveSession.RuntimeFingerprint,
+            request.ObserverId,
+            request.DeviceId,
+            request.Role,
+            continuitySequence,
+            DateTimeOffset.UtcNow,
+            continuityToken
+        );
+        await browserStore.SetAsync(
+            PlayBrowserStateKeys.Continuity(effectiveSession.SessionId),
+            continuityEntry,
+            cancellationToken
+        );
+
+        return Results.Json(
+            new PlayContinuityClaimResponse(
+                true,
+                false,
+                "accepted",
+                BuildProjection(effectiveSession, continuitySequence, ledger.PendingEvents),
+                alignedCheckpoint,
+                new PlayObserverContinuity(
+                    continuityEntry.ObserverId,
+                    continuityEntry.DeviceId,
+                    continuityEntry.Role,
+                    continuityEntry.ObservedThroughSequence,
+                    continuityEntry.ObservedAtUtc,
+                    continuityEntry.ContinuityToken
+                ),
+                "/play/{sessionId}"
+            )
+        );
+    }
+
+    public static async Task<IResult> HandleObserveAsync(
+        string sessionId,
+        IPlayEventLogStore eventLogStore,
+        IPlayOfflineCacheService offlineCacheService,
+        IBrowserKeyValueStore browserStore,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        var runtimeBundle = await offlineCacheService.GetRuntimeBundleAsync(sessionId, cancellationToken);
+        var checkpoint = await offlineCacheService.GetCheckpointAsync(sessionId, cancellationToken);
+        var existingLedger = await eventLogStore.GetExistingAsync(sessionId, cancellationToken);
+        var fallbackSession = new EngineSessionEnvelope(
+            sessionId,
+            checkpoint?.SceneId ?? existingLedger?.SceneId ?? "scene-main",
+            checkpoint?.SceneRevision ?? existingLedger?.SceneRevision ?? runtimeBundle?.SceneRevision ?? "scene-r1",
+            checkpoint?.ProjectionFingerprint ?? existingLedger?.RuntimeFingerprint ?? runtimeBundle?.RuntimeFingerprint ?? "runtime-local"
+        );
+        var storedSession = ResolveStoredSession(fallbackSession, checkpoint, existingLedger);
+        var effectiveSession = new EngineSessionEnvelope(
+            sessionId,
+            storedSession.SceneId,
+            storedSession.SceneRevision,
+            storedSession.RuntimeFingerprint
+        );
+        var hasStoredState = checkpoint is not null || existingLedger is not null;
+        var observedRuntimeBundle = SelectObservedRuntimeBundle(effectiveSession, runtimeBundle);
+        OfflineLedgerEnvelope? ledger = null;
+        SyncCheckpoint alignedCheckpoint;
+        long appliedThroughSequence;
+
+        if (hasStoredState)
+        {
+            ledger = existingLedger;
+            appliedThroughSequence = Math.Max(ledger?.LastKnownSequence ?? 0, checkpoint?.AppliedThroughSequence ?? 0);
+            alignedCheckpoint = CreateAlignedCheckpoint(effectiveSession, appliedThroughSequence, checkpoint);
+        }
+        else
+        {
+            appliedThroughSequence = 0;
+            alignedCheckpoint = new SyncCheckpoint(
+                effectiveSession.SessionId,
+                effectiveSession.SceneId,
+                effectiveSession.SceneRevision,
+                effectiveSession.RuntimeFingerprint,
+                appliedThroughSequence,
+                DateTimeOffset.UtcNow
+            );
+        }
+        var continuity = await GetStoredContinuityAsync(
+            alignedCheckpoint.SessionId,
+            alignedCheckpoint.ToSessionEnvelope(),
+            alignedCheckpoint.AppliedThroughSequence,
+            browserStore,
+            cancellationToken
+        );
+
+        return Results.Json(
+            new PlayObserveResponse(
+                sessionId,
+                BuildProjection(alignedCheckpoint.ToSessionEnvelope(), appliedThroughSequence, ledger?.PendingEvents ?? Array.Empty<string>()),
+                alignedCheckpoint,
+                continuity,
+                observedRuntimeBundle
             )
         );
     }
@@ -428,4 +633,74 @@ public static class PlayRouteHandlers
         error = string.Empty;
         return true;
     }
+
+    private static async Task<PlayObserverContinuity?> GetStoredContinuityAsync(
+        string sessionId,
+        EngineSessionEnvelope session,
+        long maxObservedThroughSequence,
+        IBrowserKeyValueStore browserStore,
+        CancellationToken cancellationToken
+    )
+    {
+        var key = PlayBrowserStateKeys.Continuity(sessionId);
+        var continuity = await browserStore.GetAsync<ObserverContinuityEntry>(key, cancellationToken);
+        if (continuity is null)
+        {
+            await browserStore.RemoveAsync(key, cancellationToken);
+            return null;
+        }
+
+        var lineageMatches = string.Equals(continuity.SessionId, sessionId, StringComparison.Ordinal)
+            && string.Equals(continuity.SceneId, session.SceneId, StringComparison.Ordinal)
+            && string.Equals(continuity.SceneRevision, session.SceneRevision, StringComparison.Ordinal)
+            && string.Equals(continuity.RuntimeFingerprint, session.RuntimeFingerprint, StringComparison.Ordinal);
+        if (!lineageMatches || continuity.ObservedThroughSequence > maxObservedThroughSequence)
+        {
+            await browserStore.RemoveAsync(key, cancellationToken);
+            return null;
+        }
+
+        return new PlayObserverContinuity(
+            continuity.ObserverId,
+            continuity.DeviceId,
+            continuity.Role,
+            continuity.ObservedThroughSequence,
+            continuity.ObservedAtUtc,
+            continuity.ContinuityToken
+        );
+    }
+
+    private static string BuildContinuityToken(string sessionId, long observedThroughSequence)
+    {
+        var safeSessionId = sessionId.Replace(':', '-');
+        return $"{safeSessionId}:{observedThroughSequence}:{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+    }
+
+    private static PlayRuntimeBundleMetadata? SelectObservedRuntimeBundle(
+        EngineSessionEnvelope session,
+        PlayRuntimeBundleMetadata? runtimeBundle
+    )
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        if (runtimeBundle is null)
+        {
+            return null;
+        }
+
+        return StringComparer.Ordinal.Equals(runtimeBundle.SceneRevision, session.SceneRevision)
+            && StringComparer.Ordinal.Equals(runtimeBundle.RuntimeFingerprint, session.RuntimeFingerprint)
+                ? runtimeBundle
+                : null;
+    }
+}
+
+file static class SyncCheckpointExtensions
+{
+    public static EngineSessionEnvelope ToSessionEnvelope(this SyncCheckpoint checkpoint) =>
+        new(
+            checkpoint.SessionId,
+            checkpoint.SceneId,
+            checkpoint.SceneRevision,
+            checkpoint.ProjectionFingerprint
+        );
 }

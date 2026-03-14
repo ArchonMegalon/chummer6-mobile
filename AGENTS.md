@@ -1,6 +1,6 @@
-# Chummer Play Agent Guide
+# chummer6-mobile Agent Guide
 
-Work in this repo as the narrow play-mode client for Chummer.
+Work in this repo as the narrow mobile and play-shell client for Chummer6.
 
 Guardrails:
 - Treat `Chummer.Engine.Contracts`, `Chummer.Play.Contracts`, and `Chummer.Ui.Kit` as package inputs, not source-copy candidates.

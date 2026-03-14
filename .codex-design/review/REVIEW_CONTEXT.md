@@ -1,87 +1,38 @@
-# Generic review checklist
+# Mobile review checklist
 
-Use this review context in every mirrored Chummer code repo.
+Use this review context in the mirrored `chummer6-mobile` repo.
 
-## 1. Boundary check
+## Mobile-specific focus
 
-* Does this change stay inside the repo’s implementation scope?
-* Does it widen ownership into another repo’s area?
-* Does it reintroduce a boundary that was intentionally split out?
+- Flag raw source dependencies on UI or hub implementation roots as P1.
+- Flag missing offline, stale-state, or replay-safety tests as P1.
+- Flag builder or inspector UX added to the dedicated play shell as P1.
+- Flag rule evaluation, runtime fingerprint generation, or provider-secret handling in mobile as P1.
+- Flag dependencies beyond `Chummer.Engine.Contracts`, `Chummer.Play.Contracts`, and `Chummer.Ui.Kit` without explicit design approval as P1.
 
-Reject if:
+## Boundary check
 
-* play behavior appears inside presentation
-* workbench behavior appears inside play
-* run-services regrows registry persistence or media execution
-* engine regrows UI or hosted-service authority
-* ui-kit gains domain DTOs or service logic
+Reject if the change:
 
-## 2. Contract check
+- widens mobile into workbench, publish, moderation, or provider-routing ownership
+- bypasses the package-only dependency boundary
+- invents second semantic event families instead of consuming canonical session truth
 
-* Is any cross-repo DTO being added?
-* If yes, is the owning package already defined in `CONTRACT_SETS.yaml`?
-* Is the change consuming a canonical package or copying source?
+## Runtime seam check
 
-Reject if:
+Reject if the change:
 
-* the change creates a duplicate shared DTO family
-* the change uses an ambiguous or legacy package name when canon is defined
-* the change smuggles engine semantics into play/run wrappers
+- weakens rejoin, replay, or resume guarantees
+- hides offline queue or cache failures behind silent fallback behavior
+- treats cross-device continuity as best-effort instead of explicit stale-lineage-safe behavior
 
-## 3. Mirror check
-
-* Does `.codex-design/product/*` exist?
-* Does `.codex-design/repo/IMPLEMENTATION_SCOPE.md` exist?
-* Does the mirrored scope match the code being changed?
-
-Reject if:
-
-* the repo is missing mirrored design context
-* the change contradicts mirrored scope without a corresponding design-repo update
-
-## 4. Milestone check
-
-* Which milestone is this change serving?
-* Does it unblock or change a published blocker?
-* Does the design repo need an update because sequencing changed?
-
-Reject if:
-
-* the change claims milestone progress but central milestones say otherwise
-* the change silently changes rollout order or package ownership
-
-## 5. README drift check
-
-* Does the repo README still describe the current architecture?
-* Does the change depend on a README that is known to be stale?
-
-Reject if:
-
-* a stale README is used as architecture authority over central design
-
-## 6. Test and verification check
-
-* Are the relevant contract or boundary tests updated?
-* If the repo owns a package, is its verification harness updated?
-* If the repo consumes a package, is package-only consumption preserved?
-
-## 7. Review summary format
+## Review summary
 
 Every substantive review should answer:
 
-* scope fit: pass/fail
-* boundary fit: pass/fail
-* contract fit: pass/fail
-* mirror fit: pass/fail
-* milestone fit: pass/fail
-* required design-repo follow-up: yes/no
-
-## 8. Escalate immediately when
-
-* ownership is ambiguous
-* package canon is ambiguous
-* mirror coverage is missing
-* a split boundary is being locally re-merged
-* central design files are obviously stale or contradictory
-
-The fastest safe move in those cases is to fix `chummer6-design`, not to guess locally.
+- play-shell fit: pass/fail
+- package-only fit: pass/fail
+- offline-state fit: pass/fail
+- mirror fit: pass/fail
+- milestone fit: pass/fail
+- required design-repo follow-up: yes/no
