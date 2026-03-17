@@ -1,60 +1,47 @@
-# Play implementation scope
+# Mobile implementation scope
 
 ## Mission
 
-`chummer6-mobile` owns the player and GM play-mode shell, offline ledger/cache, sync client behavior, installable play/mobile UX, and play-safe live-session surfaces.
+`chummer6-mobile` owns the dedicated player/GM/session shell for Chummer6:
+local-first play, reconnect/replay behavior, mobile/tablet UX, and installable PWA hardening.
 
 ## Owns
 
-* player shell
-* GM shell
-* offline ledger/cache
-* sync client and reconnect behavior
-* installable PWA/mobile UX
-* play-safe Coach/Spider surfaces
-* device-appropriate live-session interactions
+* player shell and GM shell for live play
+* local-first session ledger handling on the client side
+* reconnect, replay, resume, and observer continuity on the play shell side
+* offline/media caching for play use
+* dedicated `/api/play/*` route consumption and play-shell integration
+* installable PWA hardening for mobile/tablet play
 
 ## Must not own
 
-* builder/workbench UX
-* rules math or runtime fingerprint generation
-* provider secrets
-* publication or moderation workflows
-* registry persistence
-* render execution
+* workbench/browser/desktop builder UX
+* engine/rules evaluation truth
+* registry or publication moderation UX
+* hosted orchestration ownership
+* copied shared contracts or copied shared UI primitives
 
-## Current focus
+## Package boundary
 
-* replace scaffolded bootstrap/session clients with real play API seams
-* consume only `Chummer.Engine.Contracts`, `Chummer.Play.Contracts`, and `Chummer.Ui.Kit`
-* receive mirrored `.codex-design/*` guidance like every other active repo
-* turn offline ledger and event log into real durable client substrate
+`chummer6-mobile` must consume canonical shared packages only:
 
-## Milestone spine
+* `Chummer.Engine.Contracts`
+* `Chummer.Play.Contracts`
+* `Chummer.Ui.Kit`
 
-* L0 package canon
-* L1 local ledger and sync
-* L2 player shell
-* L3 GM shell
-* L4 relay/runtime convergence
-* L5 Coach/Spider surfaces
-* L6 mobile/PWA polish
-* L7 observer/cross-device continuity
-* L8 hardening
-* L9 finished play shell
+## Boundary truth
 
-## Worker rule
+The mobile boundary is healthy when the live shell can trust replay/resume without re-owning engine or workbench concerns.
 
-If the feature exists to make a player or GM run a live session from a dedicated play shell, it belongs here.
-If it looks like a builder, publisher, moderator, or rules engine job, it does not.
+Current exit criteria remain practical, not decorative:
 
+* WL-005 class local-first seams must be boringly trustworthy
+* observer and cross-device continuity must stay in the play-shell boundary
+* package-only discipline must remain strict
+* old `chummer-play` naming must disappear from the live repo identity
 
-## External integration note
+## Current reality
 
-`chummer6-mobile` may render upstream projections, previews, docs/help links, and provider-assisted artifact references.
-
-It must not own:
-
-* vendor credentials
-* direct provider SDK integrations
-* direct third-party API orchestration
+This is one of the healthiest splits in the family.
+The remaining work is mostly seam hardening and release closure, not identity confusion.

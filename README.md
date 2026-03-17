@@ -24,7 +24,7 @@ It must not copy shared contracts from other Chummer repos.
 - resume is lineage-safe, not "best effort and pray"
 - replay catches a device back up without mutating the canonical ledger out of order
 
-Public guarantee note: [docs/rejoin-resume-guarantees.md](/docker/chummercomplete/chummer6-mobile/docs/rejoin-resume-guarantees.md)
+Public guarantee note: [docs/rejoin-resume-guarantees.md](docs/rejoin-resume-guarantees.md)
 
 ## Design Mirror
 
