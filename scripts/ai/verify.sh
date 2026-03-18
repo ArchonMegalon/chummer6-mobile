@@ -25,7 +25,7 @@ test -f docs/rejoin-resume-guarantees.md
 test -f docs/sync-model.md
 test -f docs/offline-storage.md
 test -f docs/migration-map.md
-test -f feedback/2026-03-09-mobile-play-split-guide.md
+test -f feedback/2026-03-10-public-repo-graph-audit.md
 test -f src/Chummer.Play.Web/Program.cs
 test -f src/Chummer.Play.Web/PlayWebApplication.cs
 test -f src/Chummer.Play.Web/PlayRouteHandlers.cs

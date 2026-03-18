@@ -39,7 +39,7 @@ Current exit criteria remain practical, not decorative:
 * WL-005 class local-first seams must be boringly trustworthy
 * observer and cross-device continuity must stay in the play-shell boundary
 * package-only discipline must remain strict
-* old `chummer-play` naming must disappear from the live repo identity
+* old `chummer6-mobile` naming must disappear from the live repo identity
 
 ## Current reality
 
