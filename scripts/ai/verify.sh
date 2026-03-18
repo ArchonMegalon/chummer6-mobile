@@ -34,8 +34,6 @@ test -f src/Chummer.Play.Web/BrowserSessionCoachApiClient.cs
 test -f src/Chummer.Play.Web/BrowserSessionEventLogStore.cs
 test -f src/Chummer.Play.Web/BrowserSessionOfflineCacheService.cs
 test -f src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs
-test -f src/Chummer.Play.Core/PlayApi/BrowserSessionShellProbe.cs
-test -f src/Chummer.Play.Core/PlayApi/PlaySessionModels.cs
 test -f src/Chummer.Play.Core/Offline/IPlayEventLogStore.cs
 test -f src/Chummer.Play.Core/Sync/IPlayOfflineCacheService.cs
 test -f src/Chummer.Play.Core/Sync/IPlayOfflineQueueService.cs
@@ -60,7 +58,7 @@ test -f eng/package-stubs/EngineContractsStub/EngineContractsStub.csproj
 test -f eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj
 test -f eng/package-stubs/UiKitStub/UiKitStub.csproj
 
-if rg -n "Chummer\\.Contracts/" . >/dev/null 2>&1; then
+if rg -n "Chummer\\.Contracts/" src README.md AGENTS.md WORKLIST.md docs >/dev/null 2>&1; then
   echo "copied contract source paths are not allowed in chummer6-mobile" >&2
   exit 1
 fi
@@ -77,6 +75,17 @@ fi
 
 if find . -type d \( -name "Chummer.Engine.Contracts" -o -name "Chummer.Play.Contracts" -o -name "Chummer.Ui.Kit" \) | grep -q .; then
   echo "shared package source trees are not allowed in chummer6-mobile" >&2
+  exit 1
+fi
+
+if find src/Chummer.Play.Core -type f \( \
+  -path "*/Application/PlaySurfaceRole.cs" -o \
+  -path "*/PlayApi/BrowserSessionShellProbe.cs" -o \
+  -path "*/PlayApi/PlaySessionModels.cs" -o \
+  -path "*/Sync/SyncCheckpoint.cs" -o \
+  -path "*/Offline/OfflineLedgerEnvelope.cs" \
+  \) | grep -q .; then
+  echo "repo-local play contract source copies are not allowed in chummer6-mobile" >&2
   exit 1
 fi
 
@@ -215,8 +224,8 @@ rg -n 'LastAcceptedEventCount' src/Chummer.Play.Web/BrowserSessionEventLogStore.
 rg -n 'RuntimeBundleQuota' src/Chummer.Play.Web/BrowserSessionOfflineCacheService.cs >/dev/null
 rg -n 'ListKeysAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineCacheService.cs >/dev/null
 rg -n 'RemoveAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineCacheService.cs >/dev/null
-rg -n 'PlayCachePressureSnapshot' src/Chummer.Play.Core/PlayApi/PlaySessionModels.cs >/dev/null
-rg -n 'PlayResumeResponse' src/Chummer.Play.Core/PlayApi/PlaySessionModels.cs >/dev/null
+rg -n 'PlayCachePressureSnapshot' src >/dev/null
+rg -n 'PlayResumeResponse' src >/dev/null
 rg -n '"start_url": "/index.html"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
 rg -n 'navigator\.serviceWorker\.register' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
 rg -n 'role="status" aria-live="polite" aria-atomic="true"' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
@@ -225,16 +234,17 @@ rg -n 'MEDIA_CACHE' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'MEDIA_MAX_ENTRIES' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'pruneMediaCache' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'QuotaExceededError|NS_ERROR_DOM_QUOTA_REACHED' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
-rg -n 'public sealed record EngineSessionEnvelope' src/Chummer.Play.Core/PlayApi/PlaySessionModels.cs >/dev/null
-rg -n 'public sealed record EngineSessionCursor' src/Chummer.Play.Core/PlayApi/PlaySessionModels.cs >/dev/null
-rg -n 'EngineSessionEnvelope Session' src/Chummer.Play.Core/PlayApi/PlaySessionModels.cs >/dev/null
-rg -n 'EngineSessionCursor Cursor' src/Chummer.Play.Core/PlayApi/PlaySessionModels.cs >/dev/null
 rg -n 'request\.Cursor\.Session' src/Chummer.Play.Web >/dev/null
 rg -n 'IBrowserKeyValueStore' src/Chummer.Play.Web/BrowserSessionEventLogStore.cs >/dev/null
 rg -n 'GetFromJsonAsync<PlaySessionProjection>' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
 rg -n 'request\.Session\.SessionId' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
 rg -n 'PostAsJsonAsync\(PlayApiRoutes\.Reconnect' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
 rg -n 'PostAsJsonAsync\(PlayApiRoutes\.Sync' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
+
+if rg -n 'public (sealed )?record (EngineSessionEnvelope|EngineSessionCursor|PlayBootstrapRequest|PlayBootstrapResponse|PlaySessionProjection|PlayReconnectRequest|PlayReconnectResponse|PlayContinuityClaimRequest|PlayContinuityClaimResponse|PlayObserveResponse|PlaySyncRequest|PlaySyncResponse|PlayQuickActionRequest|PlayQuickActionResponse|PlayRuntimeBundleMetadata|PlayCachePressureSnapshot|PlayResumeResponse|BrowserSessionShellProbe|SyncCheckpoint|OfflineLedgerEnvelope)|public enum PlaySurfaceRole' src -g '*.cs' >/dev/null 2>&1; then
+  echo "play transport and checkpoint DTOs must come from canonical packages, not repo-local source" >&2
+  exit 1
+fi
 
 if rg -n 'scaffold|placeholder|TODO' \
   src/Chummer.Play.Web/PlayWebApplication.cs \
@@ -269,36 +279,19 @@ if [[ -n "${published_feed_sources}" ]]; then
   bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
 else
   echo "published-feed compatibility restore/build checks skipped (set CHUMMER_PUBLISHED_FEED_SOURCES to enable)"
-  echo "running published-feed compatibility smoke check with repo-local feed"
-  local_published_smoke_feed="${repo_root}/.artifacts/nuget-published-smoke"
-  mkdir -p "${local_published_smoke_feed}"
-  dotnet pack "${repo_root}/eng/package-stubs/EngineContractsStub/EngineContractsStub.csproj" --nologo -c Release -o "${local_published_smoke_feed}" >/dev/null
-  dotnet pack "${repo_root}/eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj" --nologo -c Release -o "${local_published_smoke_feed}" >/dev/null
-  dotnet pack "${repo_root}/eng/package-stubs/UiKitStub/UiKitStub.csproj" --nologo -c Release -o "${local_published_smoke_feed}" >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" restore src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" restore src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" restore src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" restore src/Chummer.Play.Gm/Chummer.Play.Gm.csproj --nologo >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" restore src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" build src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo --no-restore >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" build src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo --no-restore >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" build src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo --no-restore >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" build src/Chummer.Play.Gm/Chummer.Play.Gm.csproj --nologo --no-restore >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo --no-restore >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-restore >/dev/null
-  CHUMMER_PUBLISHED_FEED_SOURCES="${local_published_smoke_feed}" \
-    bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
+  echo "running local owner-package compatibility smoke check"
+  bash "${package_plane_runner}" restore src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo >/dev/null
+  bash "${package_plane_runner}" restore src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo >/dev/null
+  bash "${package_plane_runner}" restore src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo >/dev/null
+  bash "${package_plane_runner}" restore src/Chummer.Play.Gm/Chummer.Play.Gm.csproj --nologo >/dev/null
+  bash "${package_plane_runner}" restore src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo >/dev/null
+  bash "${package_plane_runner}" build src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo --no-restore >/dev/null
+  bash "${package_plane_runner}" build src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo --no-restore >/dev/null
+  bash "${package_plane_runner}" build src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo --no-restore >/dev/null
+  bash "${package_plane_runner}" build src/Chummer.Play.Gm/Chummer.Play.Gm.csproj --nologo --no-restore >/dev/null
+  bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo --no-restore >/dev/null
+  bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-restore >/dev/null
+  bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
 fi
 
 echo "chummer6-mobile verify ok"

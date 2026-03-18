@@ -13,20 +13,61 @@ export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 local_feed="${repo_root}/.artifacts/nuget-local"
+export NUGET_PACKAGES="${NUGET_PACKAGES:-${repo_root}/.artifacts/nuget-packages}"
 published_feed_sources="${CHUMMER_PUBLISHED_FEED_SOURCES:-}"
 published_engine_contracts_version="${CHUMMER_PUBLISHED_ENGINE_CONTRACTS_VERSION:-}"
 published_play_contracts_version="${CHUMMER_PUBLISHED_PLAY_CONTRACTS_VERSION:-}"
 published_ui_kit_version="${CHUMMER_PUBLISHED_UI_KIT_VERSION:-}"
+workspace_root="$(cd "${repo_root}/.." && pwd)"
+engine_contracts_project="${workspace_root}/chummer-core-engine/Chummer.Contracts/Chummer.Contracts.csproj"
+play_contracts_project="${workspace_root}/chummer.run-services/Chummer.Play.Contracts/Chummer.Play.Contracts.csproj"
+ui_kit_project="${workspace_root}/chummer-ui-kit/src/Chummer.Ui.Kit/Chummer.Ui.Kit.csproj"
 
 restore_args=()
+skip_package_refresh=false
+
+for arg in "$@"; do
+  case "${arg}" in
+    --no-restore|--no-build)
+      skip_package_refresh=true
+      ;;
+  esac
+done
+
+pack_owner_package() {
+  local project_path="$1"
+  local package_id="$2"
+  local package_version="$3"
+
+  if [[ ! -f "${project_path}" ]]; then
+    return 1
+  fi
+
+  dotnet pack "${project_path}" \
+    --nologo \
+    -c Release \
+    -o "${local_feed}" \
+    -p:PackageId="${package_id}" \
+    -p:PackageVersion="${package_version}" >/dev/null
+}
 
 if [[ -n "${published_feed_sources}" ]]; then
   restore_args+=(-p:RestoreSources="${published_feed_sources}" -p:RestoreIgnoreFailedSources=false)
 else
   mkdir -p "${local_feed}"
-  dotnet pack "${repo_root}/eng/package-stubs/EngineContractsStub/EngineContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
-  dotnet pack "${repo_root}/eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
-  dotnet pack "${repo_root}/eng/package-stubs/UiKitStub/UiKitStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
+  if [[ "${skip_package_refresh}" != true ]]; then
+    rm -f "${local_feed}"/Chummer.Engine.Contracts.*.nupkg "${local_feed}"/Chummer.Play.Contracts.*.nupkg "${local_feed}"/Chummer.Ui.Kit.*.nupkg
+    rm -rf "${NUGET_PACKAGES}/chummer.engine.contracts" "${NUGET_PACKAGES}/chummer.play.contracts" "${NUGET_PACKAGES}/chummer.ui.kit"
+    if ! pack_owner_package "${engine_contracts_project}" "Chummer.Engine.Contracts" "${published_engine_contracts_version:-0.1.0-preview}"; then
+      dotnet pack "${repo_root}/eng/package-stubs/EngineContractsStub/EngineContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
+    fi
+    if ! pack_owner_package "${play_contracts_project}" "Chummer.Play.Contracts" "${published_play_contracts_version:-0.1.0-preview}"; then
+      dotnet pack "${repo_root}/eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
+    fi
+    if ! pack_owner_package "${ui_kit_project}" "Chummer.Ui.Kit" "${published_ui_kit_version:-0.1.0-preview}"; then
+      dotnet pack "${repo_root}/eng/package-stubs/UiKitStub/UiKitStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
+    fi
+  fi
   restore_args+=(-p:RestoreSources="${local_feed}" -p:RestoreIgnoreFailedSources=true)
 fi
 

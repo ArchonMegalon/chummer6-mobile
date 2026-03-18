@@ -7,7 +7,7 @@ Initial extraction seam from `chummer-presentation` into `chummer6-mobile`:
 - `Chummer.Session.Web/BrowserSessionCoachApiClient.cs` -> `src/Chummer.Play.Web/BrowserSessionCoachApiClient.cs`
 - `Chummer.Session.Web/BrowserSessionEventLogStore.cs` -> `src/Chummer.Play.Web/BrowserSessionEventLogStore.cs`
 - `Chummer.Session.Web/BrowserSessionOfflineCacheService.cs` -> `src/Chummer.Play.Web/BrowserSessionOfflineCacheService.cs`
-- `Chummer.Session.Web/BrowserSessionShellProbe.cs` -> `src/Chummer.Play.Web/BrowserSessionShellProbe.cs`
+- `Chummer.Session.Web` bootstrap/sync/session DTOs -> `Chummer.Play.Contracts` package-owned play transport surface
 
 Rules for migration:
 
