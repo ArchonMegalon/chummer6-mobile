@@ -17,6 +17,7 @@ This repo must consume canonical shared packages only:
 - `Chummer.Ui.Kit`
 
 It must not copy shared contracts from other Chummer repos.
+It must also treat semantic session events as engine-owned truth, not redefine them locally.
 
 ## What rejoin and resume guarantee
 

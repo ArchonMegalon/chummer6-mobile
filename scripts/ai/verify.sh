@@ -89,7 +89,12 @@ if find src/Chummer.Play.Core -type f \( \
   exit 1
 fi
 
-if rg -n '\\b(class|record)\\s+(TokenCanon|ThemeCompiler|ShellChrome|AccessibilityState)\\b|\\b(static\\s+)?UiAdapterPayload\\s+Adapt(ShellChrome|AccessibilityState)\\s*\\(' src -g '*.cs' >/dev/null 2>&1; then
+if rg -n 'namespace Chummer\.Contracts\.Session;|public (sealed )?record (EffectAppliedEvent|TrackerIncrementedEvent)\b|public interface ISessionEvent\b' src -g '*.cs' >/dev/null 2>&1; then
+  echo "semantic session contracts must remain engine-owned and must not be redefined in chummer6-mobile" >&2
+  exit 1
+fi
+
+if rg -n '\\b(class|record)\\s+(TokenCanon|ThemeCompiler|ShellChrome|AccessibilityState|Banner|StaleStateBadge|ApprovalChip|OfflineBanner)\\b|\\b(static\\s+)?UiAdapterPayload\\s+Adapt(ShellChrome|AccessibilityState|Banner|StaleStateBadge|ApprovalChip|OfflineBanner)\\s*\\(' src -g '*.cs' >/dev/null 2>&1; then
   echo "source-copied ui-kit token/theme/shell/accessibility primitives are not allowed in chummer6-mobile" >&2
   exit 1
 fi
