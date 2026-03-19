@@ -25,6 +25,7 @@ test -f docs/rejoin-resume-guarantees.md
 test -f docs/sync-model.md
 test -f docs/offline-storage.md
 test -f docs/migration-map.md
+test -f docs/PLAY_RELEASE_SIGNOFF.md
 test -f feedback/2026-03-10-public-repo-graph-audit.md
 test -f src/Chummer.Play.Web/Program.cs
 test -f src/Chummer.Play.Web/PlayWebApplication.cs
@@ -218,6 +219,7 @@ rg -n 'ClaimContinuityAsync\(' src/Chummer.Play.Web/BrowserSessionApiClient.cs >
 rg -n 'ObserveAsync\(' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
 rg -n 'VerifyStoredLineageAlignment\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'IsLedgerAligned\(' src/Chummer.Play.Web/SessionLineage.cs >/dev/null
+rg -n 'VerifyIndexShellAccessibilityContractAsync|VerifyBootstrapRoleShellEntryPointsAsync|VerifyCachePressureBudgetContractAsync|RuntimeBundleQuota == 8|<html lang="en">' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Math\.Max\(ledgerBeforeAppend\.LastKnownSequence, cursor\.AppliedThroughSequence\) \+ 1' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'EnsureStoredLineageAlignedAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'Session id is required\.|Scene id is required\.|Scene revision is required\.|Runtime fingerprint is required\.' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null

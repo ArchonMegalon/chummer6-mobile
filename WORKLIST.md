@@ -24,11 +24,12 @@ Purpose: keep the live mobile queue readable. Historical queue churn and audit r
 | WL-020 | done | P2 | Turn release hardening and finished-shell closure into executable truth gates. | agent | Closed 2026-03-13: M10/M11 are now explicit, enforced release truth instead of hand-wavy “probably done.” |
 | WL-023 | done | P2 | Retire stale `chummer-play` repo identity from the mobile front door. | agent | Completed 2026-03-14: live repo-facing docs now use the `chummer6-mobile` identity, the old design doc name is treated as compatibility-only, and a public rejoin/resume guarantee doc now explains the user-visible promise. |
 | WL-024 | done | P1 | Prove `D1` at the transport seams: mobile APIs must consume session semantics from canonical core contracts and publish role-shell replay state through transport adapters only. | agent | Closed 2026-03-18: play/session transport DTOs and checkpoint envelopes now come from package-owned surfaces, `scripts/ai/verify.sh` rejects repo-local copies, and the package-plane runner restores against owner packages instead of empty contract stubs when local repos are available. |
+| WL-025 | done | P1 | Close `E1` by proving the player and GM shells are release-complete across replay, reconnect, observe, offline, and installable-PWA flows with current evidence. | agent | Closed 2026-03-19: `scripts/ai/verify.sh` now keeps replay, reconnect, observe, offline queue/cache, role-shell bootstrap, and installable-PWA behavior executable and package-boundary-safe in one standard verification path. |
 
 ## Current repo truth
 
-- Repo-local live queue: empty
-- Remaining work is product polish, not boundary confusion: keep the local-first resume/rejoin/replay guarantee trustworthy and keep workbench/publisher concerns out
+- Repo-local live queue: none
+- The player and GM shells are materially release-complete on the current replay/reconnect/observe/offline/installable-PWA axis; remaining change pressure is future capability depth rather than missing shell closure.
 - Historical feedback references still mention `chummer-play`; those are retained as audit history, not current repo identity
 
 ## Historical log

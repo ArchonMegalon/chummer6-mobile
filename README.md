@@ -27,6 +27,8 @@ It must also treat semantic session events as engine-owned truth, not redefine t
 
 Public guarantee note: [docs/rejoin-resume-guarantees.md](docs/rejoin-resume-guarantees.md)
 
+Release signoff note: [docs/PLAY_RELEASE_SIGNOFF.md](docs/PLAY_RELEASE_SIGNOFF.md)
+
 ## Design Mirror
 
 Repo-local Chummer design mirror files live under `.codex-design/`:
