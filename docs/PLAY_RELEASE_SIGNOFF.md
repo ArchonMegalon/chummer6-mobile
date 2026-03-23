@@ -20,3 +20,11 @@ Purpose: keep the mobile/play share of `F0` explicit now that `E1` is already ma
 ## Exit statement
 
 The mobile/play head no longer blocks the product on shell reality, replay safety, accessibility, or bounded performance behavior. Remaining work is future product depth, not missing release proof for the current play shell.
+
+## Post-closure completion criteria (M12)
+
+The post-closure depth lane is considered executable when the following remain true and regression-backed:
+
+- Player shell criteria: browser transport + event-log + offline resume stay lineage-safe, and player role actions stay limited to player-safe capabilities.
+- GM shell criteria: GM-only action and Spider-card capability gates remain enforced, and continuity/observe routes keep stale-lineage-safe behavior.
+- Release-proof cadence criteria: each closure slice must keep these criteria represented in `WORKLIST.md` (`TG-M12-PL`, `TG-M12-GM`, `TG-M12-RP`) and preserved by `scripts/ai/verify.sh`.

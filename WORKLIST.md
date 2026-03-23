@@ -15,7 +15,7 @@ Purpose: keep the live mobile queue readable. Historical queue churn and audit r
 | M6 Local-first runtime seam | done | 100% | 2026-03-13 | high | Ledger, cache, offline queue, and replay ownership are real and regression-guarded. |
 | M10 Hardening | done | 100% | 2026-03-13 | high | Accessibility, replay resilience, and performance-budget truth gates are closed. |
 | M11 Finished mobile shell gate | done | 100% | 2026-03-13 | high | Role-shell completion, cross-device continuity, and release closure gates are closed. |
-| M12 Play-shell completion depth (post-closure) | in_progress | 15% | 2026-04-10 | medium | Browser transport, event-log persistence, and offline resume are closed; remaining scope is ongoing full play-shell completion proof and deeper player-vs-GM shell depth. |
+| M12 Play-shell completion depth (post-closure) | in_progress | 55% | 2026-04-10 | medium | Browser transport, event-log persistence, and offline resume remain closed, and post-closure role-shell completion gates are now explicit and verify-enforced; remaining scope is sustained release proof refresh and additional role-depth assertions. |
 
 ## Queue
 | ID | Status | Priority | Task | Owner | Notes |
@@ -26,11 +26,19 @@ Purpose: keep the live mobile queue readable. Historical queue churn and audit r
 | WL-023 | done | P2 | Retire stale `chummer-play` repo identity from the mobile front door. | agent | Completed 2026-03-14: live repo-facing docs now use the `chummer6-mobile` identity, the old design doc name is treated as compatibility-only, and a public rejoin/resume guarantee doc now explains the user-visible promise. |
 | WL-024 | done | P1 | Prove `D1` at the transport seams: mobile APIs must consume session semantics from canonical core contracts and publish role-shell replay state through transport adapters only. | agent | Closed 2026-03-18: play/session transport DTOs and checkpoint envelopes now come from package-owned surfaces, `scripts/ai/verify.sh` rejects repo-local copies, and the package-plane runner restores against owner packages instead of empty contract stubs when local repos are available. |
 | WL-025 | done | P1 | Close `E1` by proving the player and GM shells are release-complete across replay, reconnect, observe, offline, and installable-PWA flows with current evidence. | agent | Closed 2026-03-19: `scripts/ai/verify.sh` now keeps replay, reconnect, observe, offline queue/cache, role-shell bootstrap, and installable-PWA behavior executable and package-boundary-safe in one standard verification path. |
-| WL-026 | queued | P2 | Publish post-closure runnable backlog for full play-shell completion depth: extend verifier-backed evidence for browser transport/event-log/offline resume into role-specific completion criteria and ongoing release proof. | agent | Milestone `M12`. Deliverables: (1) add explicit player-vs-GM completion truth gates beyond current closure, (2) add verify-enforced ownership checks for those gates, (3) publish dated evidence row in `AUDIT_LOG.md` tying this queue intake to `feedback/2026-03-21-204029-audit-task-2652.md` and `feedback/2026-03-21-204029-audit-task-48734.md`. |
+| WL-026 | done | P2 | Publish post-closure runnable backlog for full play-shell completion depth: extend verifier-backed evidence for browser transport/event-log/offline resume into role-specific completion criteria and ongoing release proof. | agent | Closed 2026-03-23: added explicit M12 truth gates for player shell completion, GM shell completion, and ongoing release proof cadence; wired those gates into `scripts/ai/verify.sh`; and published dated queue-publication evidence in `AUDIT_LOG.md` tied to `feedback/2026-03-21-204029-audit-task-2652.md` and `feedback/2026-03-21-204029-audit-task-48734.md`. |
+
+## M12 Truth-Gate Registry
+
+| Gate ID | Milestone | ETA Target (UTC) | Status | Completion Truth |
+|---|---|---|---|---|
+| TG-M12-PL | M12 | 2026-04-10 | done | Player-shell completion depth is post-closure executable: browser transport ownership, event-log persistence lineage, offline resume payload behavior, and role-safe quick-action scope stay regression-backed through `VerifySyncPrefixAcknowledgementAsync`, `VerifyStoredLineageAlignment`, `VerifyStoredLineageStaleResponsesAsync`, `VerifyBootstrapRoleShellEntryPointsAsync`, and `VerifyQuickActionRejectsCrossRoleAuthorizationAsync`. |
+| TG-M12-GM | M12 | 2026-04-10 | done | GM-shell completion depth is post-closure executable: GM-only capability gating (`play.gm.actions`, `play.spider.cards`), continuity/observe route ownership, and non-mutating stale-lineage rejection remain regression-backed through `VerifyBootstrapRoleShellEntryPointsAsync`, `VerifyQuickActionRejectsCrossRoleAuthorizationAsync`, `VerifyContinuityClaimRejectsStaleLineageWithoutMutationAsync`, and `VerifyObserveReturnsLineageSafeContinuityAsync`. |
+| TG-M12-RP | M12 | 2026-04-10 | done | Ongoing release proof is explicit and enforceable: `docs/PLAY_RELEASE_SIGNOFF.md` defines post-closure player/GM completion criteria and release-proof cadence, and `scripts/ai/verify.sh` enforces those gate references plus `WL-026` closure traceability. |
 
 ## Current repo truth
 
-- Repo-local live queue: `WL-026` (post-closure full play-shell completion depth and ongoing evidence hardening)
+- Repo-local live queue: none (all currently materialized worklist rows are done; `M12` remains in progress for additive depth evidence beyond this closure slice)
 - The player and GM shells are materially release-complete on the current replay/reconnect/observe/offline/installable-PWA axis; remaining change pressure is now explicitly tracked as post-closure capability depth under `M12`.
 - Historical feedback references still mention `chummer-play`; those are retained as audit history, not current repo identity
 
