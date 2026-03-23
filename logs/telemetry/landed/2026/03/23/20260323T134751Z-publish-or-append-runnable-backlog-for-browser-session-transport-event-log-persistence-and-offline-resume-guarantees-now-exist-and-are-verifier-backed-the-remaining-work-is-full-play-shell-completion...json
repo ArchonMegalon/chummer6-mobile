@@ -1,0 +1,58 @@
+{
+  "accepted_on_round": "1",
+  "allow_credit_burn": false,
+  "allow_paid_fast_lane": false,
+  "blocking_issue_counts": [
+    1
+  ],
+  "core_rescue_reason": null,
+  "diff_added": 122,
+  "diff_removed": 42,
+  "files_touched": 36,
+  "groundwork_workers_used": [],
+  "implementation_workers_used": [],
+  "issue_fingerprints": [
+    "review-blocked-sandbox-bwrap-namespace",
+    "review-shell-unavailable-bwrap-namespace",
+    "tests-continuity-claim-route-roundtrip-missing"
+  ],
+  "jury_verdicts": [
+    "manual_hold",
+    "manual_hold",
+    "accept",
+    "accept",
+    "accept"
+  ],
+  "landed_at": "2026-03-23T13:47:51Z",
+  "landed_sha": "",
+  "landing_commit_ref": "self",
+  "landing_lane": "core",
+  "lane_sequence": [
+    "core"
+  ],
+  "needs_core_rescue": false,
+  "project_id": "mobile",
+  "repeat_issue_count": 0,
+  "review_rounds_used": 1,
+  "schema_version": 1,
+  "shadow_phase": [],
+  "shadow_worker_used": false,
+  "slice_id": "publish-or-append-runnable-backlog-for-browser-session-transport-event-log-persistence-and-offline-resume-guarantees-now-exist-and-are-verifier-backed-the-remaining-work-is-full-play-shell-completion..",
+  "timing_ms": {
+    "core_total": 0,
+    "groundwork_total": 0,
+    "jury_total": 581000,
+    "lead_time_total": 321177,
+    "queue_wait_total": 0,
+    "shadow_groundwork_total": 0
+  },
+  "title": "Publish or append runnable backlog for Browser session transport, event-log persistence, and offline resume guarantees now exist and are verifier-backed; the remaining work is full play-shell completion..",
+  "usage_estimates": {
+    "core_runs": 0,
+    "groundwork_runs": 0,
+    "jury_reviews": 0
+  },
+  "verify_passed": true,
+  "worker_topology": {},
+  "workflow_kind": "default"
+}
