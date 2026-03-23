@@ -1,0 +1,17 @@
+mode: prepend
+items:
+- Publish or append runnable backlog for Browser session transport, event-log persistence, and offline resume guarantees now exist and are verifier-backed; the remaining work is full play-shell completion..
+- Add milestone mapping or executable queue work for Browser session transport, event-log persistence, and offline resume guarantees now exist and are verifier-backed; the remaining work is full play-shell completion..
+- Publish or append runnable backlog for Dedicated play API, offline cache, and installable PWA hardening still need ongoing release proof beyond the now-real shell..
+- Add milestone mapping or executable queue work for Dedicated play API, offline cache, and installable PWA hardening still need ongoing release proof beyond the now-real shell..
+- Publish or append runnable backlog for The remaining mobile work is local-first sync/installable hardening and deeper player-vs-GM product completion, not package-boundary ambiguity..
+- Finish milestone coverage modeling for mobile so ETA and completion truth are no longer partial.
+- Add milestone mapping or executable queue work for The remaining mobile work is local-first sync/installable hardening and deeper player-vs-GM product completion, not package-boundary ambiguity..
+- Sync the approved Chummer design bundle into `mobile` under `.codex-design/` and refresh repo-local review context.
+- Publish or append runnable backlog for The play repo still depends on the future `Chummer.Ui.Kit` and `Chummer.Play.Contracts` package plane that is not yet fully real..
+- Add milestone mapping or executable queue work for The play repo still depends on the future `Chummer.Ui.Kit` and `Chummer.Play.Contracts` package plane that is not yet fully real..
+- Publish or append runnable backlog for Bootstrap, browser session client, and event-log persistence code are still scaffold-stage placeholders..
+- Add milestone mapping or executable queue work for Bootstrap, browser session client, and event-log persistence code are still scaffold-stage placeholders..
+- Publish or append runnable backlog for Dedicated play API, offline cache, and installable PWA hardening work remains unmaterialized..
+- Add milestone mapping or executable queue work for Browser session transport, event-log persistence, and offline resume guarantees now exist, but they still need milestone-level hardening evidence..
+- Move the play repo from placeholder bootstrap/client/storage code onto the real play API, browser persistence, and sync seams.
