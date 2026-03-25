@@ -1,5 +1,8 @@
 mode: prepend
 items:
+- Close the remaining quality, restore, migration, and release-proof obligations for `mobile` with executable evidence instead of registry prose alone.
+- Make the remaining publication, moderation, and projection seams for `mobile` explicit and owner-backed rather than implied by runtime behavior.
+- Cluster the remaining `mobile` product-completion items into one executable backlog slice instead of publishing one queue task per bullet.
 - Publish or append runnable backlog for Browser session transport, event-log persistence, and offline resume guarantees now exist and are verifier-backed; the remaining work is full play-shell completion..
 - Add milestone mapping or executable queue work for Browser session transport, event-log persistence, and offline resume guarantees now exist and are verifier-backed; the remaining work is full play-shell completion..
 - Publish or append runnable backlog for Dedicated play API, offline cache, and installable PWA hardening still need ongoing release proof beyond the now-real shell..
