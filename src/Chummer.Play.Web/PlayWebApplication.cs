@@ -1,6 +1,7 @@
 using Chummer.Play.Core.Application;
 using Chummer.Play.Core.Offline;
 using Chummer.Play.Core.PlayApi;
+using Chummer.Play.Core.Roaming;
 using Chummer.Play.Core.Sync;
 using Chummer.Play.Gm.TacticalShell;
 using Chummer.Play.Player.PlayerShell;
@@ -32,6 +33,7 @@ public static class PlayWebApplication
         services.AddSingleton<IPlayEventLogStore>(serviceProvider => serviceProvider.GetRequiredService<BrowserSessionEventLogStore>());
         services.AddSingleton<IPlayOfflineCacheService>(serviceProvider => serviceProvider.GetRequiredService<BrowserSessionOfflineCacheService>());
         services.AddSingleton<IPlayOfflineQueueService>(serviceProvider => serviceProvider.GetRequiredService<BrowserSessionOfflineQueueService>());
+        services.AddSingleton<IRoamingWorkspaceSyncPlanner, RoamingWorkspaceSyncPlanner>();
     }
 
     internal static void Configure(WebApplication app)

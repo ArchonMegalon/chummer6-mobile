@@ -52,10 +52,12 @@ test -f scripts/ai/with-package-plane.sh
 test -f src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj
 test -f src/Chummer.Play.RegressionChecks/Program.cs
 test -f src/Chummer.Play.Core/Chummer.Play.Core.csproj
+test -f src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs
 test -f src/Chummer.Play.Components/Chummer.Play.Components.csproj
 test -f src/Chummer.Play.Player/Chummer.Play.Player.csproj
 test -f src/Chummer.Play.Gm/Chummer.Play.Gm.csproj
 test -f eng/package-stubs/EngineContractsStub/EngineContractsStub.csproj
+test -f eng/package-stubs/CampaignContractsStub/CampaignContractsStub.csproj
 test -f eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj
 test -f eng/package-stubs/UiKitStub/UiKitStub.csproj
 
@@ -106,13 +108,17 @@ if rg -n "EnableChummerPackageReferences" Directory.Build.props src README.md AG
 fi
 
 rg -n "<PackageVersion Include=\"Chummer\\.Engine\\.Contracts\"" Directory.Packages.props >/dev/null
+rg -n "<PackageVersion Include=\"Chummer\\.Campaign\\.Contracts\"" Directory.Packages.props >/dev/null
 rg -n "<PackageVersion Include=\"Chummer\\.Play\\.Contracts\"" Directory.Packages.props >/dev/null
 rg -n "<PackageVersion Include=\"Chummer\\.Ui\\.Kit\"" Directory.Packages.props >/dev/null
 rg -n "<ChummerEngineContractsPackageId" Directory.Build.props >/dev/null
+rg -n "<ChummerCampaignContractsPackageId" Directory.Build.props >/dev/null
 rg -n "<ChummerEngineContractsPackageVersion>" Directory.Packages.props >/dev/null
+rg -n "<ChummerCampaignContractsPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<ChummerPlayContractsPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<ChummerUiKitPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerEngineContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
+rg -n "<PackageReference Include=\"\\$\\(ChummerCampaignContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerPlayContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerUiKitPackageId\\)\"" src/Chummer.Play.Components/Chummer.Play.Components.csproj >/dev/null
 
@@ -128,9 +134,9 @@ mapfile -t package_references < <(
 
 for package_reference in "${package_references[@]}"; do
   case "${package_reference}" in
-    '$(ChummerEngineContractsPackageId)'|'$(ChummerPlayContractsPackageId)'|'$(ChummerUiKitPackageId)')
+    '$(ChummerEngineContractsPackageId)'|'$(ChummerCampaignContractsPackageId)'|'$(ChummerPlayContractsPackageId)'|'$(ChummerUiKitPackageId)')
       ;;
-    Chummer.Engine.Contracts|Chummer.Play.Contracts|Chummer.Ui.Kit)
+    Chummer.Engine.Contracts|Chummer.Campaign.Contracts|Chummer.Play.Contracts|Chummer.Ui.Kit)
       echo "shared Chummer package references must use Directory.Build.props package id properties: ${package_reference}" >&2
       exit 1
       ;;
@@ -196,6 +202,8 @@ rg -n 'PlayApiRoutes\.Observe' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.Sync' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.Resume' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.CachePressure' src/Chummer.Play.Web >/dev/null
+rg -n 'AddSingleton<IRoamingWorkspaceSyncPlanner, RoamingWorkspaceSyncPlanner>' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
+rg -n 'RoamingWorkspaceRestorePlan|CreatePlan\(WorkspaceRestoreProjection restore, string targetDeviceId\)' src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs >/dev/null
 rg -n '"/play/\{sessionId\}"' src/Chummer.Play.Web >/dev/null
 rg -n 'SelectShell\(bootstrapRequest\.Role, playerShell, gmShell\)' src/Chummer.Play.Web >/dev/null
 rg -n '\[activeShell\]' src/Chummer.Play.Web >/dev/null
@@ -228,6 +236,8 @@ rg -n 'VerifyCachePressureBudgetContractAsync\(' src/Chummer.Play.RegressionChec
 rg -n 'ClaimContinuityAsync\(' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
 rg -n 'ObserveAsync\(' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
 rg -n 'VerifyStoredLineageAlignment\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'IsLedgerAligned\(' src/Chummer.Play.Web/SessionLineage.cs >/dev/null
 rg -n 'VerifyIndexShellAccessibilityContractAsync|VerifyBootstrapRoleShellEntryPointsAsync|VerifyCachePressureBudgetContractAsync|RuntimeBundleQuota == 8|<html lang="en">' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Post-closure completion criteria \(M12\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
@@ -247,6 +257,7 @@ rg -n 'ListKeysAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineCacheService.c
 rg -n 'RemoveAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineCacheService.cs >/dev/null
 rg -n 'PlayCachePressureSnapshot' src >/dev/null
 rg -n 'PlayResumeResponse' src >/dev/null
+rg -n 'Chummer\.Campaign\.Contracts' README.md >/dev/null
 rg -n '"start_url": "/index.html"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
 rg -n 'navigator\.serviceWorker\.register' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
 rg -n 'role="status" aria-live="polite" aria-atomic="true"' src/Chummer.Play.Web/wwwroot/index.html >/dev/null

@@ -1,6 +1,8 @@
+using Chummer.Campaign.Contracts;
 using Chummer.Play.Core.Application;
 using Chummer.Play.Core.Offline;
 using Chummer.Play.Core.PlayApi;
+using Chummer.Play.Core.Roaming;
 using Chummer.Play.Core.Sync;
 using Chummer.Play.Gm.TacticalShell;
 using Chummer.Play.Player.PlayerShell;
@@ -66,6 +68,8 @@ await RunCheckAsync(nameof(VerifyResumeNormalizesCheckpointToLedgerLineageAsync)
 await RunCheckAsync(nameof(VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync), VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync);
 RunCheck(nameof(VerifyCheckpointLineageAlignment), VerifyCheckpointLineageAlignment);
 RunCheck(nameof(VerifyStoredLineageAlignment), VerifyStoredLineageAlignment);
+RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState), VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState);
+RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails), VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails);
 
 Console.WriteLine("chummer6-mobile regression checks ok");
 
@@ -91,6 +95,154 @@ static void TraceCheckBoundary(string phase, string name)
     }
 
     Console.Error.WriteLine($"{phase} {name}");
+}
+
+static void VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState()
+{
+    IRoamingWorkspaceSyncPlanner planner = new RoamingWorkspaceSyncPlanner();
+    WorkspaceRestoreProjection restore = CreateWorkspaceRestoreProjection(conflicts: Array.Empty<string>());
+
+    RoamingWorkspaceRestorePlan plan = planner.CreatePlan(restore, "install-tablet");
+
+    Assert(plan.TargetDeviceId == "install-tablet", "roaming restore must target the requested claimed device");
+    Assert(plan.DeviceRole == "play_tablet", "roaming restore must preserve the claimed device role");
+    Assert(plan.Dossiers.Count == 1, "roaming restore must carry living dossiers onto the claimed second device");
+    Assert(plan.Campaigns.Count == 1, "roaming restore must carry campaign summaries onto the claimed second device");
+    Assert(plan.RuleEnvironments.Count == 1, "roaming restore must carry rule environments onto the claimed second device");
+    Assert(plan.Artifacts.Count == 1, "roaming restore must carry reconnectable artifact truth onto the claimed second device");
+    Assert(plan.Entitlements.Count == 1, "roaming restore must carry entitlements onto the claimed second device");
+    Assert(plan.CanResume, "roaming restore must remain resumable when package-owned campaign state exists");
+    Assert(!plan.RequiresConflictReview, "roaming restore should stay conflict-free for aligned package-owned state");
+}
+
+static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails()
+{
+    IRoamingWorkspaceSyncPlanner planner = new RoamingWorkspaceSyncPlanner();
+    WorkspaceRestoreProjection restore = CreateWorkspaceRestoreProjection(
+        conflicts:
+        [
+            "Claimed installs are on different channels; restore should confirm which campaign posture is current."
+        ]);
+
+    RoamingWorkspaceRestorePlan plan = planner.CreatePlan(restore, "install-workstation");
+
+    Assert(plan.RequiresConflictReview, "roaming restore must keep explicit conflict review when channels drift");
+    Assert(plan.ConflictSummaries.Count == 1, "roaming restore must preserve explicit conflict summaries");
+    Assert(plan.ConflictSummaries[0].Contains("different channels", StringComparison.Ordinal), "roaming restore must keep the original conflict language");
+    Assert(plan.LocalOnlyNotes.Count == 2, "roaming restore must preserve install-local guardrail notes");
+    Assert(plan.LocalOnlyNotes.All(note => !note.Contains("secret=", StringComparison.OrdinalIgnoreCase)), "roaming restore must not leak install-local secrets into the roaming packet");
+}
+
+static WorkspaceRestoreProjection CreateWorkspaceRestoreProjection(IReadOnlyList<string> conflicts)
+{
+    RuleEnvironmentRef environment = new(
+        EnvironmentId: "ruleenv-preview",
+        OwnerScope: "campaign",
+        CompatibilityFingerprint: "sr6.preview.v1",
+        ApprovalState: "approved",
+        SourcePacks: ["shadowrun-6e-core@current"],
+        HouseRulePacks: [],
+        OptionToggles: ["campaign_continuity"]);
+    ContinuitySnapshotRef continuity = new(
+        SnapshotId: "snapshot-1",
+        CapturedAtUtc: DateTimeOffset.UtcNow,
+        Summary: "Campaign continuity is ready for a second-device restore.",
+        RestoreState: "synced",
+        SessionId: "session-redmond",
+        SceneId: "scene-r7",
+        RecapArtifactId: "artifact-recap-1");
+    RunnerDossierProjection dossier = new(
+        DossierId: "dossier-kestrel",
+        RunnerHandle: "kestrel",
+        DisplayName: "Kestrel",
+        Status: DossierStatuses.Active,
+        OwnerUserId: "usr_runner",
+        CrewId: "crew-redmond",
+        CampaignId: "campaign-redmond",
+        CurrentRunId: "run-redmond",
+        CurrentSceneId: "scene-r7",
+        RuleEnvironment: environment,
+        LatestContinuity: continuity,
+        BuildReceiptIds: ["receipt-build-1"],
+        SnapshotIds: ["snapshot-1"],
+        Projections:
+        [
+            new PublicationSafeProjection(
+                ProjectionId: "projection-dossier",
+                Kind: "dossier_card",
+                Label: "Living dossier",
+                Summary: "Runner continuity projection",
+                ArtifactId: "artifact-dossier-1")
+        ],
+        CreatedAtUtc: DateTimeOffset.UtcNow.AddDays(-7),
+        UpdatedAtUtc: DateTimeOffset.UtcNow.AddHours(-2));
+    CampaignProjection campaign = new(
+        CampaignId: "campaign-redmond",
+        GroupId: "group-redmond",
+        Name: "Redmond Patrol",
+        Status: CampaignStatuses.Active,
+        Visibility: "shared",
+        Summary: "Campaign continuity and roster posture.",
+        RuleEnvironment: environment,
+        ActiveRunId: "run-redmond",
+        CrewIds: ["crew-redmond"],
+        DossierIds: ["dossier-kestrel"],
+        RunIds: ["run-redmond"],
+        LatestContinuity: continuity,
+        CreatedAtUtc: DateTimeOffset.UtcNow.AddDays(-7),
+        UpdatedAtUtc: DateTimeOffset.UtcNow.AddHours(-2));
+
+    return new WorkspaceRestoreProjection(
+        RestoreId: "restore-runner",
+        UserId: "usr_runner",
+        RecentDossiers: [dossier],
+        RecentCampaigns: [campaign],
+        RecentRuleEnvironments: [environment],
+        RecentArtifacts:
+        [
+            new RestoreArtifactProjection(
+                ArtifactId: "artifact-linux-preview",
+                Label: "Linux preview installer",
+                Kind: "installer",
+                Summary: "Preview installer remains reconnectable on the second device.",
+                Channel: "preview",
+                Version: "0.7.0-preview")
+        ],
+        Entitlements:
+        [
+            new RestoreEntitlementProjection(
+                EntitlementId: "grant-preview",
+                Label: "Preview workstation access",
+                Scope: "desktop",
+                Status: "active",
+                Summary: "Access token can be refreshed after claim on the second device.")
+        ],
+        ClaimedDevices:
+        [
+            new ClaimedDeviceRestoreProjection(
+                InstallationId: "install-workstation",
+                DeviceRole: "workstation",
+                Platform: "linux",
+                HeadId: "desktop",
+                Channel: "preview",
+                HostLabel: "Shadowworkstation",
+                RestoreSummary: "linux · desktop · 0.7.0-preview"),
+            new ClaimedDeviceRestoreProjection(
+                InstallationId: "install-tablet",
+                DeviceRole: "play_tablet",
+                Platform: "android",
+                HeadId: "offline",
+                Channel: "preview",
+                HostLabel: "Travel tablet",
+                RestoreSummary: "android · offline · 0.7.0-preview")
+        ],
+        ConflictSummaries: conflicts,
+        LocalOnlyNotes:
+        [
+            "Secrets, grant tokens, and runtime caches stay install-local and are never mirrored into the roaming restore packet.",
+            "The target device must mint its own local cache and observer continuity token after restore."
+        ],
+        GeneratedAtUtc: DateTimeOffset.UtcNow);
 }
 
 static async Task VerifyLedgerLineageResetAsync()

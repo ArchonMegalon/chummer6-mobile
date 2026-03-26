@@ -13,6 +13,7 @@ Current scope:
 
 This repo must consume canonical shared packages only:
 - `Chummer.Engine.Contracts`
+- `Chummer.Campaign.Contracts`
 - `Chummer.Play.Contracts`
 - `Chummer.Ui.Kit`
 

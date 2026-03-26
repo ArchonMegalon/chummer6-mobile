@@ -16,10 +16,12 @@ local_feed="${repo_root}/.artifacts/nuget-local"
 export NUGET_PACKAGES="${NUGET_PACKAGES:-${repo_root}/.artifacts/nuget-packages}"
 published_feed_sources="${CHUMMER_PUBLISHED_FEED_SOURCES:-}"
 published_engine_contracts_version="${CHUMMER_PUBLISHED_ENGINE_CONTRACTS_VERSION:-}"
+published_campaign_contracts_version="${CHUMMER_PUBLISHED_CAMPAIGN_CONTRACTS_VERSION:-}"
 published_play_contracts_version="${CHUMMER_PUBLISHED_PLAY_CONTRACTS_VERSION:-}"
 published_ui_kit_version="${CHUMMER_PUBLISHED_UI_KIT_VERSION:-}"
 workspace_root="$(cd "${repo_root}/.." && pwd)"
 engine_contracts_project="${workspace_root}/chummer-core-engine/Chummer.Contracts/Chummer.Contracts.csproj"
+campaign_contracts_project="${workspace_root}/chummer.run-services/Chummer.Campaign.Contracts/Chummer.Campaign.Contracts.csproj"
 play_contracts_project="${workspace_root}/chummer.run-services/Chummer.Play.Contracts/Chummer.Play.Contracts.csproj"
 ui_kit_project="${workspace_root}/chummer-ui-kit/src/Chummer.Ui.Kit/Chummer.Ui.Kit.csproj"
 
@@ -56,10 +58,13 @@ if [[ -n "${published_feed_sources}" ]]; then
 else
   mkdir -p "${local_feed}"
   if [[ "${skip_package_refresh}" != true ]]; then
-    rm -f "${local_feed}"/Chummer.Engine.Contracts.*.nupkg "${local_feed}"/Chummer.Play.Contracts.*.nupkg "${local_feed}"/Chummer.Ui.Kit.*.nupkg
-    rm -rf "${NUGET_PACKAGES}/chummer.engine.contracts" "${NUGET_PACKAGES}/chummer.play.contracts" "${NUGET_PACKAGES}/chummer.ui.kit"
+    rm -f "${local_feed}"/Chummer.Engine.Contracts.*.nupkg "${local_feed}"/Chummer.Campaign.Contracts.*.nupkg "${local_feed}"/Chummer.Play.Contracts.*.nupkg "${local_feed}"/Chummer.Ui.Kit.*.nupkg
+    rm -rf "${NUGET_PACKAGES}/chummer.engine.contracts" "${NUGET_PACKAGES}/chummer.campaign.contracts" "${NUGET_PACKAGES}/chummer.play.contracts" "${NUGET_PACKAGES}/chummer.ui.kit"
     if ! pack_owner_package "${engine_contracts_project}" "Chummer.Engine.Contracts" "${published_engine_contracts_version:-0.1.0-preview}"; then
       dotnet pack "${repo_root}/eng/package-stubs/EngineContractsStub/EngineContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
+    fi
+    if ! pack_owner_package "${campaign_contracts_project}" "Chummer.Campaign.Contracts" "${published_campaign_contracts_version:-0.1.0-preview}"; then
+      dotnet pack "${repo_root}/eng/package-stubs/CampaignContractsStub/CampaignContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
     fi
     if ! pack_owner_package "${play_contracts_project}" "Chummer.Play.Contracts" "${published_play_contracts_version:-0.1.0-preview}"; then
       dotnet pack "${repo_root}/eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
@@ -73,6 +78,10 @@ fi
 
 if [[ -n "${published_engine_contracts_version}" ]]; then
   restore_args+=(-p:ChummerEngineContractsPackageVersion="${published_engine_contracts_version}")
+fi
+
+if [[ -n "${published_campaign_contracts_version}" ]]; then
+  restore_args+=(-p:ChummerCampaignContractsPackageVersion="${published_campaign_contracts_version}")
 fi
 
 if [[ -n "${published_play_contracts_version}" ]]; then

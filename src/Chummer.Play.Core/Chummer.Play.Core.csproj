@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="$(ChummerEngineContractsPackageId)" />
+    <PackageReference Include="$(ChummerCampaignContractsPackageId)" />
     <PackageReference Include="$(ChummerPlayContractsPackageId)" />
   </ItemGroup>
 </Project>
