@@ -68,6 +68,7 @@ await RunCheckAsync(nameof(VerifyResumeNormalizesCheckpointToLedgerLineageAsync)
 await RunCheckAsync(nameof(VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync), VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync);
 RunCheck(nameof(VerifyCheckpointLineageAlignment), VerifyCheckpointLineageAlignment);
 RunCheck(nameof(VerifyStoredLineageAlignment), VerifyStoredLineageAlignment);
+RunCheck(nameof(VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary), VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary);
 RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState), VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState);
 RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails), VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails);
 
@@ -120,6 +121,44 @@ static void VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState()
     Assert(plan.AttentionItems[0].Contains("install-local", StringComparison.Ordinal), "roaming restore attention items must preserve the install-local guardrail");
     Assert(plan.CanResume, "roaming restore must remain resumable when package-owned campaign state exists");
     Assert(!plan.RequiresConflictReview, "roaming restore should stay conflict-free for aligned package-owned state");
+}
+
+static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
+{
+    var response = new PlayResumeResponse(
+        SessionId: "session-redmond",
+        Role: PlaySurfaceRole.Player,
+        DeepLinkOwnerRoute: "/play/{sessionId}",
+        Bootstrap: new PlayBootstrapResponse(
+            "chummer6-mobile",
+            new PlaySessionProjection(
+                new EngineSessionCursor(
+                    new EngineSessionEnvelope("session-redmond", "scene-redmond", "scene-r9", "sr6.preview.v1"),
+                    12),
+                Timeline: ["Reconnect complete", "Objective board refreshed"],
+                GeneratedAtUtc: DateTimeOffset.Parse("2026-03-27T21:00:00+00:00")),
+            new PlayShellSnapshot(PlaySurfaceRole.Player, "Player shell", "Table-safe shell", ["play.session.sync"]),
+            [new PlayShellSnapshot(PlaySurfaceRole.Player, "Player shell", "Table-safe shell", ["play.session.sync"])],
+            new BrowserSessionShellProbe(true, true, true),
+            ["play.session.sync"],
+            [],
+            [new PlayCoachHint("coach-player-sync", "Sync before submitting quick actions after reconnect.")],
+            [new PlayQuickAction("player-mark-ready", "Mark Ready", "play.session.sync", true)]),
+        Checkpoint: new SyncCheckpoint("session-redmond", "scene-redmond", "scene-r9", "sr6.preview.v1", 12, DateTimeOffset.Parse("2026-03-27T21:00:00+00:00")),
+        RuntimeBundle: new PlayRuntimeBundleMetadata("sr6.preview.v1", "scene-r9", "bundle-redmond", DateTimeOffset.Parse("2026-03-27T20:55:00+00:00"), DateTimeOffset.Parse("2026-03-27T20:56:00+00:00")),
+        CachePressure: new PlayCachePressureSnapshot(2, 8, false, 0, [], DateTimeOffset.Parse("2026-03-27T21:00:00+00:00")));
+
+    var projection = PlayCampaignWorkspaceLiteProjector.Create(response);
+
+    Assert(projection.Summary.Contains("session-redmond", StringComparison.Ordinal), "workspace-lite summary must keep the session identity visible");
+    Assert(projection.Summary.Contains("Objective board refreshed", StringComparison.Ordinal), "workspace-lite summary must surface the latest timeline clue");
+    Assert(projection.CurrentSceneSummary.Contains("scene-redmond", StringComparison.Ordinal), "workspace-lite summary must surface the current scene");
+    Assert(projection.RulePosture.Contains("sr6.preview.v1", StringComparison.Ordinal), "workspace-lite summary must surface the runtime fingerprint");
+    Assert(projection.SafeNextAction.Contains("Sync before taking the next quick action", StringComparison.Ordinal), "workspace-lite summary must point the player lane at the next safe action");
+    Assert(projection.ContinuityPosture.Contains("Checkpoint 12", StringComparison.Ordinal), "workspace-lite summary must expose the aligned continuity checkpoint");
+    Assert(projection.CachePosture.Contains("2/8", StringComparison.Ordinal), "workspace-lite summary must expose cache posture");
+    Assert(projection.QuickActionLabels.SequenceEqual(["Mark Ready"]), "workspace-lite summary must surface quick action labels");
+    Assert(projection.CoachHints.SequenceEqual(["Sync before submitting quick actions after reconnect."]), "workspace-lite summary must surface coach hints");
 }
 
 static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails()
@@ -937,6 +976,9 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("<main>", StringComparison.Ordinal), "play shell must expose a main landmark");
     Assert(html.Contains("<h1>Chummer Play</h1>", StringComparison.Ordinal), "play shell must expose a top-level heading");
     Assert(html.Contains("id=\"output\" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"", StringComparison.Ordinal), "play shell resume status region must expose polite live updates");
+    Assert(html.Contains("id=\"workspace-summary\"", StringComparison.Ordinal), "play shell must expose a workspace-lite summary region");
+    Assert(html.Contains("id=\"attention-list\"", StringComparison.Ordinal), "play shell must expose an attention list for continuity risks");
+    Assert(html.Contains("/api/play/workspace-lite/", StringComparison.Ordinal), "play shell must fetch the workspace-lite projection instead of dumping only the raw resume payload");
 }
 
 static Task VerifyBootstrapRoleShellEntryPointsAsync()

@@ -199,44 +199,38 @@ public static class PlayWebApplication
                 CancellationToken cancellationToken
             ) =>
             {
-                var resumeState = await ResolveResumeStateAsync(
+                PlayResumeResponse response = await BuildResumeResponseAsync(
                     sessionId,
+                    role,
                     eventLogStore,
                     offlineCacheService,
+                    playerShell,
+                    gmShell,
                     cancellationToken
                 );
-
-                var activeShell = SelectShell(role, playerShell, gmShell);
-                var roleCapabilities = PlayRouteHandlers.ResolveRoleCapabilities(activeShell);
-                var projection = PlayRouteHandlers.BuildProjection(
-                    resumeState.Session,
-                    resumeState.Ledger.LastKnownSequence,
-                    resumeState.Ledger.PendingEvents
+                return Results.Json(response);
+            }
+        );
+        app.MapGet(
+            "/api/play/workspace-lite/{sessionId}",
+            async (
+                string sessionId,
+                PlaySurfaceRole role,
+                IPlayEventLogStore eventLogStore,
+                IPlayOfflineCacheService offlineCacheService,
+                CancellationToken cancellationToken
+            ) =>
+            {
+                PlayResumeResponse response = await BuildResumeResponseAsync(
+                    sessionId,
+                    role,
+                    eventLogStore,
+                    offlineCacheService,
+                    playerShell,
+                    gmShell,
+                    cancellationToken
                 );
-                var bootstrap = new PlayBootstrapResponse(
-                    "chummer6-mobile",
-                    projection,
-                    activeShell,
-                    [activeShell],
-                    new BrowserSessionShellProbe(true, resumeState.RuntimeBundle is not null, true),
-                    roleCapabilities,
-                    BuildSpiderCards(roleCapabilities),
-                    BuildCoachHints(role),
-                    PlayRouteHandlers.BuildQuickActions(role, roleCapabilities)
-                );
-                var cachePressure = await offlineCacheService.GetCachePressureAsync(cancellationToken);
-
-                return Results.Json(
-                    new PlayResumeResponse(
-                        sessionId,
-                        role,
-                        "/play/{sessionId}",
-                        bootstrap,
-                        resumeState.Checkpoint,
-                        resumeState.RuntimeBundle,
-                        cachePressure
-                    )
-                );
+                return Results.Json(PlayCampaignWorkspaceLiteProjector.Create(response));
             }
         );
         app.MapGet(
@@ -287,6 +281,53 @@ public static class PlayWebApplication
                     offlineQueueService,
                     cancellationToken
                 )
+        );
+    }
+
+    private static async Task<PlayResumeResponse> BuildResumeResponseAsync(
+        string sessionId,
+        PlaySurfaceRole role,
+        IPlayEventLogStore eventLogStore,
+        IPlayOfflineCacheService offlineCacheService,
+        Chummer.Play.Components.Shell.PlayShellDescriptor playerShell,
+        Chummer.Play.Components.Shell.PlayShellDescriptor gmShell,
+        CancellationToken cancellationToken)
+    {
+        var resumeState = await ResolveResumeStateAsync(
+            sessionId,
+            eventLogStore,
+            offlineCacheService,
+            cancellationToken
+        );
+
+        var activeShell = SelectShell(role, playerShell, gmShell);
+        var roleCapabilities = PlayRouteHandlers.ResolveRoleCapabilities(activeShell);
+        var projection = PlayRouteHandlers.BuildProjection(
+            resumeState.Session,
+            resumeState.Ledger.LastKnownSequence,
+            resumeState.Ledger.PendingEvents
+        );
+        var bootstrap = new PlayBootstrapResponse(
+            "chummer6-mobile",
+            projection,
+            activeShell,
+            [activeShell],
+            new BrowserSessionShellProbe(true, resumeState.RuntimeBundle is not null, true),
+            roleCapabilities,
+            BuildSpiderCards(roleCapabilities),
+            BuildCoachHints(role),
+            PlayRouteHandlers.BuildQuickActions(role, roleCapabilities)
+        );
+        var cachePressure = await offlineCacheService.GetCachePressureAsync(cancellationToken);
+
+        return new PlayResumeResponse(
+            sessionId,
+            role,
+            "/play/{sessionId}",
+            bootstrap,
+            resumeState.Checkpoint,
+            resumeState.RuntimeBundle,
+            cachePressure
         );
     }
 

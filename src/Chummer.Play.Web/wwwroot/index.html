@@ -9,6 +9,12 @@
   <style>
     body { font-family: sans-serif; margin: 0; padding: 16px; background: #0f1b26; color: #f5f7fa; }
     main { max-width: 720px; margin: 0 auto; }
+    .card { background: #162634; border: 1px solid #2c4256; border-radius: 12px; padding: 16px; margin: 0 0 16px; }
+    .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; color: #8da7bf; margin: 0 0 8px; }
+    h2 { margin: 0 0 8px; font-size: 1.15rem; }
+    ul { margin: 0; padding-left: 18px; }
+    li + li { margin-top: 6px; }
+    details { margin-top: 16px; }
     pre { overflow-x: auto; padding: 12px; border-radius: 8px; background: #1a2c3a; }
     .hint { color: #b7c7d6; }
   </style>
@@ -17,9 +23,60 @@
 <main>
   <h1>Chummer Play</h1>
   <p class="hint">Installable play shell with deep-link resume ownership.</p>
-  <pre id="output" role="status" aria-live="polite" aria-atomic="true">Loading resume payload...</pre>
+  <section id="workspace-shell" hidden>
+    <div class="card">
+      <div class="eyebrow">Campaign workspace lite</div>
+      <h2 id="workspace-summary"></h2>
+      <p id="workspace-safe-action" class="hint"></p>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Current state</div>
+      <p id="workspace-scene"></p>
+      <p id="workspace-rule-posture" class="hint"></p>
+      <p id="workspace-continuity" class="hint"></p>
+      <p id="workspace-cache" class="hint"></p>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Attention</div>
+      <ul id="attention-list"></ul>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Quick actions and hints</div>
+      <p><strong>Quick actions</strong></p>
+      <ul id="quick-actions"></ul>
+      <p style="margin-top: 12px;"><strong>Coach hints</strong></p>
+      <ul id="coach-hints"></ul>
+    </div>
+  </section>
+  <details>
+    <summary>Workspace payload</summary>
+    <pre id="output" role="status" aria-live="polite" aria-atomic="true">Loading workspace payload...</pre>
+  </details>
 </main>
 <script>
+  function setList(id, items) {
+    const list = document.getElementById(id);
+    list.replaceChildren();
+    for (const item of items || []) {
+      const entry = document.createElement("li");
+      entry.textContent = item;
+      list.appendChild(entry);
+    }
+  }
+
+  function renderWorkspace(payload) {
+    document.getElementById("workspace-summary").textContent = payload.summary || "No campaign workspace summary is available yet.";
+    document.getElementById("workspace-safe-action").textContent = payload.safeNextAction || "No safe next action is available yet.";
+    document.getElementById("workspace-scene").textContent = payload.currentSceneSummary || "No current scene summary is available yet.";
+    document.getElementById("workspace-rule-posture").textContent = payload.rulePosture || "No rule posture is available yet.";
+    document.getElementById("workspace-continuity").textContent = payload.continuityPosture || "No continuity posture is available yet.";
+    document.getElementById("workspace-cache").textContent = payload.cachePosture || "No cache posture is available yet.";
+    setList("attention-list", payload.attentionItems);
+    setList("quick-actions", payload.quickActionLabels);
+    setList("coach-hints", payload.coachHints);
+    document.getElementById("workspace-shell").hidden = false;
+  }
+
   async function boot() {
     if ("serviceWorker" in navigator) {
       try {
@@ -34,8 +91,9 @@
     const role = params.get("role") || "Player";
 
     try {
-      const response = await fetch(`/api/play/resume/${encodeURIComponent(sessionId)}?role=${encodeURIComponent(role)}`);
+      const response = await fetch(`/api/play/workspace-lite/${encodeURIComponent(sessionId)}?role=${encodeURIComponent(role)}`);
       const payload = await response.json();
+      renderWorkspace(payload);
       document.getElementById("output").textContent = JSON.stringify(payload, null, 2);
     } catch (error) {
       document.getElementById("output").textContent = `Resume failed: ${String(error)}`;

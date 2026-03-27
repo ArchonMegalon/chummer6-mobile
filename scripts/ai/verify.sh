@@ -202,6 +202,8 @@ rg -n 'PlayApiRoutes\.Observe' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.Sync' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.Resume' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.CachePressure' src/Chummer.Play.Web >/dev/null
+rg -n 'PlayCampaignWorkspaceLiteProjector|PlayCampaignWorkspaceLiteProjection' src/Chummer.Play.Core src/Chummer.Play.Web >/dev/null
+rg -n '/api/play/workspace-lite/\{sessionId\}' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'AddSingleton<IRoamingWorkspaceSyncPlanner, RoamingWorkspaceSyncPlanner>' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'RoamingWorkspaceRestorePlan|CreatePlan\(WorkspaceRestoreProjection restore, string targetDeviceId\)|ResumeSummary|SafeNextAction|RuleEnvironmentSummary|ReturnTargetCampaignName|AttentionItems' src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs >/dev/null
 rg -n 'ResumeSummary|SafeNextAction|RuleEnvironmentSummary|ReturnTargetCampaignName|AttentionItems' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
@@ -237,6 +239,7 @@ rg -n 'VerifyCachePressureBudgetContractAsync\(' src/Chummer.Play.RegressionChec
 rg -n 'ClaimContinuityAsync\(' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
 rg -n 'ObserveAsync\(' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
 rg -n 'VerifyStoredLineageAlignment\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'IsLedgerAligned\(' src/Chummer.Play.Web/SessionLineage.cs >/dev/null
