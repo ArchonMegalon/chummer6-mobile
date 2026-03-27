@@ -111,6 +111,13 @@ static void VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState()
     Assert(plan.RuleEnvironments.Count == 1, "roaming restore must carry rule environments onto the claimed second device");
     Assert(plan.Artifacts.Count == 1, "roaming restore must carry reconnectable artifact truth onto the claimed second device");
     Assert(plan.Entitlements.Count == 1, "roaming restore must carry entitlements onto the claimed second device");
+    Assert(plan.ResumeSummary.Contains("Redmond Patrol", StringComparison.Ordinal), "roaming restore must surface the primary campaign in the resume summary");
+    Assert(plan.ResumeSummary.Contains("sr6.preview.v1", StringComparison.Ordinal), "roaming restore must surface the active rule fingerprint in the resume summary");
+    Assert(plan.SafeNextAction.Contains("Open Redmond Patrol", StringComparison.Ordinal), "roaming restore must point the claimed device at the next safe campaign action");
+    Assert(plan.RuleEnvironmentSummary == "sr6.preview.v1 · approved · campaign", "roaming restore must surface concise rule-environment posture");
+    Assert(plan.ReturnTargetCampaignName == "Redmond Patrol", "roaming restore must expose the primary campaign return target");
+    Assert(plan.AttentionItems.Count == 1, "roaming restore should keep install-local guardrails visible even when restore state is conflict-free");
+    Assert(plan.AttentionItems[0].Contains("install-local", StringComparison.Ordinal), "roaming restore attention items must preserve the install-local guardrail");
     Assert(plan.CanResume, "roaming restore must remain resumable when package-owned campaign state exists");
     Assert(!plan.RequiresConflictReview, "roaming restore should stay conflict-free for aligned package-owned state");
 }
@@ -122,24 +129,31 @@ static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGua
         conflicts:
         [
             "Claimed installs are on different channels; restore should confirm which campaign posture is current."
-        ]);
+        ],
+        approvalState: "candidate");
 
     RoamingWorkspaceRestorePlan plan = planner.CreatePlan(restore, "install-workstation");
 
     Assert(plan.RequiresConflictReview, "roaming restore must keep explicit conflict review when channels drift");
     Assert(plan.ConflictSummaries.Count == 1, "roaming restore must preserve explicit conflict summaries");
     Assert(plan.ConflictSummaries[0].Contains("different channels", StringComparison.Ordinal), "roaming restore must keep the original conflict language");
+    Assert(plan.SafeNextAction.Contains("Review restore conflicts", StringComparison.Ordinal), "roaming restore must force conflict review before resume");
+    Assert(plan.RuleEnvironmentSummary == "sr6.preview.v1 · candidate · campaign", "roaming restore must preserve non-approved rule posture for the shell");
+    Assert(plan.AttentionItems.Count == 3, "roaming restore attention items must include conflict, approval, and install-local guardrails");
+    Assert(plan.AttentionItems.Any(item => item.Contains("different channels", StringComparison.Ordinal)), "roaming restore attention items must carry the channel drift conflict");
+    Assert(plan.AttentionItems.Any(item => item.Contains("not approved", StringComparison.Ordinal)), "roaming restore attention items must flag non-approved rule posture");
+    Assert(plan.AttentionItems.Any(item => item.Contains("install-local", StringComparison.Ordinal)), "roaming restore attention items must keep the install-local guardrail visible");
     Assert(plan.LocalOnlyNotes.Count == 2, "roaming restore must preserve install-local guardrail notes");
     Assert(plan.LocalOnlyNotes.All(note => !note.Contains("secret=", StringComparison.OrdinalIgnoreCase)), "roaming restore must not leak install-local secrets into the roaming packet");
 }
 
-static WorkspaceRestoreProjection CreateWorkspaceRestoreProjection(IReadOnlyList<string> conflicts)
+static WorkspaceRestoreProjection CreateWorkspaceRestoreProjection(IReadOnlyList<string> conflicts, string approvalState = "approved")
 {
     RuleEnvironmentRef environment = new(
         EnvironmentId: "ruleenv-preview",
         OwnerScope: "campaign",
         CompatibilityFingerprint: "sr6.preview.v1",
-        ApprovalState: "approved",
+        ApprovalState: approvalState,
         SourcePacks: ["shadowrun-6e-core@current"],
         HouseRulePacks: [],
         OptionToggles: ["campaign_continuity"]);

@@ -203,7 +203,8 @@ rg -n 'PlayApiRoutes\.Sync' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.Resume' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.CachePressure' src/Chummer.Play.Web >/dev/null
 rg -n 'AddSingleton<IRoamingWorkspaceSyncPlanner, RoamingWorkspaceSyncPlanner>' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
-rg -n 'RoamingWorkspaceRestorePlan|CreatePlan\(WorkspaceRestoreProjection restore, string targetDeviceId\)' src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs >/dev/null
+rg -n 'RoamingWorkspaceRestorePlan|CreatePlan\(WorkspaceRestoreProjection restore, string targetDeviceId\)|ResumeSummary|SafeNextAction|RuleEnvironmentSummary|ReturnTargetCampaignName|AttentionItems' src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs >/dev/null
+rg -n 'ResumeSummary|SafeNextAction|RuleEnvironmentSummary|ReturnTargetCampaignName|AttentionItems' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n '"/play/\{sessionId\}"' src/Chummer.Play.Web >/dev/null
 rg -n 'SelectShell\(bootstrapRequest\.Role, playerShell, gmShell\)' src/Chummer.Play.Web >/dev/null
 rg -n '\[activeShell\]' src/Chummer.Play.Web >/dev/null
