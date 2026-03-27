@@ -1,6 +1,6 @@
-source_queue_fingerprint: aa38879701c854c373790269a6adebc8f795ef3c
+source_queue_fingerprint: 3a7efc0e915fa381a72547adb29b5a837f544b02
 work_packages:
-- package_id: mobile-package-compile-aa38879701
+- package_id: mobile-package-compile-3a7efc0e91
   package_kind: package_compile
   horizon_family: package-compile
   title: Compile booster-ready work packages from queue truth

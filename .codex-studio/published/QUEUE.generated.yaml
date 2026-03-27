@@ -18,3 +18,4 @@ items:
 - Publish or append runnable backlog for Dedicated play API, offline cache, and installable PWA hardening work remains unmaterialized..
 - Add milestone mapping or executable queue work for Browser session transport, event-log persistence, and offline resume guarantees now exist, but they still need milestone-level hardening evidence..
 - Move the play repo from placeholder bootstrap/client/storage code onto the real play API, browser persistence, and sync seams.
+source_queue_fingerprint: 97d170e1550eee4afc0af065b78cda302a97674c
