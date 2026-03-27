@@ -157,6 +157,8 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.SafeNextAction.Contains("Sync before taking the next quick action", StringComparison.Ordinal), "workspace-lite summary must point the player lane at the next safe action");
     Assert(projection.ContinuityPosture.Contains("Checkpoint 12", StringComparison.Ordinal), "workspace-lite summary must expose the aligned continuity checkpoint");
     Assert(projection.CachePosture.Contains("2/8", StringComparison.Ordinal), "workspace-lite summary must expose cache posture");
+    Assert(projection.UpdatePosture.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the current update posture for the validated runtime bundle");
+    Assert(projection.SupportPosture.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose install-safe support posture for the current session");
     Assert(projection.QuickActionLabels.SequenceEqual(["Mark Ready"]), "workspace-lite summary must surface quick action labels");
     Assert(projection.CoachHints.SequenceEqual(["Sync before submitting quick actions after reconnect."]), "workspace-lite summary must surface coach hints");
 }
@@ -977,6 +979,8 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("<h1>Chummer Play</h1>", StringComparison.Ordinal), "play shell must expose a top-level heading");
     Assert(html.Contains("id=\"output\" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"", StringComparison.Ordinal), "play shell resume status region must expose polite live updates");
     Assert(html.Contains("id=\"workspace-summary\"", StringComparison.Ordinal), "play shell must expose a workspace-lite summary region");
+    Assert(html.Contains("id=\"workspace-update\"", StringComparison.Ordinal), "play shell must expose update posture alongside current state");
+    Assert(html.Contains("id=\"workspace-support\"", StringComparison.Ordinal), "play shell must expose support posture alongside current state");
     Assert(html.Contains("id=\"attention-list\"", StringComparison.Ordinal), "play shell must expose an attention list for continuity risks");
     Assert(html.Contains("/api/play/workspace-lite/", StringComparison.Ordinal), "play shell must fetch the workspace-lite projection instead of dumping only the raw resume payload");
 }

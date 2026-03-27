@@ -14,6 +14,8 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string SafeNextAction,
     string ContinuityPosture,
     string CachePosture,
+    string UpdatePosture,
+    string SupportPosture,
     IReadOnlyList<string> AttentionItems,
     IReadOnlyList<string> QuickActionLabels,
     IReadOnlyList<string> CoachHints);
@@ -43,6 +45,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? "No runtime bundle is cached locally yet."
             : $"Bundle {resume.RuntimeBundle.BundleTag} was validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC.";
         string safeNextAction = BuildSafeNextAction(resume, session);
+        string updatePosture = BuildUpdatePosture(resume, session);
+        string supportPosture = BuildSupportPosture(resume, session);
 
         List<string> attentionItems = [];
         if (resume.RuntimeBundle is null)
@@ -74,6 +78,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             SafeNextAction: safeNextAction,
             ContinuityPosture: continuityPosture,
             CachePosture: cachePosture,
+            UpdatePosture: updatePosture,
+            SupportPosture: supportPosture,
             AttentionItems: attentionItems.Count == 0
                 ? ["No blocking continuity issues are active on this device."]
                 : attentionItems,
@@ -99,5 +105,25 @@ public static class PlayCampaignWorkspaceLiteProjector
             PlaySurfaceRole.Observer => $"Resume the observer lane for {session.SceneId} and confirm continuity before you mirror any tactical update.",
             _ => $"Sync before taking the next quick action in {session.SceneId}, then keep the player lane focused on one grounded move."
         };
+    }
+
+    private static string BuildUpdatePosture(PlayResumeResponse resume, EngineSessionEnvelope session)
+    {
+        if (resume.RuntimeBundle is null)
+        {
+            return $"Update posture: reconnect {session.SceneId} before you trust offline play on this device; no validated runtime bundle is cached locally yet.";
+        }
+
+        return $"Update posture: bundle {resume.RuntimeBundle.BundleTag} for {session.RuntimeFingerprint} was validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC and is the grounded local update target.";
+    }
+
+    private static string BuildSupportPosture(PlayResumeResponse resume, EngineSessionEnvelope session)
+    {
+        if (resume.RuntimeBundle is null)
+        {
+            return $"Support posture: report {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device has no local runtime bundle yet.";
+        }
+
+        return $"Support posture: report {resume.SessionId}/{session.SceneId}, runtime {session.RuntimeFingerprint}, and bundle {resume.RuntimeBundle.BundleTag} so support can ground the case against this mobile shell.";
     }
 }

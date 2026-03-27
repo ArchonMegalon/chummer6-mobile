@@ -35,6 +35,8 @@
       <p id="workspace-rule-posture" class="hint"></p>
       <p id="workspace-continuity" class="hint"></p>
       <p id="workspace-cache" class="hint"></p>
+      <p id="workspace-update" class="hint"></p>
+      <p id="workspace-support" class="hint"></p>
     </div>
     <div class="card">
       <div class="eyebrow">Attention</div>
@@ -71,6 +73,8 @@
     document.getElementById("workspace-rule-posture").textContent = payload.rulePosture || "No rule posture is available yet.";
     document.getElementById("workspace-continuity").textContent = payload.continuityPosture || "No continuity posture is available yet.";
     document.getElementById("workspace-cache").textContent = payload.cachePosture || "No cache posture is available yet.";
+    document.getElementById("workspace-update").textContent = payload.updatePosture || "No update posture is available yet.";
+    document.getElementById("workspace-support").textContent = payload.supportPosture || "No support posture is available yet.";
     setList("attention-list", payload.attentionItems);
     setList("quick-actions", payload.quickActionLabels);
     setList("coach-hints", payload.coachHints);
