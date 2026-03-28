@@ -17,6 +17,9 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string CachePosture,
     string UpdatePosture,
     string SupportPosture,
+    string UpdateFollowThrough,
+    string SupportFollowThrough,
+    string RoleFollowThrough,
     IReadOnlyList<string> AttentionItems,
     IReadOnlyList<string> QuickActionLabels,
     IReadOnlyList<string> FollowThroughLabels,
@@ -50,7 +53,10 @@ public static class PlayCampaignWorkspaceLiteProjector
         string safeNextAction = BuildSafeNextAction(resume, session);
         string updatePosture = BuildUpdatePosture(resume, session);
         string supportPosture = BuildSupportPosture(resume, session);
-        string[] followThroughLabels = BuildFollowThroughLabels(resume, session);
+        string updateFollowThrough = BuildUpdateFollowThrough(resume, session);
+        string supportFollowThrough = BuildSupportFollowThrough(resume, session);
+        string roleFollowThrough = BuildRoleFollowThrough(resume, session);
+        string[] followThroughLabels = BuildFollowThroughLabels(resume, session, updateFollowThrough, supportFollowThrough, roleFollowThrough);
 
         List<string> attentionItems = [];
         if (resume.RuntimeBundle is null)
@@ -85,6 +91,9 @@ public static class PlayCampaignWorkspaceLiteProjector
             CachePosture: cachePosture,
             UpdatePosture: updatePosture,
             SupportPosture: supportPosture,
+            UpdateFollowThrough: updateFollowThrough,
+            SupportFollowThrough: supportFollowThrough,
+            RoleFollowThrough: roleFollowThrough,
             AttentionItems: attentionItems.Count == 0
                 ? ["No blocking continuity issues are active on this device."]
                 : attentionItems,
@@ -147,22 +156,36 @@ public static class PlayCampaignWorkspaceLiteProjector
         return $"Support posture: report {resume.SessionId}/{session.SceneId}, runtime {session.RuntimeFingerprint}, and bundle {resume.RuntimeBundle.BundleTag} so support can ground the case against this mobile shell.";
     }
 
-    private static string[] BuildFollowThroughLabels(PlayResumeResponse resume, EngineSessionEnvelope session)
+    private static string BuildUpdateFollowThrough(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Reconnect {session.SceneId} and validate a grounded runtime bundle before trusting offline updates on this device."
+            : $"Review update posture for bundle {resume.RuntimeBundle.BundleTag} before the next offline or travel session.";
+
+    private static string BuildSupportFollowThrough(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device still lacks a local bundle."
+            : $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and bundle {resume.RuntimeBundle.BundleTag}.";
+
+    private static string BuildRoleFollowThrough(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.Role switch
+        {
+            PlaySurfaceRole.GameMaster => $"Keep GM changes anchored on {session.SceneId} before they fan out to other devices.",
+            PlaySurfaceRole.Observer => $"Keep the observer lane read-mostly until the owner lane confirms the next scene revision.",
+            _ => $"Keep the player lane focused on one grounded move before you reopen build or support follow-through elsewhere."
+        };
+
+    private static string[] BuildFollowThroughLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string updateFollowThrough,
+        string supportFollowThrough,
+        string roleFollowThrough)
     {
         List<string> labels =
         [
-            resume.RuntimeBundle is null
-                ? $"Reconnect {session.SceneId} and validate a grounded runtime bundle before trusting offline updates on this device."
-                : $"Review update posture for bundle {resume.RuntimeBundle.BundleTag} before the next offline or travel session.",
-            resume.RuntimeBundle is null
-                ? $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device still lacks a local bundle."
-                : $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and bundle {resume.RuntimeBundle.BundleTag}.",
-            resume.Role switch
-            {
-                PlaySurfaceRole.GameMaster => $"Keep GM changes anchored on {session.SceneId} before they fan out to other devices.",
-                PlaySurfaceRole.Observer => $"Keep the observer lane read-mostly until the owner lane confirms the next scene revision.",
-                _ => $"Keep the player lane focused on one grounded move before you reopen build or support follow-through elsewhere."
-            }
+            updateFollowThrough,
+            supportFollowThrough,
+            roleFollowThrough
         ];
 
         if (resume.CachePressure.BackpressureActive)

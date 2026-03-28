@@ -64,7 +64,11 @@
       <div class="eyebrow">Quick actions and hints</div>
       <p><strong>Quick actions</strong></p>
       <ul id="quick-actions"></ul>
-      <p style="margin-top: 12px;"><strong>Follow-through</strong></p>
+      <p style="margin-top: 12px;"><strong>Follow-through routes</strong></p>
+      <p id="follow-through-update" class="hint"></p>
+      <p id="follow-through-support" class="hint"></p>
+      <p id="follow-through-role" class="hint"></p>
+      <p style="margin-top: 12px;"><strong>Additional follow-through</strong></p>
       <ul id="follow-through"></ul>
       <p style="margin-top: 12px;"><strong>Coach hints</strong></p>
       <ul id="coach-hints"></ul>
@@ -96,6 +100,9 @@
     document.getElementById("workspace-cache").textContent = payload.cachePosture || "No cache posture is available yet.";
     document.getElementById("workspace-update").textContent = payload.updatePosture || "No update posture is available yet.";
     document.getElementById("workspace-support").textContent = payload.supportPosture || "No support posture is available yet.";
+    document.getElementById("follow-through-update").textContent = payload.updateFollowThrough || "No update follow-through is available yet.";
+    document.getElementById("follow-through-support").textContent = payload.supportFollowThrough || "No support follow-through is available yet.";
+    document.getElementById("follow-through-role").textContent = payload.roleFollowThrough || "No role follow-through is available yet.";
     setList("attention-list", payload.attentionItems);
     setList("quick-actions", payload.quickActionLabels);
     setList("follow-through", payload.followThroughLabels);
