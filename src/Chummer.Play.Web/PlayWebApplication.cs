@@ -34,6 +34,7 @@ public static class PlayWebApplication
         services.AddSingleton<IPlayOfflineCacheService>(serviceProvider => serviceProvider.GetRequiredService<BrowserSessionOfflineCacheService>());
         services.AddSingleton<IPlayOfflineQueueService>(serviceProvider => serviceProvider.GetRequiredService<BrowserSessionOfflineQueueService>());
         services.AddSingleton<IRoamingWorkspaceSyncPlanner, RoamingWorkspaceSyncPlanner>();
+        services.AddSingleton<IPlayRoamingRestoreService, PlayRoamingRestoreService>();
     }
 
     internal static void Configure(WebApplication app)
@@ -231,6 +232,30 @@ public static class PlayWebApplication
                     cancellationToken
                 );
                 return Results.Json(PlayCampaignWorkspaceLiteProjector.Create(response));
+            }
+        );
+        app.MapGet(
+            "/api/play/restore-plan/{sessionId}",
+            async (
+                string sessionId,
+                PlaySurfaceRole role,
+                string? deviceId,
+                IPlayEventLogStore eventLogStore,
+                IPlayOfflineCacheService offlineCacheService,
+                IPlayRoamingRestoreService restoreService,
+                CancellationToken cancellationToken
+            ) =>
+            {
+                PlayResumeResponse response = await BuildResumeResponseAsync(
+                    sessionId,
+                    role,
+                    eventLogStore,
+                    offlineCacheService,
+                    playerShell,
+                    gmShell,
+                    cancellationToken
+                );
+                return Results.Json(restoreService.CreatePlan(response, deviceId));
             }
         );
         app.MapGet(

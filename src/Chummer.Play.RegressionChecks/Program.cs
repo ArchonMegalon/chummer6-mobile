@@ -71,6 +71,7 @@ RunCheck(nameof(VerifyStoredLineageAlignment), VerifyStoredLineageAlignment);
 RunCheck(nameof(VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary), VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary);
 RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState), VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState);
 RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails), VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails);
+RunCheck(nameof(VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery), VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery);
 
 Console.WriteLine("chummer6-mobile regression checks ok");
 
@@ -191,6 +192,45 @@ static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGua
     Assert(plan.AttentionItems.Any(item => item.Contains("install-local", StringComparison.Ordinal)), "roaming restore attention items must keep the install-local guardrail visible");
     Assert(plan.LocalOnlyNotes.Count == 2, "roaming restore must preserve install-local guardrail notes");
     Assert(plan.LocalOnlyNotes.All(note => !note.Contains("secret=", StringComparison.OrdinalIgnoreCase)), "roaming restore must not leak install-local secrets into the roaming packet");
+}
+
+static void VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery()
+{
+    IPlayRoamingRestoreService service = new PlayRoamingRestoreService(new RoamingWorkspaceSyncPlanner());
+    PlayResumeResponse response = new(
+        SessionId: "session-redmond",
+        Role: PlaySurfaceRole.Player,
+        DeepLinkOwnerRoute: "/play/session-redmond",
+        Bootstrap: new PlayBootstrapResponse(
+            "chummer6-mobile",
+            new PlaySessionProjection(
+                new EngineSessionCursor(
+                    new EngineSessionEnvelope("session-redmond", "scene-redmond", "scene-r9", "sr6.preview.v1"),
+                    12),
+                Timeline: ["Reconnect complete", "Objective board refreshed"],
+                GeneratedAtUtc: DateTimeOffset.Parse("2026-03-27T21:00:00+00:00")),
+            new PlayShellSnapshot(PlaySurfaceRole.Player, "Player shell", "Table-safe shell", ["play.session.sync"]),
+            [new PlayShellSnapshot(PlaySurfaceRole.Player, "Player shell", "Table-safe shell", ["play.session.sync"])],
+            new BrowserSessionShellProbe(true, true, true),
+            ["play.session.sync"],
+            [],
+            [new PlayCoachHint("coach-player-sync", "Sync before submitting quick actions after reconnect.")],
+            [new PlayQuickAction("player-mark-ready", "Mark Ready", "play.session.sync", true)]),
+        Checkpoint: new SyncCheckpoint("session-redmond", "scene-redmond", "scene-r9", "sr6.preview.v1", 12, DateTimeOffset.Parse("2026-03-27T21:00:00+00:00")),
+        RuntimeBundle: new PlayRuntimeBundleMetadata("sr6.preview.v1", "scene-r9", "bundle-redmond", DateTimeOffset.Parse("2026-03-27T20:55:00+00:00"), DateTimeOffset.Parse("2026-03-27T20:56:00+00:00")),
+        CachePressure: new PlayCachePressureSnapshot(2, 8, false, 0, [], DateTimeOffset.Parse("2026-03-27T21:00:00+00:00")));
+
+    RoamingWorkspaceRestorePlan plan = service.CreatePlan(response, "install-tablet");
+
+    Assert(plan.TargetDeviceId == "install-tablet", "play restore service must preserve the requested claimed device");
+    Assert(plan.DeviceRole == "play_tablet", "play restore service must map player role onto the play-tablet restore lane");
+    Assert(plan.ResumeSummary.Contains("scene-redmond mobile return", StringComparison.Ordinal), "play restore service must keep the campaign return target visible");
+    Assert(plan.RuleEnvironmentSummary == "sr6.preview.v1 · approved · campaign", "play restore service must keep the approved runtime fingerprint visible");
+    Assert(plan.SafeNextAction.Contains("Open scene-redmond mobile return", StringComparison.Ordinal), "play restore service must point the claimed device at the next safe campaign action");
+    Assert(plan.AttentionItems.Any(item => item.Contains("install-local", StringComparison.Ordinal)), "play restore service must preserve install-local guardrails");
+    Assert(plan.LocalOnlyNotes.Any(item => item.Contains("install-local", StringComparison.Ordinal)), "play restore service must expose install-local notes on the shell projection");
+    Assert(plan.Campaigns.Count == 1, "play restore service must project at least one campaign return target");
+    Assert(plan.Dossiers.Count == 1, "play restore service must project at least one grounded dossier return target");
 }
 
 static WorkspaceRestoreProjection CreateWorkspaceRestoreProjection(IReadOnlyList<string> conflicts, string approvalState = "approved")
@@ -989,7 +1029,12 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"workspace-support\"", StringComparison.Ordinal), "play shell must expose support posture alongside current state");
     Assert(html.Contains("id=\"follow-through\"", StringComparison.Ordinal), "play shell must expose explicit follow-through labels for update and support posture");
     Assert(html.Contains("id=\"attention-list\"", StringComparison.Ordinal), "play shell must expose an attention list for continuity risks");
+    Assert(html.Contains("id=\"restore-summary\"", StringComparison.Ordinal), "play shell must expose a claimed-device recovery summary region");
+    Assert(html.Contains("id=\"restore-rule-environment\"", StringComparison.Ordinal), "play shell must expose rule-environment recovery posture");
+    Assert(html.Contains("id=\"restore-attention\"", StringComparison.Ordinal), "play shell must expose restore attention items");
+    Assert(html.Contains("id=\"restore-local-notes\"", StringComparison.Ordinal), "play shell must expose install-local restore notes");
     Assert(html.Contains("/api/play/workspace-lite/", StringComparison.Ordinal), "play shell must fetch the workspace-lite projection instead of dumping only the raw resume payload");
+    Assert(html.Contains("/api/play/restore-plan/", StringComparison.Ordinal), "play shell must fetch the claimed-device restore projection alongside the workspace-lite payload");
 }
 
 static Task VerifyBootstrapRoleShellEntryPointsAsync()
