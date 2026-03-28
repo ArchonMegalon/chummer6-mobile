@@ -10,6 +10,7 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     PlaySurfaceRole Role,
     string Summary,
     string CurrentSceneSummary,
+    string ChangePacketSummary,
     string RolePosture,
     string RulePosture,
     string SafeNextAction,
@@ -24,6 +25,7 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string RoleFollowThrough,
     string RoleFollowThroughHref,
     IReadOnlyList<string> AttentionItems,
+    IReadOnlyList<string> ChangePacketLabels,
     IReadOnlyList<string> QuickActionLabels,
     IReadOnlyList<string> FollowThroughLabels,
     IReadOnlyList<string> CoachHints);
@@ -52,6 +54,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         string runtimeBundleSummary = resume.RuntimeBundle is null
             ? "No runtime bundle is cached locally yet."
             : $"Bundle {resume.RuntimeBundle.BundleTag} was validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC.";
+        string changePacketSummary = BuildChangePacketSummary(resume, session, latestTimeline);
         string rolePosture = BuildRolePosture(resume, session);
         string safeNextAction = BuildSafeNextAction(resume, session);
         string updatePosture = BuildUpdatePosture(resume, session);
@@ -62,6 +65,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         string supportFollowThroughHref = BuildSupportFollowThroughHref(resume, session);
         string roleFollowThrough = BuildRoleFollowThrough(resume, session);
         string roleFollowThroughHref = BuildRoleFollowThroughHref(resume, session);
+        string[] changePacketLabels = BuildChangePacketLabels(resume, session, latestTimeline);
         string[] followThroughLabels = BuildFollowThroughLabels(resume, session, updateFollowThrough, supportFollowThrough, roleFollowThrough);
 
         List<string> attentionItems = [];
@@ -90,6 +94,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             Role: resume.Role,
             Summary: $"Resume {resume.SessionId} on the {roleLabel}. Scene {session.SceneId} is pinned at {session.SceneRevision}, and the latest table signal is '{latestTimeline}'.",
             CurrentSceneSummary: $"{session.SceneId} · revision {session.SceneRevision} · sequence {resume.Bootstrap.Projection.Cursor.AppliedThroughSequence}",
+            ChangePacketSummary: changePacketSummary,
             RolePosture: rolePosture,
             RulePosture: $"{session.RuntimeFingerprint}. {runtimeBundleSummary}",
             SafeNextAction: safeNextAction,
@@ -106,9 +111,24 @@ public static class PlayCampaignWorkspaceLiteProjector
             AttentionItems: attentionItems.Count == 0
                 ? ["No blocking continuity issues are active on this device."]
                 : attentionItems,
+            ChangePacketLabels: changePacketLabels,
             QuickActionLabels: resume.Bootstrap.QuickActions.Select(action => action.Label).ToArray(),
             FollowThroughLabels: followThroughLabels,
             CoachHints: resume.Bootstrap.CoachHints.Select(hint => hint.Message).ToArray());
+    }
+
+    private static string BuildChangePacketSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string latestTimeline)
+    {
+        string checkpointSummary = resume.Checkpoint is null
+            ? "No local return anchor is pinned yet."
+            : $"Return anchor stays on checkpoint {resume.Checkpoint.AppliedThroughSequence}.";
+        string bundleSummary = resume.RuntimeBundle is null
+            ? "No validated bundle is cached locally."
+            : $"Bundle {resume.RuntimeBundle.BundleTag} is already validated.";
+        return $"Scene {session.SceneId} remains pinned at {session.SceneRevision}. Latest table signal: {latestTimeline}. {checkpointSummary} {bundleSummary}";
     }
 
     private static string BuildRolePosture(PlayResumeResponse resume, EngineSessionEnvelope session)
@@ -207,6 +227,36 @@ public static class PlayCampaignWorkspaceLiteProjector
         => string.IsNullOrWhiteSpace(resume.DeepLinkOwnerRoute)
             ? $"/play?sessionId={Uri.EscapeDataString(resume.SessionId)}&role={Uri.EscapeDataString(resume.Role.ToString())}"
             : resume.DeepLinkOwnerRoute!;
+
+    private static string[] BuildChangePacketLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string latestTimeline)
+    {
+        List<string> labels =
+        [
+            $"Scene packet: {session.SceneId} · {session.SceneRevision}",
+            $"Latest signal: {latestTimeline}"
+        ];
+
+        if (resume.Checkpoint is not null)
+        {
+            labels.Add($"Return anchor: checkpoint {resume.Checkpoint.AppliedThroughSequence}");
+        }
+
+        if (resume.RuntimeBundle is not null)
+        {
+            labels.Add($"Bundle proof: {resume.RuntimeBundle.BundleTag}");
+        }
+
+        PlayQuickAction? nextAction = resume.Bootstrap.QuickActions.FirstOrDefault();
+        if (nextAction is not null)
+        {
+            labels.Add($"Quick action ready: {nextAction.Label}");
+        }
+
+        return labels.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
 
     private static string[] BuildFollowThroughLabels(
         PlayResumeResponse resume,

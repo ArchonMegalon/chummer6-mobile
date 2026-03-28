@@ -160,6 +160,10 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.Summary.Contains("session-redmond", StringComparison.Ordinal), "workspace-lite summary must keep the session identity visible");
     Assert(projection.Summary.Contains("Objective board refreshed", StringComparison.Ordinal), "workspace-lite summary must surface the latest timeline clue");
     Assert(projection.CurrentSceneSummary.Contains("scene-redmond", StringComparison.Ordinal), "workspace-lite summary must surface the current scene");
+    Assert(projection.ChangePacketSummary.Contains("Return anchor stays on checkpoint 12", StringComparison.Ordinal), "workspace-lite summary must surface the claimed-device return anchor in the change packet.");
+    Assert(projection.ChangePacketLabels.Any(item => item.Contains("Scene packet: scene-redmond", StringComparison.Ordinal)), "workspace-lite summary must surface a scene packet label.");
+    Assert(projection.ChangePacketLabels.Any(item => item.Contains("Latest signal: Objective board refreshed", StringComparison.Ordinal)), "workspace-lite summary must surface the latest timeline signal inside the change packet.");
+    Assert(projection.ChangePacketLabels.Any(item => item.Contains("Bundle proof: bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep the grounded bundle proof inside the change packet.");
     Assert(projection.RolePosture.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose the role route posture");
     Assert(projection.RolePosture.Contains("player lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must expose the current device role posture");
     Assert(projection.RulePosture.Contains("sr6.preview.v1", StringComparison.Ordinal), "workspace-lite summary must surface the runtime fingerprint");
@@ -1046,6 +1050,8 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"output\" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"", StringComparison.Ordinal), "play shell resume status region must expose polite live updates");
     Assert(html.Contains("id=\"workspace-summary\"", StringComparison.Ordinal), "play shell must expose a workspace-lite summary region");
     Assert(html.Contains("id=\"workspace-role\"", StringComparison.Ordinal), "play shell must expose role posture alongside current state");
+    Assert(html.Contains("id=\"change-packet-summary\"", StringComparison.Ordinal), "play shell must expose a change-packet summary alongside current state");
+    Assert(html.Contains("id=\"change-packet-list\"", StringComparison.Ordinal), "play shell must expose change-packet labels for the current return anchor");
     Assert(html.Contains("id=\"workspace-update\"", StringComparison.Ordinal), "play shell must expose update posture alongside current state");
     Assert(html.Contains("id=\"workspace-support\"", StringComparison.Ordinal), "play shell must expose support posture alongside current state");
     Assert(html.Contains("id=\"follow-through-update\"", StringComparison.Ordinal), "play shell must expose the explicit update follow-through route.");
