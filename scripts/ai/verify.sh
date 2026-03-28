@@ -48,6 +48,7 @@ test -f src/Chummer.Play.Web/wwwroot/manifest.webmanifest
 test -f src/Chummer.Play.Web/wwwroot/service-worker.js
 test -f src/Chummer.Play.Web/wwwroot/icons/icon-192.svg
 test -f src/Chummer.Play.Web/wwwroot/icons/icon-512.svg
+test -f scripts/materialize_mobile_local_release_proof.py
 test -f scripts/ai/with-package-plane.sh
 test -f src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj
 test -f src/Chummer.Play.RegressionChecks/Program.cs
@@ -298,6 +299,10 @@ bash "${package_plane_runner}" build src/Chummer.Play.Gm/Chummer.Play.Gm.csproj 
 bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo
 bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo >/dev/null
 bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
+python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
+test -f .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json
+rg -n '"contract_name": "chummer6-mobile.local_release_proof"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"status": "passed"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 
 if [[ -n "${published_feed_sources}" ]]; then
   echo "running published-feed compatibility restore/build checks"
@@ -313,6 +318,7 @@ if [[ -n "${published_feed_sources}" ]]; then
   bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
+  python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
 else
   echo "published-feed compatibility restore/build checks skipped (set CHUMMER_PUBLISHED_FEED_SOURCES to enable)"
   echo "running local owner-package compatibility smoke check"
@@ -328,6 +334,7 @@ else
   bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
+  python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
 fi
 
 echo "chummer6-mobile verify ok"
