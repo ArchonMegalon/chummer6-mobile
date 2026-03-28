@@ -125,6 +125,11 @@ static void VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState()
     Assert(plan.SupportFollowThroughHref.Contains("/contact", StringComparison.Ordinal), "roaming restore must expose a direct support follow-through href.");
     Assert(plan.SupportFollowThroughHref.Contains("campaignId=campaign-redmond", StringComparison.Ordinal), "roaming restore support href must preserve the target campaign id.");
     Assert(plan.RuleEnvironmentSummary == "sr6.preview.v1 · approved · campaign", "roaming restore must surface concise rule-environment posture");
+    Assert(plan.PrefetchReadinessSummary.Contains("green", StringComparison.OrdinalIgnoreCase), "roaming restore must expose a green prefetch readiness summary when the packet is aligned");
+    Assert(plan.PrefetchReadinessSummary.Contains("1 dossier", StringComparison.Ordinal), "roaming restore must keep the prefetch inventory visible inside the readiness summary");
+    Assert(plan.LocalCacheBoundarySummary.Contains("install-local", StringComparison.Ordinal), "roaming restore must expose an install-local cache boundary summary");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("Prefetch inventory", StringComparison.Ordinal)), "roaming restore must expose explicit prefetch inventory labels");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("Companion device", StringComparison.Ordinal)), "roaming restore must keep alternate claimed-device lanes visible when planning offline prefetch");
     Assert(plan.ReturnTargetCampaignName == "Redmond Patrol", "roaming restore must expose the primary campaign return target");
     Assert(plan.AttentionItems.Count == 1, "roaming restore should keep install-local guardrails visible even when restore state is conflict-free");
     Assert(plan.AttentionItems[0].Contains("install-local", StringComparison.Ordinal), "roaming restore attention items must preserve the install-local guardrail");
@@ -185,6 +190,10 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.SafeNextAction.Contains("Sync before taking the next quick action", StringComparison.Ordinal), "workspace-lite summary must point the player lane at the next safe action");
     Assert(projection.ContinuityPosture.Contains("Checkpoint 12", StringComparison.Ordinal), "workspace-lite summary must expose the aligned continuity checkpoint");
     Assert(projection.CachePosture.Contains("2/8", StringComparison.Ordinal), "workspace-lite summary must expose cache posture");
+    Assert(projection.TravelPosture.Contains("bounded offline use", StringComparison.Ordinal), "workspace-lite summary must make travel readiness deliberate on the claimed device");
+    Assert(projection.TravelPosture.Contains("checkpoint 12", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must keep the travel posture tied to the pinned local checkpoint");
+    Assert(projection.OfflinePrefetchSummary.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the grounded runtime bundle inside the offline prefetch summary");
+    Assert(projection.OfflinePrefetchSummary.Contains("install-local", StringComparison.Ordinal), "workspace-lite summary must keep the offline prefetch summary explicit about install-local boundaries");
     Assert(projection.UpdatePosture.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the current update posture for the validated runtime bundle");
     Assert(projection.SupportPosture.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose install-safe support posture for the current session");
     Assert(projection.SupportStatus.Contains("Ready to verify", StringComparison.Ordinal), "workspace-lite summary must expose support case status for the current mobile shell.");
@@ -202,6 +211,7 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.RoleFollowThroughHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must provide a direct role follow-through href.");
     Assert(projection.QuickActionLabels.SequenceEqual(["Mark Ready"]), "workspace-lite summary must surface quick action labels");
     Assert(projection.FollowThroughLabels.Count >= 3, "workspace-lite summary must surface explicit follow-through labels for update, support, and role posture.");
+    Assert(projection.ChangePacketLabels.Any(item => item.Contains("Travel-safe packet: checkpoint 12 + bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must expose the bounded offline travel packet inside the change packet labels.");
     Assert(projection.FollowThroughLabels.Any(item => item.Contains("bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep the update follow-through tied to the validated runtime bundle.");
     Assert(projection.FollowThroughLabels.Any(item => item.Contains("session-redmond/scene-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep support follow-through tied to the grounded session context.");
     Assert(projection.CoachHints.SequenceEqual(["Sync before submitting quick actions after reconnect."]), "workspace-lite summary must surface coach hints");
@@ -226,6 +236,8 @@ static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGua
     Assert(plan.ResumeFollowThrough.Contains("restore review", StringComparison.Ordinal), "roaming restore must switch the follow-through label into explicit conflict review mode.");
     Assert(plan.SupportFollowThroughHref.Contains("different%20channels", StringComparison.OrdinalIgnoreCase), "roaming restore support href must preserve the conflict summary for support follow-through.");
     Assert(plan.RuleEnvironmentSummary == "sr6.preview.v1 · candidate · campaign", "roaming restore must preserve non-approved rule posture for the shell");
+    Assert(plan.PrefetchReadinessSummary.Contains("warning-only", StringComparison.OrdinalIgnoreCase), "roaming restore must downgrade prefetch readiness when conflict review is still required");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("Target device", StringComparison.Ordinal)), "roaming restore must expose the targeted prefetch lane");
     Assert(plan.AttentionItems.Count == 3, "roaming restore attention items must include conflict, approval, and install-local guardrails");
     Assert(plan.AttentionItems.Any(item => item.Contains("different channels", StringComparison.Ordinal)), "roaming restore attention items must carry the channel drift conflict");
     Assert(plan.AttentionItems.Any(item => item.Contains("not approved", StringComparison.Ordinal)), "roaming restore attention items must flag non-approved rule posture");
@@ -266,6 +278,9 @@ static void VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery()
     Assert(plan.DeviceRole == "play_tablet", "play restore service must map player role onto the play-tablet restore lane");
     Assert(plan.ResumeSummary.Contains("scene-redmond mobile return", StringComparison.Ordinal), "play restore service must keep the campaign return target visible");
     Assert(plan.RuleEnvironmentSummary == "sr6.preview.v1 · approved · campaign", "play restore service must keep the approved runtime fingerprint visible");
+    Assert(plan.PrefetchReadinessSummary.Contains("bounded offline use", StringComparison.Ordinal), "play restore service must make bounded offline prefetch deliberate on the claimed device");
+    Assert(plan.LocalCacheBoundarySummary.Contains("install-local", StringComparison.Ordinal), "play restore service must keep install-local cache boundaries explicit");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("Travel cache", StringComparison.Ordinal)), "play restore service must keep the sibling travel cache visible in restore planning");
     Assert(plan.SafeNextAction.Contains("Open scene-redmond mobile return", StringComparison.Ordinal), "play restore service must point the claimed device at the next safe campaign action");
     Assert(plan.ResumeFollowThroughHref.Contains("/play/session-redmond", StringComparison.Ordinal), "play restore service must expose the direct claimed-device resume href.");
     Assert(plan.ResumeFollowThroughHref.Contains("role=Player", StringComparison.Ordinal), "play restore service resume href must preserve the mapped mobile role.");
@@ -1076,6 +1091,8 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"workspace-recap\"", StringComparison.Ordinal), "play shell must expose a recap-safe packet summary alongside current state");
     Assert(html.Contains("id=\"workspace-decision-notice\"", StringComparison.Ordinal), "play shell must expose the current decision notice alongside current state");
     Assert(html.Contains("id=\"workspace-decision-notice-link\"", StringComparison.Ordinal), "play shell must expose a direct decision-notice follow-through link.");
+    Assert(html.Contains("id=\"workspace-travel\"", StringComparison.Ordinal), "play shell must expose deliberate travel readiness alongside current state");
+    Assert(html.Contains("id=\"workspace-prefetch\"", StringComparison.Ordinal), "play shell must expose the bounded offline prefetch summary alongside current state");
     Assert(html.Contains("id=\"workspace-update\"", StringComparison.Ordinal), "play shell must expose update posture alongside current state");
     Assert(html.Contains("id=\"workspace-support\"", StringComparison.Ordinal), "play shell must expose support posture alongside current state");
     Assert(html.Contains("id=\"workspace-support-status\"", StringComparison.Ordinal), "play shell must expose support status alongside current state");
@@ -1091,6 +1108,9 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"attention-list\"", StringComparison.Ordinal), "play shell must expose an attention list for continuity risks");
     Assert(html.Contains("id=\"restore-summary\"", StringComparison.Ordinal), "play shell must expose a claimed-device recovery summary region");
     Assert(html.Contains("id=\"restore-rule-environment\"", StringComparison.Ordinal), "play shell must expose rule-environment recovery posture");
+    Assert(html.Contains("id=\"restore-prefetch\"", StringComparison.Ordinal), "play shell must expose claimed-device offline prefetch readiness");
+    Assert(html.Contains("id=\"restore-local-boundary\"", StringComparison.Ordinal), "play shell must expose install-local cache boundaries for restore planning");
+    Assert(html.Contains("id=\"restore-prefetch-labels\"", StringComparison.Ordinal), "play shell must expose explicit prefetch labels for alternate claimed-device lanes");
     Assert(html.Contains("id=\"restore-attention\"", StringComparison.Ordinal), "play shell must expose restore attention items");
     Assert(html.Contains("id=\"restore-local-notes\"", StringComparison.Ordinal), "play shell must expose install-local restore notes");
     Assert(html.Contains("/api/play/workspace-lite/", StringComparison.Ordinal), "play shell must fetch the workspace-lite projection instead of dumping only the raw resume payload");

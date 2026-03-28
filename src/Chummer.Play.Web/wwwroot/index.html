@@ -37,6 +37,8 @@
       <p id="workspace-rule-posture" class="hint"></p>
       <p id="workspace-continuity" class="hint"></p>
       <p id="workspace-cache" class="hint"></p>
+      <p id="workspace-travel" class="hint"></p>
+      <p id="workspace-prefetch" class="hint"></p>
       <p id="workspace-update" class="hint"></p>
       <p id="workspace-support" class="hint"></p>
       <p id="workspace-support-status" class="hint"></p>
@@ -65,12 +67,15 @@
       <p id="restore-summary"></p>
       <p id="restore-safe-action" class="hint"></p>
       <p id="restore-rule-environment" class="hint"></p>
+      <p id="restore-prefetch" class="hint"></p>
+      <p id="restore-local-boundary" class="hint"></p>
       <p id="restore-return-target" class="hint"></p>
       <p id="restore-device-role" class="hint"></p>
       <p id="restore-follow-through" class="hint"></p>
       <p><a id="restore-follow-through-link" class="hint" href="/play">Open claimed-device follow-through</a></p>
       <p id="restore-support-follow-through" class="hint"></p>
       <p><a id="restore-support-follow-through-link" class="hint" href="/contact">Open restore support follow-through</a></p>
+      <ul id="restore-prefetch-labels"></ul>
     </div>
     <div class="card">
       <div class="eyebrow">Restore guardrails</div>
@@ -123,6 +128,8 @@
     document.getElementById("workspace-rule-posture").textContent = payload.rulePosture || "No rule posture is available yet.";
     document.getElementById("workspace-continuity").textContent = payload.continuityPosture || "No continuity posture is available yet.";
     document.getElementById("workspace-cache").textContent = payload.cachePosture || "No cache posture is available yet.";
+    document.getElementById("workspace-travel").textContent = payload.travelPosture || "No travel posture is available yet.";
+    document.getElementById("workspace-prefetch").textContent = payload.offlinePrefetchSummary || "No offline prefetch summary is available yet.";
     document.getElementById("workspace-update").textContent = payload.updatePosture || "No update posture is available yet.";
     document.getElementById("workspace-server-plane").textContent = payload.serverPlaneSummary || "No campaign server-plane summary is available yet.";
     document.getElementById("workspace-roster").textContent = payload.rosterSummary || "No roster readiness summary is available yet.";
@@ -152,6 +159,8 @@
     document.getElementById("restore-summary").textContent = payload.resumeSummary || "No claimed-device recovery summary is available yet.";
     document.getElementById("restore-safe-action").textContent = payload.safeNextAction || "No recovery-safe action is available yet.";
     document.getElementById("restore-rule-environment").textContent = payload.ruleEnvironmentSummary || "No rule-environment recovery posture is available yet.";
+    document.getElementById("restore-prefetch").textContent = payload.prefetchReadinessSummary || "No offline prefetch readiness is available yet.";
+    document.getElementById("restore-local-boundary").textContent = payload.localCacheBoundarySummary || "No install-local cache boundary summary is available yet.";
     document.getElementById("restore-return-target").textContent = payload.returnTargetCampaignName
       ? `Return target: ${payload.returnTargetCampaignName}`
       : "Return target: no campaign return target is attached yet.";
@@ -162,6 +171,7 @@
     document.getElementById("restore-follow-through-link").href = payload.resumeFollowThroughHref || "/play";
     document.getElementById("restore-support-follow-through").textContent = payload.supportFollowThrough || "No restore-support follow-through is available yet.";
     document.getElementById("restore-support-follow-through-link").href = payload.supportFollowThroughHref || "/contact";
+    setList("restore-prefetch-labels", payload.prefetchLabels);
     setList("restore-attention", payload.attentionItems);
     setList("restore-conflicts", payload.conflictSummaries);
     setList("restore-local-notes", payload.localOnlyNotes);

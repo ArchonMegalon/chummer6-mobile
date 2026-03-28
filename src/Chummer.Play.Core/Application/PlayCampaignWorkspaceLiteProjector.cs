@@ -24,6 +24,8 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string SafeNextAction,
     string ContinuityPosture,
     string CachePosture,
+    string TravelPosture,
+    string OfflinePrefetchSummary,
     string UpdatePosture,
     string SupportPosture,
     string SupportStatus,
@@ -63,6 +65,8 @@ public static class PlayCampaignWorkspaceLiteProjector
         string cachePosture = resume.CachePressure.BackpressureActive
             ? $"Cache pressure is active: {resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota} runtime bundles are pinned and eviction already touched {resume.CachePressure.EvictedEntryCount} session(s)."
             : $"Cache pressure is calm: {resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota} runtime bundles are pinned for this shell.";
+        string travelPosture = BuildTravelPosture(resume, session);
+        string offlinePrefetchSummary = BuildOfflinePrefetchSummary(resume, serverPlane, roleLabel);
         string runtimeBundleSummary = resume.RuntimeBundle is null
             ? "No runtime bundle is cached locally yet."
             : $"Bundle {resume.RuntimeBundle.BundleTag} was validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC.";
@@ -142,6 +146,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             SafeNextAction: safeNextAction,
             ContinuityPosture: continuityPosture,
             CachePosture: cachePosture,
+            TravelPosture: travelPosture,
+            OfflinePrefetchSummary: offlinePrefetchSummary,
             UpdatePosture: updatePosture,
             SupportPosture: supportPosture,
             SupportStatus: supportStatus,
@@ -218,6 +224,41 @@ public static class PlayCampaignWorkspaceLiteProjector
         }
 
         return $"Update posture: bundle {resume.RuntimeBundle.BundleTag} for {session.RuntimeFingerprint} was validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC and is the grounded local update target.";
+    }
+
+    private static string BuildTravelPosture(PlayResumeResponse resume, EngineSessionEnvelope session)
+    {
+        if (resume.RuntimeBundle is null)
+        {
+            return $"Travel posture: reconnect {session.SceneId} once so this claimed device can prefetch dossier, campaign, rule-environment, and recap truth before the next safehouse or travel handoff.";
+        }
+
+        if (resume.CachePressure.BackpressureActive)
+        {
+            return $"Travel posture: bundle {resume.RuntimeBundle.BundleTag} is grounded, but cache pressure already touched {resume.CachePressure.EvictedEntryCount} session(s), so bounded offline prefetch can still drift before the next travel handoff.";
+        }
+
+        if (resume.Checkpoint is null)
+        {
+            return $"Travel posture: bundle {resume.RuntimeBundle.BundleTag} is grounded, but seed a local checkpoint before you trust this shell as a safehouse return anchor.";
+        }
+
+        return $"Travel posture: checkpoint {resume.Checkpoint.AppliedThroughSequence}, bundle {resume.RuntimeBundle.BundleTag}, and the recap-safe packet are ready for bounded offline use on this claimed device.";
+    }
+
+    private static string BuildOfflinePrefetchSummary(
+        PlayResumeResponse resume,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel)
+    {
+        string checkpointSummary = resume.Checkpoint is null
+            ? "no local checkpoint yet"
+            : $"checkpoint {resume.Checkpoint.AppliedThroughSequence}";
+        string bundleSummary = resume.RuntimeBundle is null
+            ? "runtime proof pending"
+            : $"bundle {resume.RuntimeBundle.BundleTag}";
+        string recapSummary = serverPlane.RecapShelf.FirstOrDefault()?.Label ?? "no recap-safe packet yet";
+        return $"Offline prefetch: {checkpointSummary}, {bundleSummary}, {recapSummary}, and the {roleLabel} return lane stay install-local and bounded to this device.";
     }
 
     private static string BuildSupportPosture(PlayResumeResponse resume, PlayCampaignWorkspaceServerPlane serverPlane)
@@ -332,6 +373,11 @@ public static class PlayCampaignWorkspaceLiteProjector
         {
             labels.Add($"Bundle proof: {resume.RuntimeBundle.BundleTag}");
         }
+
+        labels.Add(
+            resume.RuntimeBundle is not null && resume.Checkpoint is not null
+                ? $"Travel-safe packet: checkpoint {resume.Checkpoint.AppliedThroughSequence} + {resume.RuntimeBundle.BundleTag}"
+                : "Travel-safe packet: reconnect required");
 
         PlayQuickAction? nextAction = resume.Bootstrap.QuickActions.FirstOrDefault();
         if (nextAction is not null)

@@ -14,6 +14,9 @@ public sealed record RoamingWorkspaceRestorePlan(
     string ResumeSummary,
     string SafeNextAction,
     string RuleEnvironmentSummary,
+    string PrefetchReadinessSummary,
+    string LocalCacheBoundarySummary,
+    IReadOnlyList<string> PrefetchLabels,
     string? ReturnTargetCampaignName,
     string ResumeFollowThrough,
     string ResumeFollowThroughHref,
@@ -67,6 +70,16 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
             : $"{primaryEnvironment.CompatibilityFingerprint} · {primaryEnvironment.ApprovalState} · {primaryEnvironment.OwnerScope}";
         var resumeSummary = BuildResumeSummary(targetDevice, primaryCampaign, primaryDossier, primaryEnvironment, canResume);
         var safeNextAction = BuildSafeNextAction(targetDevice, primaryCampaign, primaryDossier, conflictSummaries, canResume);
+        var prefetchReadinessSummary = BuildPrefetchReadinessSummary(
+            restore,
+            targetDevice,
+            primaryCampaign,
+            primaryDossier,
+            primaryEnvironment,
+            conflictSummaries,
+            canResume);
+        var localCacheBoundarySummary = BuildLocalCacheBoundarySummary(localOnlyNotes);
+        var prefetchLabels = BuildPrefetchLabels(restore, targetDevice);
         var resumeFollowThrough = BuildResumeFollowThrough(targetDevice, primaryCampaign, primaryDossier, conflictSummaries, canResume);
         var resumeFollowThroughHref = BuildResumeFollowThroughHref(targetDevice, primaryCampaign, primaryDossier);
         var supportFollowThrough = BuildSupportFollowThrough(targetDevice, primaryCampaign, primaryDossier, primaryEnvironment, conflictSummaries, localOnlyNotes);
@@ -85,6 +98,9 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
             ResumeSummary: resumeSummary,
             SafeNextAction: safeNextAction,
             RuleEnvironmentSummary: ruleEnvironmentSummary,
+            PrefetchReadinessSummary: prefetchReadinessSummary,
+            LocalCacheBoundarySummary: localCacheBoundarySummary,
+            PrefetchLabels: prefetchLabels,
             ReturnTargetCampaignName: primaryCampaign?.Name,
             ResumeFollowThrough: resumeFollowThrough,
             ResumeFollowThroughHref: resumeFollowThroughHref,
@@ -152,6 +168,67 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
         }
 
         return $"Reconnect the latest artifact and entitlement state on {targetDevice.DeviceRole} before you resume.";
+    }
+
+    private static string BuildPrefetchReadinessSummary(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        CampaignProjection? primaryCampaign,
+        RunnerDossierProjection? primaryDossier,
+        RuleEnvironmentRef? primaryEnvironment,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        string inventory = DescribePrefetchInventory(restore);
+        string targetLabel = primaryCampaign?.Name ?? primaryDossier?.DisplayName ?? targetDevice.DeviceRole;
+
+        if (!canResume)
+        {
+            return $"Prefetch readiness is empty for {targetDevice.DeviceRole}: claim or reconnect this device before you seed bounded offline campaign state.";
+        }
+
+        if (conflictSummaries.Count > 0)
+        {
+            return $"Prefetch readiness is warning-only for {targetLabel} on {targetDevice.DeviceRole}: {inventory} are staged, but restore conflicts still need review before bounded offline use.";
+        }
+
+        if (primaryEnvironment is not null && !string.Equals(primaryEnvironment.ApprovalState, "approved", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"Prefetch readiness is partial for {targetLabel} on {targetDevice.DeviceRole}: {inventory} are staged, but {primaryEnvironment.CompatibilityFingerprint} is not approved yet.";
+        }
+
+        return $"Prefetch readiness is green for {targetLabel} on {targetDevice.DeviceRole}: {inventory} are staged for bounded offline use on this claimed device.";
+    }
+
+    private static string BuildLocalCacheBoundarySummary(IReadOnlyList<string> localOnlyNotes)
+    {
+        string localNote = localOnlyNotes.FirstOrDefault(static item => !string.IsNullOrWhiteSpace(item))
+            ?? "install-local caches remain device-bound.";
+        return $"Install-local boundary: {localNote}";
+    }
+
+    private static IReadOnlyList<string> BuildPrefetchLabels(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice)
+    {
+        List<string> labels =
+        [
+            $"Prefetch inventory: {DescribePrefetchInventory(restore)}",
+            $"Target device: {targetDevice.InstallationId} · {targetDevice.DeviceRole} · {targetDevice.Platform} · {targetDevice.Channel}"
+        ];
+
+        foreach (ClaimedDeviceRestoreProjection companion in restore.ClaimedDevices.Where(item => !string.Equals(item.InstallationId, targetDevice.InstallationId, StringComparison.OrdinalIgnoreCase)))
+        {
+            string prefix = companion.DeviceRole.Contains("travel", StringComparison.OrdinalIgnoreCase)
+                ? "Travel cache"
+                : "Companion device";
+            labels.Add($"{prefix}: {companion.InstallationId} · {companion.RestoreSummary}");
+        }
+
+        return labels
+            .Where(static item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static IReadOnlyList<string> BuildAttentionItems(
@@ -296,4 +373,7 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
 
         return "Player";
     }
+
+    private static string DescribePrefetchInventory(WorkspaceRestoreProjection restore)
+        => $"{restore.RecentDossiers.Count} dossier(s), {restore.RecentCampaigns.Count} campaign(s), {restore.RecentRuleEnvironments.Count} rule environment(s), and {restore.RecentArtifacts.Count} artifact(s)";
 }
