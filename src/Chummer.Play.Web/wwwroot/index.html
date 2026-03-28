@@ -32,6 +32,7 @@
     <div class="card">
       <div class="eyebrow">Current state</div>
       <p id="workspace-scene"></p>
+      <p id="workspace-role" class="hint"></p>
       <p id="workspace-rule-posture" class="hint"></p>
       <p id="workspace-continuity" class="hint"></p>
       <p id="workspace-cache" class="hint"></p>
@@ -70,6 +71,7 @@
     document.getElementById("workspace-summary").textContent = payload.summary || "No campaign workspace summary is available yet.";
     document.getElementById("workspace-safe-action").textContent = payload.safeNextAction || "No safe next action is available yet.";
     document.getElementById("workspace-scene").textContent = payload.currentSceneSummary || "No current scene summary is available yet.";
+    document.getElementById("workspace-role").textContent = payload.rolePosture || "No role posture is available yet.";
     document.getElementById("workspace-rule-posture").textContent = payload.rulePosture || "No rule posture is available yet.";
     document.getElementById("workspace-continuity").textContent = payload.continuityPosture || "No continuity posture is available yet.";
     document.getElementById("workspace-cache").textContent = payload.cachePosture || "No cache posture is available yet.";

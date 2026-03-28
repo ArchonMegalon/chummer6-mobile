@@ -10,6 +10,7 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     PlaySurfaceRole Role,
     string Summary,
     string CurrentSceneSummary,
+    string RolePosture,
     string RulePosture,
     string SafeNextAction,
     string ContinuityPosture,
@@ -44,6 +45,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         string runtimeBundleSummary = resume.RuntimeBundle is null
             ? "No runtime bundle is cached locally yet."
             : $"Bundle {resume.RuntimeBundle.BundleTag} was validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC.";
+        string rolePosture = BuildRolePosture(resume, session);
         string safeNextAction = BuildSafeNextAction(resume, session);
         string updatePosture = BuildUpdatePosture(resume, session);
         string supportPosture = BuildSupportPosture(resume, session);
@@ -74,6 +76,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             Role: resume.Role,
             Summary: $"Resume {resume.SessionId} on the {roleLabel}. Scene {session.SceneId} is pinned at {session.SceneRevision}, and the latest table signal is '{latestTimeline}'.",
             CurrentSceneSummary: $"{session.SceneId} · revision {session.SceneRevision} · sequence {resume.Bootstrap.Projection.Cursor.AppliedThroughSequence}",
+            RolePosture: rolePosture,
             RulePosture: $"{session.RuntimeFingerprint}. {runtimeBundleSummary}",
             SafeNextAction: safeNextAction,
             ContinuityPosture: continuityPosture,
@@ -85,6 +88,20 @@ public static class PlayCampaignWorkspaceLiteProjector
                 : attentionItems,
             QuickActionLabels: resume.Bootstrap.QuickActions.Select(action => action.Label).ToArray(),
             CoachHints: resume.Bootstrap.CoachHints.Select(hint => hint.Message).ToArray());
+    }
+
+    private static string BuildRolePosture(PlayResumeResponse resume, EngineSessionEnvelope session)
+    {
+        string route = string.IsNullOrWhiteSpace(resume.DeepLinkOwnerRoute)
+            ? $"/play/{resume.SessionId}"
+            : resume.DeepLinkOwnerRoute;
+
+        return resume.Role switch
+        {
+            PlaySurfaceRole.GameMaster => $"Role posture: GM runboard on {route}. This device is the coordination lane for {session.SceneId}, so scene changes should originate here before they fan out.",
+            PlaySurfaceRole.Observer => $"Role posture: observer lane on {route}. Keep this shell read-mostly until the owner lane confirms the next scene revision.",
+            _ => $"Role posture: player lane on {route}. Keep this shell focused on one grounded move at a time and leave prep-heavy changes to the workbench."
+        };
     }
 
     private static string BuildSafeNextAction(PlayResumeResponse resume, EngineSessionEnvelope session)
