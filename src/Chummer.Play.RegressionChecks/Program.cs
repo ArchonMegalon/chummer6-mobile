@@ -42,6 +42,7 @@ await RunCheckAsync(nameof(VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundl
 await RunCheckAsync(nameof(VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync), VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync);
 await RunCheckAsync(nameof(VerifyIndexShellAccessibilityContractAsync), VerifyIndexShellAccessibilityContractAsync);
 await RunCheckAsync(nameof(VerifyBootstrapRoleShellEntryPointsAsync), VerifyBootstrapRoleShellEntryPointsAsync);
+await RunCheckAsync(nameof(VerifyRoleBoundarySurvivesCapabilityLeakageAsync), VerifyRoleBoundarySurvivesCapabilityLeakageAsync);
 await RunCheckAsync(nameof(VerifyQuickActionRejectsCrossRoleAuthorizationAsync), VerifyQuickActionRejectsCrossRoleAuthorizationAsync);
 await RunCheckAsync(nameof(VerifyCachePressureBudgetContractAsync), VerifyCachePressureBudgetContractAsync);
 await RunCheckAsync(nameof(VerifyEventLogDropsMalformedStoredLedgerAsync), VerifyEventLogDropsMalformedStoredLedgerAsync);
@@ -1112,6 +1113,38 @@ static Task VerifyBootstrapRoleShellEntryPointsAsync()
     Assert(gmActions.All(action => !action.ActionId.StartsWith("player-", StringComparison.Ordinal)), "gm role entry points must not expose player quick actions");
     Assert(playerActions.All(action => !string.IsNullOrWhiteSpace(action.Label)), "player role entry points must expose non-empty action labels");
     Assert(gmActions.All(action => !string.IsNullOrWhiteSpace(action.Label)), "gm role entry points must expose non-empty action labels");
+    return Task.CompletedTask;
+}
+
+static Task VerifyRoleBoundarySurvivesCapabilityLeakageAsync()
+{
+    IReadOnlyList<string> leakedCapabilities =
+    [
+        "play.session.sync",
+        "play.gm.actions",
+        "play.spider.cards",
+        "play.notes.write",
+    ];
+
+    var playerActions = PlayRouteHandlers.BuildQuickActions(PlaySurfaceRole.Player, leakedCapabilities);
+    var gmActions = PlayRouteHandlers.BuildQuickActions(PlaySurfaceRole.GameMaster, leakedCapabilities);
+
+    Assert(
+        playerActions.Select(action => action.ActionId).SequenceEqual(["player-mark-ready", "player-request-cover"]),
+        "player role quick actions must stay player-only even when gm capabilities leak into the capability list"
+    );
+    Assert(
+        playerActions.All(action => action.RequiredCapability == "play.session.sync"),
+        "player role quick actions must continue to require only player-safe capabilities when capability lists are over-provisioned"
+    );
+    Assert(
+        gmActions.Select(action => action.ActionId).SequenceEqual(["gm-advance-initiative", "gm-publish-spider-card"]),
+        "gm role quick actions must stay gm-only even when player-safe capabilities leak into the capability list"
+    );
+    Assert(
+        gmActions.All(action => action.RequiredCapability is "play.gm.actions" or "play.spider.cards"),
+        "gm role quick actions must continue to require gm-only capabilities when capability lists are over-provisioned"
+    );
     return Task.CompletedTask;
 }
 

@@ -15,7 +15,7 @@ Purpose: keep the live mobile queue readable. Historical queue churn and audit r
 | M6 Local-first runtime seam | done | 100% | 2026-03-13 | high | Ledger, cache, offline queue, and replay ownership are real and regression-guarded. |
 | M10 Hardening | done | 100% | 2026-03-13 | high | Accessibility, replay resilience, and performance-budget truth gates are closed. |
 | M11 Finished mobile shell gate | done | 100% | 2026-03-13 | high | Role-shell completion, cross-device continuity, and release closure gates are closed. |
-| M12 Play-shell completion depth (post-closure) | in_progress | 55% | 2026-04-10 | medium | Browser transport, event-log persistence, and offline resume remain closed, and post-closure role-shell completion gates are now explicit and verify-enforced; remaining scope is sustained release proof refresh and additional role-depth assertions. |
+| M12 Play-shell completion depth (post-closure) | in_progress | 60% | 2026-04-10 | medium | Browser transport, event-log persistence, and offline resume remain closed, and post-closure role-shell completion gates are now explicit and verify-enforced; the latest additive depth slice now proves role boundaries hold even when capability lists are over-provisioned, with remaining scope limited to sustained release proof refresh and further role-depth assertions. |
 
 ## Queue
 | ID | Status | Priority | Task | Owner | Notes |
@@ -32,14 +32,14 @@ Purpose: keep the live mobile queue readable. Historical queue churn and audit r
 
 | Gate ID | Milestone | ETA Target (UTC) | Status | Completion Truth |
 |---|---|---|---|---|
-| TG-M12-PL | M12 | 2026-04-10 | done | Player-shell completion depth is post-closure executable: browser transport ownership, event-log persistence lineage, offline resume payload behavior, and role-safe quick-action scope stay regression-backed through `VerifySyncPrefixAcknowledgementAsync`, `VerifyStoredLineageAlignment`, `VerifyStoredLineageStaleResponsesAsync`, `VerifyBootstrapRoleShellEntryPointsAsync`, and `VerifyQuickActionRejectsCrossRoleAuthorizationAsync`. |
-| TG-M12-GM | M12 | 2026-04-10 | done | GM-shell completion depth is post-closure executable: GM-only capability gating (`play.gm.actions`, `play.spider.cards`), continuity/observe route ownership, and non-mutating stale-lineage rejection remain regression-backed through `VerifyBootstrapRoleShellEntryPointsAsync`, `VerifyQuickActionRejectsCrossRoleAuthorizationAsync`, `VerifyContinuityClaimRejectsStaleLineageWithoutMutationAsync`, and `VerifyObserveReturnsLineageSafeContinuityAsync`. |
+| TG-M12-PL | M12 | 2026-04-10 | done | Player-shell completion depth is post-closure executable: browser transport ownership, event-log persistence lineage, offline resume payload behavior, and role-safe quick-action scope stay regression-backed through `VerifySyncPrefixAcknowledgementAsync`, `VerifyStoredLineageAlignment`, `VerifyStoredLineageStaleResponsesAsync`, `VerifyBootstrapRoleShellEntryPointsAsync`, `VerifyRoleBoundarySurvivesCapabilityLeakageAsync`, and `VerifyQuickActionRejectsCrossRoleAuthorizationAsync`. |
+| TG-M12-GM | M12 | 2026-04-10 | done | GM-shell completion depth is post-closure executable: GM-only capability gating (`play.gm.actions`, `play.spider.cards`), continuity/observe route ownership, non-mutating stale-lineage rejection, and role-boundary resilience under over-provisioned capability lists remain regression-backed through `VerifyBootstrapRoleShellEntryPointsAsync`, `VerifyRoleBoundarySurvivesCapabilityLeakageAsync`, `VerifyQuickActionRejectsCrossRoleAuthorizationAsync`, `VerifyContinuityClaimRejectsStaleLineageWithoutMutationAsync`, and `VerifyObserveReturnsLineageSafeContinuityAsync`. |
 | TG-M12-RP | M12 | 2026-04-10 | done | Ongoing release proof is explicit and enforceable: `docs/PLAY_RELEASE_SIGNOFF.md` defines post-closure player/GM completion criteria and release-proof cadence, and `scripts/ai/verify.sh` enforces those gate references plus `WL-026` closure traceability. |
 
 ## Current repo truth
 
 - Repo-local live queue: none (all currently materialized worklist rows are done; `M12` remains in progress for additive depth evidence beyond this closure slice)
-- The player and GM shells are materially release-complete on the current replay/reconnect/observe/offline/installable-PWA axis; remaining change pressure is now explicitly tracked as post-closure capability depth under `M12`.
+- The player and GM shells are materially release-complete on the current replay/reconnect/observe/offline/installable-PWA axis; latest additive depth evidence now proves role boundaries survive over-provisioned capability sets, and remaining change pressure is explicitly tracked as post-closure capability depth under `M12`.
 - Historical feedback references still mention `chummer-play`; those are retained as audit history, not current repo identity
 
 ## Historical log
