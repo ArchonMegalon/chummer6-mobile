@@ -116,6 +116,12 @@ static void VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState()
     Assert(plan.ResumeSummary.Contains("Redmond Patrol", StringComparison.Ordinal), "roaming restore must surface the primary campaign in the resume summary");
     Assert(plan.ResumeSummary.Contains("sr6.preview.v1", StringComparison.Ordinal), "roaming restore must surface the active rule fingerprint in the resume summary");
     Assert(plan.SafeNextAction.Contains("Open Redmond Patrol", StringComparison.Ordinal), "roaming restore must point the claimed device at the next safe campaign action");
+    Assert(plan.ResumeFollowThrough.Contains("Resume Redmond Patrol", StringComparison.Ordinal), "roaming restore must surface an explicit claimed-device resume follow-through.");
+    Assert(plan.ResumeFollowThroughHref.Contains("/play/session-redmond", StringComparison.Ordinal), "roaming restore must expose a direct claimed-device resume href.");
+    Assert(plan.ResumeFollowThroughHref.Contains("deviceId=install-tablet", StringComparison.Ordinal), "roaming restore resume href must preserve the claimed device id.");
+    Assert(plan.SupportFollowThrough.Contains("Redmond Patrol", StringComparison.Ordinal), "roaming restore must surface a support follow-through tied to the target campaign.");
+    Assert(plan.SupportFollowThroughHref.Contains("/contact", StringComparison.Ordinal), "roaming restore must expose a direct support follow-through href.");
+    Assert(plan.SupportFollowThroughHref.Contains("campaignId=campaign-redmond", StringComparison.Ordinal), "roaming restore support href must preserve the target campaign id.");
     Assert(plan.RuleEnvironmentSummary == "sr6.preview.v1 · approved · campaign", "roaming restore must surface concise rule-environment posture");
     Assert(plan.ReturnTargetCampaignName == "Redmond Patrol", "roaming restore must expose the primary campaign return target");
     Assert(plan.AttentionItems.Count == 1, "roaming restore should keep install-local guardrails visible even when restore state is conflict-free");
@@ -195,6 +201,8 @@ static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGua
     Assert(plan.ConflictSummaries.Count == 1, "roaming restore must preserve explicit conflict summaries");
     Assert(plan.ConflictSummaries[0].Contains("different channels", StringComparison.Ordinal), "roaming restore must keep the original conflict language");
     Assert(plan.SafeNextAction.Contains("Review restore conflicts", StringComparison.Ordinal), "roaming restore must force conflict review before resume");
+    Assert(plan.ResumeFollowThrough.Contains("restore review", StringComparison.Ordinal), "roaming restore must switch the follow-through label into explicit conflict review mode.");
+    Assert(plan.SupportFollowThroughHref.Contains("different%20channels", StringComparison.OrdinalIgnoreCase), "roaming restore support href must preserve the conflict summary for support follow-through.");
     Assert(plan.RuleEnvironmentSummary == "sr6.preview.v1 · candidate · campaign", "roaming restore must preserve non-approved rule posture for the shell");
     Assert(plan.AttentionItems.Count == 3, "roaming restore attention items must include conflict, approval, and install-local guardrails");
     Assert(plan.AttentionItems.Any(item => item.Contains("different channels", StringComparison.Ordinal)), "roaming restore attention items must carry the channel drift conflict");
@@ -237,6 +245,9 @@ static void VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery()
     Assert(plan.ResumeSummary.Contains("scene-redmond mobile return", StringComparison.Ordinal), "play restore service must keep the campaign return target visible");
     Assert(plan.RuleEnvironmentSummary == "sr6.preview.v1 · approved · campaign", "play restore service must keep the approved runtime fingerprint visible");
     Assert(plan.SafeNextAction.Contains("Open scene-redmond mobile return", StringComparison.Ordinal), "play restore service must point the claimed device at the next safe campaign action");
+    Assert(plan.ResumeFollowThroughHref.Contains("/play/session-redmond", StringComparison.Ordinal), "play restore service must expose the direct claimed-device resume href.");
+    Assert(plan.ResumeFollowThroughHref.Contains("role=Player", StringComparison.Ordinal), "play restore service resume href must preserve the mapped mobile role.");
+    Assert(plan.SupportFollowThroughHref.Contains("sessionId=session-redmond", StringComparison.Ordinal), "play restore service support href must keep the grounded session id.");
     Assert(plan.AttentionItems.Any(item => item.Contains("install-local", StringComparison.Ordinal)), "play restore service must preserve install-local guardrails");
     Assert(plan.LocalOnlyNotes.Any(item => item.Contains("install-local", StringComparison.Ordinal)), "play restore service must expose install-local notes on the shell projection");
     Assert(plan.Campaigns.Count == 1, "play restore service must project at least one campaign return target");
