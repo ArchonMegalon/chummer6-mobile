@@ -406,7 +406,17 @@ public static class PlayWebApplication
         Chummer.Play.Components.Shell.PlayShellDescriptor playerShell,
         Chummer.Play.Components.Shell.PlayShellDescriptor gmShell
     ) =>
-        role == PlaySurfaceRole.GameMaster ? PlayRouteHandlers.ToSnapshot(gmShell) : PlayRouteHandlers.ToSnapshot(playerShell);
+        role switch
+        {
+            PlaySurfaceRole.GameMaster => PlayRouteHandlers.ToSnapshot(gmShell),
+            PlaySurfaceRole.Observer => new PlayShellSnapshot(
+                PlaySurfaceRole.Observer,
+                "Observer Shell",
+                "Read-mostly observe surface for continuity review and tactical mirroring.",
+                ["play.session.read"]
+            ),
+            _ => PlayRouteHandlers.ToSnapshot(playerShell)
+        };
 
     private static IReadOnlyList<PlayTacticalSpiderCard> BuildSpiderCards(IReadOnlyList<string> roleCapabilities)
     {
@@ -435,15 +445,21 @@ public static class PlayWebApplication
     }
 
     private static IReadOnlyList<PlayCoachHint> BuildCoachHints(PlaySurfaceRole role) =>
-        role == PlaySurfaceRole.GameMaster
-            ? [
+        role switch
+        {
+            PlaySurfaceRole.GameMaster => [
                 new PlayCoachHint("coach-gm-stale", "Use stale-protected actions when scene revision changes."),
                 new PlayCoachHint("coach-gm-evidence", "Keep tactical reveals aligned with evidence lineage.")
-            ]
-            : [
+            ],
+            PlaySurfaceRole.Observer => [
+                new PlayCoachHint("coach-observer-continuity", "Confirm continuity before mirroring tactical updates."),
+                new PlayCoachHint("coach-observer-readonly", "Keep the observer lane read-mostly until the owner lane confirms the next revision.")
+            ],
+            _ => [
                 new PlayCoachHint("coach-player-sync", "Sync before submitting quick actions after reconnect."),
                 new PlayCoachHint("coach-player-focus", "Use mobile quick actions to keep turns concise.")
-            ];
+            ]
+        };
 
     public static async Task<(EngineSessionEnvelope Session, OfflineLedgerEnvelope Ledger)> ResolveProjectionSessionAsync(
         string sessionId,

@@ -44,6 +44,7 @@ await RunCheckAsync(nameof(VerifyIndexShellAccessibilityContractAsync), VerifyIn
 await RunCheckAsync(nameof(VerifyBootstrapRoleShellEntryPointsAsync), VerifyBootstrapRoleShellEntryPointsAsync);
 await RunCheckAsync(nameof(VerifyRoleBoundarySurvivesCapabilityLeakageAsync), VerifyRoleBoundarySurvivesCapabilityLeakageAsync);
 await RunCheckAsync(nameof(VerifyQuickActionRejectsCrossRoleAuthorizationAsync), VerifyQuickActionRejectsCrossRoleAuthorizationAsync);
+await RunCheckAsync(nameof(VerifyObserverBootstrapAndResumeStayReadMostlyAsync), VerifyObserverBootstrapAndResumeStayReadMostlyAsync);
 await RunCheckAsync(nameof(VerifyCachePressureBudgetContractAsync), VerifyCachePressureBudgetContractAsync);
 await RunCheckAsync(nameof(VerifyEventLogDropsMalformedStoredLedgerAsync), VerifyEventLogDropsMalformedStoredLedgerAsync);
 await RunCheckAsync(nameof(VerifyEventLogDropsUnparseableStoredLedgerKeysAsync), VerifyEventLogDropsUnparseableStoredLedgerKeysAsync);
@@ -1116,6 +1117,62 @@ static Task VerifyBootstrapRoleShellEntryPointsAsync()
     return Task.CompletedTask;
 }
 
+static async Task VerifyObserverBootstrapAndResumeStayReadMostlyAsync()
+{
+    const string sessionId = "session-observer-bootstrap";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var store = app.Services.GetRequiredService<BrowserSessionEventLogStore>();
+        var cache = app.Services.GetRequiredService<BrowserSessionOfflineCacheService>();
+        await store.AppendPendingEventsAsync(sessionId, "scene-observer", "scene-r5", "runtime-observer", ["evt-observer"], 6);
+        await cache.SetCheckpointAsync(
+            new SyncCheckpoint(sessionId, "scene-observer", "scene-r5", "runtime-observer", 6, DateTimeOffset.UtcNow)
+        );
+        await cache.CacheRuntimeBundleAsync(sessionId, "runtime-observer", "scene-r5", "bundle:scene-observer:runtime-observer");
+
+        var bootstrapQuery = $"?sessionId={Uri.EscapeDataString(sessionId)}&role={Uri.EscapeDataString(PlaySurfaceRole.Observer.ToString())}&sceneId=scene-observer&sceneRevision=scene-r5&runtimeFingerprint=runtime-observer";
+        var bootstrap = await ExecuteRouteRequestAsync<PlayBootstrapResponse>(
+            app,
+            HttpMethod.Get,
+            PlayApiRoutes.Bootstrap,
+            bootstrapQuery,
+            expectedStatusCode: StatusCodes.Status200OK
+        );
+
+        Assert(bootstrap.ActiveShell.Role == PlaySurfaceRole.Observer, "observer bootstrap must project an observer shell role");
+        Assert(bootstrap.ActiveShell.ShellName == "Observer Shell", "observer bootstrap must name the observer shell explicitly");
+        Assert(bootstrap.ActiveShell.Summary.Contains("Read-mostly", StringComparison.Ordinal), "observer bootstrap must describe the read-mostly posture");
+        Assert(bootstrap.RoleCapabilities.SequenceEqual(["play.session.read"]), "observer bootstrap must expose only read-mostly capabilities");
+        Assert(bootstrap.ActiveShell.RequiredCapabilities.SequenceEqual(["play.session.read"]), "observer shell metadata must stay read-only");
+        Assert(bootstrap.AvailableShells.Count == 1 && bootstrap.AvailableShells[0].Role == PlaySurfaceRole.Observer, "observer bootstrap must keep the available shell list observer-scoped");
+        Assert(bootstrap.QuickActions.Count == 0, "observer bootstrap must not expose quick actions");
+        Assert(bootstrap.TacticalSpiderCards.Count == 0, "observer bootstrap must not expose GM spider cards");
+        Assert(bootstrap.CoachHints.Select(hint => hint.HintId).SequenceEqual(["coach-observer-continuity", "coach-observer-readonly"]), "observer bootstrap must expose observer-specific coach hints");
+
+        var resume = await ExecuteRouteRequestAsync<PlayResumeResponse>(
+            app,
+            HttpMethod.Get,
+            PlayApiRoutes.Resume,
+            $"?role={Uri.EscapeDataString(PlaySurfaceRole.Observer.ToString())}",
+            routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId },
+            expectedStatusCode: StatusCodes.Status200OK
+        );
+
+        Assert(resume.Role == PlaySurfaceRole.Observer, "observer resume must preserve the observer role");
+        Assert(resume.Bootstrap.ActiveShell.Role == PlaySurfaceRole.Observer, "observer resume must keep observer shell metadata");
+        Assert(resume.Bootstrap.RoleCapabilities.SequenceEqual(["play.session.read"]), "observer resume must keep read-only capabilities");
+        Assert(resume.Bootstrap.QuickActions.Count == 0, "observer resume must not surface player or gm quick actions");
+        Assert(resume.Bootstrap.CoachHints.Select(hint => hint.HintId).SequenceEqual(["coach-observer-continuity", "coach-observer-readonly"]), "observer resume must keep observer-specific coach hints");
+        Assert(resume.Bootstrap.Projection.Timeline.Contains("pending:evt-observer", StringComparer.Ordinal), "observer resume must preserve pending replay state");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
 static Task VerifyRoleBoundarySurvivesCapabilityLeakageAsync()
 {
     IReadOnlyList<string> leakedCapabilities =
@@ -1128,6 +1185,7 @@ static Task VerifyRoleBoundarySurvivesCapabilityLeakageAsync()
 
     var playerActions = PlayRouteHandlers.BuildQuickActions(PlaySurfaceRole.Player, leakedCapabilities);
     var gmActions = PlayRouteHandlers.BuildQuickActions(PlaySurfaceRole.GameMaster, leakedCapabilities);
+    var observerActions = PlayRouteHandlers.BuildQuickActions(PlaySurfaceRole.Observer, leakedCapabilities);
 
     Assert(
         playerActions.Select(action => action.ActionId).SequenceEqual(["player-mark-ready", "player-request-cover"]),
@@ -1145,6 +1203,7 @@ static Task VerifyRoleBoundarySurvivesCapabilityLeakageAsync()
         gmActions.All(action => action.RequiredCapability is "play.gm.actions" or "play.spider.cards"),
         "gm role quick actions must continue to require gm-only capabilities when capability lists are over-provisioned"
     );
+    Assert(observerActions.Count == 0, "observer lane must remain read-mostly even when player and gm capabilities leak into the capability list");
     return Task.CompletedTask;
 }
 

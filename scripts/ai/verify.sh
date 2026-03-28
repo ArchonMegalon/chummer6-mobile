@@ -188,6 +188,8 @@ require_worklist_or_audit_pattern 'TG-M12-PL .* done '
 require_worklist_or_audit_pattern 'TG-M12-PL .*VerifySyncPrefixAcknowledgementAsync.*VerifyStoredLineageAlignment.*VerifyStoredLineageStaleResponsesAsync.*VerifyBootstrapRoleShellEntryPointsAsync.*VerifyQuickActionRejectsCrossRoleAuthorizationAsync'
 require_worklist_or_audit_pattern 'TG-M12-GM .* done '
 require_worklist_or_audit_pattern 'TG-M12-GM .*VerifyBootstrapRoleShellEntryPointsAsync.*VerifyQuickActionRejectsCrossRoleAuthorizationAsync.*VerifyContinuityClaimRejectsStaleLineageWithoutMutationAsync.*VerifyObserveReturnsLineageSafeContinuityAsync'
+require_worklist_or_audit_pattern 'TG-M12-OB .* done '
+require_worklist_or_audit_pattern 'TG-M12-OB .*VerifyObserverBootstrapAndResumeStayReadMostlyAsync.*VerifyRoleBoundarySurvivesCapabilityLeakageAsync'
 require_worklist_or_audit_pattern 'TG-M12-RP .* done '
 require_worklist_or_audit_pattern 'TG-M12-RP .*docs/PLAY_RELEASE_SIGNOFF.md.*scripts/ai/verify.sh'
 require_worklist_or_audit_pattern '2026-03-23: closed `WL-026`.*feedback/2026-03-21-204029-audit-task-2652.md.*feedback/2026-03-21-204029-audit-task-48734.md'
@@ -253,7 +255,8 @@ rg -n 'VerifyIndexShellAccessibilityContractAsync|VerifyBootstrapRoleShellEntryP
 rg -n 'Post-closure completion criteria \(M12\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Player shell criteria: browser transport \+ event-log \+ offline resume stay lineage-safe' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'GM shell criteria: GM-only action and Spider-card capability gates remain enforced' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
-rg -n 'Release-proof cadence criteria: each closure slice must keep these criteria represented in `WORKLIST.md` \(`TG-M12-PL`, `TG-M12-GM`, `TG-M12-RP`\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Observer shell criteria: bootstrap and resume keep the lane read-mostly' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Release-proof cadence criteria: each closure slice must keep these criteria represented in `WORKLIST.md` \(`TG-M12-PL`, `TG-M12-GM`, `TG-M12-OB`, `TG-M12-RP`\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Math\.Max\(ledgerBeforeAppend\.LastKnownSequence, cursor\.AppliedThroughSequence\) \+ 1' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'EnsureStoredLineageAlignedAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'Session id is required\.|Scene id is required\.|Scene revision is required\.|Runtime fingerprint is required\.' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
