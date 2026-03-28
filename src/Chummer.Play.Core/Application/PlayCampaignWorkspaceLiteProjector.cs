@@ -183,7 +183,16 @@ public static class PlayCampaignWorkspaceLiteProjector
     private static string BuildSupportFollowThroughHref(PlayResumeResponse resume, EngineSessionEnvelope session)
     {
         string bundle = resume.RuntimeBundle?.BundleTag ?? string.Empty;
-        return $"/contact?sessionId={Uri.EscapeDataString(resume.SessionId)}&sceneId={Uri.EscapeDataString(session.SceneId)}&runtime={Uri.EscapeDataString(session.RuntimeFingerprint)}&bundle={Uri.EscapeDataString(bundle)}";
+        string title = resume.RuntimeBundle is null
+            ? $"Mobile follow-through needs grounded runtime for {session.SceneId}"
+            : $"Mobile follow-through needs support review for {session.SceneId}";
+        string summary = resume.RuntimeBundle is null
+            ? $"This mobile shell resumed {resume.SessionId}/{session.SceneId} on {session.RuntimeFingerprint} without a validated local bundle."
+            : $"This mobile shell resumed {resume.SessionId}/{session.SceneId} on {session.RuntimeFingerprint} with bundle {bundle}.";
+        string detail = resume.RuntimeBundle is null
+            ? $"Session: {resume.SessionId}\nScene: {session.SceneId}\nRuntime: {session.RuntimeFingerprint}\nBundle: none cached locally\n\nWhat happened:\n- This device resumed the scene without a validated local runtime bundle.\n- Please ground the next support step against the mobile shell and reconnect path."
+            : $"Session: {resume.SessionId}\nScene: {session.SceneId}\nRuntime: {session.RuntimeFingerprint}\nBundle: {bundle}\n\nWhat happened:\n- This device resumed the scene with a validated local runtime bundle.\n- Please ground the next support step against the current mobile shell and bundle.";
+        return $"/contact?kind=install_help&title={Uri.EscapeDataString(title)}&summary={Uri.EscapeDataString(summary)}&detail={Uri.EscapeDataString(detail)}&sessionId={Uri.EscapeDataString(resume.SessionId)}&sceneId={Uri.EscapeDataString(session.SceneId)}&runtime={Uri.EscapeDataString(session.RuntimeFingerprint)}&bundle={Uri.EscapeDataString(bundle)}";
     }
 
     private static string BuildRoleFollowThrough(PlayResumeResponse resume, EngineSessionEnvelope session)

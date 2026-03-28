@@ -166,6 +166,10 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.UpdateFollowThroughHref.Contains("/downloads", StringComparison.Ordinal), "workspace-lite summary must provide a direct update follow-through href.");
     Assert(projection.SupportFollowThrough.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary must surface an explicit support follow-through route tied to the grounded session context.");
     Assert(projection.SupportFollowThroughHref.Contains("/contact", StringComparison.Ordinal), "workspace-lite summary must provide a direct support follow-through href.");
+    Assert(projection.SupportFollowThroughHref.Contains("kind=install_help", StringComparison.Ordinal), "workspace-lite summary must preselect the install-help support intake for direct follow-through.");
+    Assert(projection.SupportFollowThroughHref.Contains("sessionId=session-redmond", StringComparison.Ordinal), "workspace-lite summary must keep the session id in the support follow-through href.");
+    Assert(projection.SupportFollowThroughHref.Contains("sceneId=scene-redmond", StringComparison.Ordinal), "workspace-lite summary must keep the scene id in the support follow-through href.");
+    Assert(projection.SupportFollowThroughHref.Contains("bundle=bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must keep the grounded runtime bundle in the support follow-through href.");
     Assert(projection.RoleFollowThrough.Contains("player lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must surface an explicit role follow-through route for the current device posture.");
     Assert(projection.RoleFollowThroughHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must provide a direct role follow-through href.");
     Assert(projection.QuickActionLabels.SequenceEqual(["Mark Ready"]), "workspace-lite summary must surface quick action labels");
