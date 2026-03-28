@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Chummer.Campaign.Contracts;
+using Chummer.Control.Contracts.Support;
 using Chummer.Play.Core.PlayApi;
 
 namespace Chummer.Play.Core.Application;
@@ -11,6 +13,12 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string Summary,
     string CurrentSceneSummary,
     string ChangePacketSummary,
+    string ServerPlaneSummary,
+    string RunboardSummary,
+    string RosterSummary,
+    string DecisionNotice,
+    string DecisionNoticeHref,
+    string RecapSummary,
     string RolePosture,
     string RulePosture,
     string SafeNextAction,
@@ -40,6 +48,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         ArgumentNullException.ThrowIfNull(resume);
 
         EngineSessionEnvelope session = resume.Bootstrap.Projection.Cursor.Session;
+        PlayCampaignWorkspaceServerPlane serverPlane = PlayCampaignWorkspaceServerPlaneProjector.Create(resume);
         string roleLabel = resume.Role switch
         {
             PlaySurfaceRole.GameMaster => "GM runboard",
@@ -58,13 +67,24 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? "No runtime bundle is cached locally yet."
             : $"Bundle {resume.RuntimeBundle.BundleTag} was validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC.";
         string changePacketSummary = BuildChangePacketSummary(resume, session, latestTimeline);
+        string serverPlaneSummary = $"{serverPlane.Campaign.SessionReadinessSummary} {serverPlane.Campaign.RestoreSummary}";
+        string runboardSummary = $"{serverPlane.Runboard.Title}: {serverPlane.Runboard.ObjectiveSummary}";
+        string rosterSummary = serverPlane.Roster.Summary;
+        DecisionNotice? decisionNotice = serverPlane.DecisionNotices.FirstOrDefault();
+        string decisionNoticeSummary = decisionNotice is null
+            ? "No campaign decision notices are active for this shell."
+            : $"{decisionNotice.Summary} {decisionNotice.ActionLabel}.";
+        string decisionNoticeHref = decisionNotice?.ActionHref ?? "/";
+        string recapSummary = serverPlane.RecapShelf.FirstOrDefault() is { } recapEntry
+            ? $"{recapEntry.Label}: {recapEntry.Summary}"
+            : "No recap-safe packet is available yet.";
         string rolePosture = BuildRolePosture(resume, session);
-        string safeNextAction = BuildSafeNextAction(resume, session);
+        string safeNextAction = serverPlane.NextSafeAction.Summary;
         string updatePosture = BuildUpdatePosture(resume, session);
-        string supportPosture = BuildSupportPosture(resume, session);
-        string supportStatus = BuildSupportStatus(resume);
-        string knownIssueSummary = BuildKnownIssueSummary(resume, session);
-        string fixAvailabilitySummary = BuildFixAvailabilitySummary(resume, session);
+        string supportPosture = BuildSupportPosture(resume, serverPlane);
+        string supportStatus = BuildSupportStatus(serverPlane);
+        string knownIssueSummary = BuildKnownIssueSummary(resume, session, serverPlane);
+        string fixAvailabilitySummary = BuildFixAvailabilitySummary(resume, session, serverPlane);
         string updateFollowThrough = BuildUpdateFollowThrough(resume, session);
         string updateFollowThroughHref = BuildUpdateFollowThroughHref(resume, session);
         string supportFollowThrough = BuildSupportFollowThrough(resume, session);
@@ -85,6 +105,16 @@ public static class PlayCampaignWorkspaceLiteProjector
             attentionItems.Add("Cache pressure is active, so unpin stale sessions before you seed more travel or observer state.");
         }
 
+        foreach (RuleEnvironmentHealthCue cue in serverPlane.RuleHealth.Where(static cue => !string.Equals(cue.Severity, "info", StringComparison.OrdinalIgnoreCase)))
+        {
+            attentionItems.Add(cue.Summary);
+        }
+
+        foreach (ContinuityConflictCue cue in serverPlane.ContinuityConflicts)
+        {
+            attentionItems.Add($"{cue.Summary} {cue.ResolutionAction}");
+        }
+
         if (resume.Bootstrap.QuickActions.Count == 0)
         {
             attentionItems.Add("No quick actions are available for this role yet, so the table shell is still in a review-only posture.");
@@ -101,6 +131,12 @@ public static class PlayCampaignWorkspaceLiteProjector
             Summary: $"Resume {resume.SessionId} on the {roleLabel}. Scene {session.SceneId} is pinned at {session.SceneRevision}, and the latest table signal is '{latestTimeline}'.",
             CurrentSceneSummary: $"{session.SceneId} · revision {session.SceneRevision} · sequence {resume.Bootstrap.Projection.Cursor.AppliedThroughSequence}",
             ChangePacketSummary: changePacketSummary,
+            ServerPlaneSummary: serverPlaneSummary,
+            RunboardSummary: runboardSummary,
+            RosterSummary: rosterSummary,
+            DecisionNotice: decisionNoticeSummary,
+            DecisionNoticeHref: decisionNoticeHref,
+            RecapSummary: recapSummary,
             RolePosture: rolePosture,
             RulePosture: $"{session.RuntimeFingerprint}. {runtimeBundleSummary}",
             SafeNextAction: safeNextAction,
@@ -184,41 +220,47 @@ public static class PlayCampaignWorkspaceLiteProjector
         return $"Update posture: bundle {resume.RuntimeBundle.BundleTag} for {session.RuntimeFingerprint} was validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC and is the grounded local update target.";
     }
 
-    private static string BuildSupportPosture(PlayResumeResponse resume, EngineSessionEnvelope session)
+    private static string BuildSupportPosture(PlayResumeResponse resume, PlayCampaignWorkspaceServerPlane serverPlane)
     {
-        if (resume.SupportNotice is not null)
-        {
-            return $"Support posture: {resume.SupportNotice.StatusLabel}. {resume.SupportNotice.KnownIssueSummary}";
-        }
-
-        if (resume.RuntimeBundle is null)
-        {
-            return $"Support posture: report {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device has no local runtime bundle yet.";
-        }
-
-        return $"Support posture: report {resume.SessionId}/{session.SceneId}, runtime {session.RuntimeFingerprint}, and bundle {resume.RuntimeBundle.BundleTag} so support can ground the case against this mobile shell.";
+        var cue = serverPlane.SupportClosures.FirstOrDefault();
+        return cue is null
+            ? "Support posture: no support closure cue is attached yet."
+            : $"Support posture: {cue.StageLabel}. {cue.Summary}";
     }
 
-    private static string BuildSupportStatus(PlayResumeResponse resume)
-        => resume.SupportNotice is not null
-            ? $"Support status: {resume.SupportNotice.StatusLabel}."
-            : resume.RuntimeBundle is null
-                ? "Support status: runtime proof is still missing on this device."
-                : "Support status: grounded bundle proof is present, so this shell is ready for traced support or fix verification.";
+    private static string BuildSupportStatus(PlayCampaignWorkspaceServerPlane serverPlane)
+    {
+        var cue = serverPlane.SupportClosures.FirstOrDefault();
+        return cue is null
+            ? "Support status: no support closure cue is attached yet."
+            : $"Support status: {cue.StageLabel}.";
+    }
 
-    private static string BuildKnownIssueSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
-        => resume.SupportNotice is not null
-            ? $"Known issue: {resume.SupportNotice.KnownIssueSummary}"
+    private static string BuildKnownIssueSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane)
+        => serverPlane.KnownIssues.FirstOrDefault() is { } issue
+            ? $"Known issue: {issue.Summary}"
             : resume.RuntimeBundle is null
                 ? $"Known issue: {resume.SessionId}/{session.SceneId} resumed without a validated local bundle, so offline trust is still provisional."
                 : $"Known issue: if {resume.SessionId}/{session.SceneId} still reproduces the same problem, support should cite the current bundle proof rather than reopen without runtime context.";
 
-    private static string BuildFixAvailabilitySummary(PlayResumeResponse resume, EngineSessionEnvelope session)
-        => resume.SupportNotice is not null
-            ? $"Fix availability: {resume.SupportNotice.FixAvailabilitySummary}"
-            : resume.RuntimeBundle is null
-                ? $"Fix availability: no validated local fix target is cached yet for {session.RuntimeFingerprint}."
-                : $"Fix availability: bundle {resume.RuntimeBundle.BundleTag} is the grounded local fix and update target for {session.RuntimeFingerprint}.";
+    private static string BuildFixAvailabilitySummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane)
+    {
+        var cue = serverPlane.SupportClosures.FirstOrDefault();
+        if (cue is not null && !string.IsNullOrWhiteSpace(cue.FixedReleaseLabel))
+        {
+            return $"Fix availability: {cue.FixedReleaseLabel} is the grounded local fix and update target for {session.RuntimeFingerprint}.";
+        }
+
+        return resume.RuntimeBundle is null
+            ? $"Fix availability: no validated local fix target is cached yet for {session.RuntimeFingerprint}."
+            : $"Fix availability: bundle {resume.RuntimeBundle.BundleTag} is the grounded local fix and update target for {session.RuntimeFingerprint}.";
+    }
 
     private static string BuildUpdateFollowThrough(PlayResumeResponse resume, EngineSessionEnvelope session)
         => resume.RuntimeBundle is null

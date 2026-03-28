@@ -9,6 +9,7 @@
     <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
     <ChummerEngineContractsPackageId Condition="'$(ChummerEngineContractsPackageId)' == ''">Chummer.Engine.Contracts</ChummerEngineContractsPackageId>
     <ChummerCampaignContractsPackageId Condition="'$(ChummerCampaignContractsPackageId)' == ''">Chummer.Campaign.Contracts</ChummerCampaignContractsPackageId>
+    <ChummerControlContractsPackageId Condition="'$(ChummerControlContractsPackageId)' == ''">Chummer.Control.Contracts</ChummerControlContractsPackageId>
     <ChummerPlayContractsPackageId Condition="'$(ChummerPlayContractsPackageId)' == ''">Chummer.Play.Contracts</ChummerPlayContractsPackageId>
     <ChummerUiKitPackageId Condition="'$(ChummerUiKitPackageId)' == ''">Chummer.Ui.Kit</ChummerUiKitPackageId>
   </PropertyGroup>

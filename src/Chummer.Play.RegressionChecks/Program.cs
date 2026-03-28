@@ -170,6 +170,13 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.ChangePacketLabels.Any(item => item.Contains("Scene packet: scene-redmond", StringComparison.Ordinal)), "workspace-lite summary must surface a scene packet label.");
     Assert(projection.ChangePacketLabels.Any(item => item.Contains("Latest signal: Objective board refreshed", StringComparison.Ordinal)), "workspace-lite summary must surface the latest timeline signal inside the change packet.");
     Assert(projection.ChangePacketLabels.Any(item => item.Contains("Bundle proof: bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep the grounded bundle proof inside the change packet.");
+    Assert(projection.ServerPlaneSummary.Contains("Session readiness is green", StringComparison.Ordinal), "workspace-lite summary must expose campaign server-plane readiness for the current shell.");
+    Assert(projection.ServerPlaneSummary.Contains("checkpoint 12", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must expose the restore summary inside the server-plane summary.");
+    Assert(projection.RunboardSummary.Contains("scene-redmond live runboard", StringComparison.Ordinal), "workspace-lite summary must expose the current runboard summary.");
+    Assert(projection.RosterSummary.Contains("Roster readiness", StringComparison.Ordinal), "workspace-lite summary must expose roster readiness alongside the server plane.");
+    Assert(projection.RecapSummary.Contains("recap-safe packet", StringComparison.Ordinal), "workspace-lite summary must expose the recap-safe packet summary.");
+    Assert(projection.DecisionNotice.Contains("Continue scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the active campaign decision notice.");
+    Assert(projection.DecisionNoticeHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose a direct decision-notice follow-through href.");
     Assert(projection.RolePosture.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose the role route posture");
     Assert(projection.RolePosture.Contains("player lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must expose the current device role posture");
     Assert(projection.RulePosture.Contains("sr6.preview.v1", StringComparison.Ordinal), "workspace-lite summary must surface the runtime fingerprint");
@@ -1061,6 +1068,12 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"workspace-role\"", StringComparison.Ordinal), "play shell must expose role posture alongside current state");
     Assert(html.Contains("id=\"change-packet-summary\"", StringComparison.Ordinal), "play shell must expose a change-packet summary alongside current state");
     Assert(html.Contains("id=\"change-packet-list\"", StringComparison.Ordinal), "play shell must expose change-packet labels for the current return anchor");
+    Assert(html.Contains("id=\"workspace-server-plane\"", StringComparison.Ordinal), "play shell must expose a campaign server-plane summary alongside current state");
+    Assert(html.Contains("id=\"workspace-roster\"", StringComparison.Ordinal), "play shell must expose roster readiness alongside current state");
+    Assert(html.Contains("id=\"workspace-runboard\"", StringComparison.Ordinal), "play shell must expose the current runboard summary alongside current state");
+    Assert(html.Contains("id=\"workspace-recap\"", StringComparison.Ordinal), "play shell must expose a recap-safe packet summary alongside current state");
+    Assert(html.Contains("id=\"workspace-decision-notice\"", StringComparison.Ordinal), "play shell must expose the current decision notice alongside current state");
+    Assert(html.Contains("id=\"workspace-decision-notice-link\"", StringComparison.Ordinal), "play shell must expose a direct decision-notice follow-through link.");
     Assert(html.Contains("id=\"workspace-update\"", StringComparison.Ordinal), "play shell must expose update posture alongside current state");
     Assert(html.Contains("id=\"workspace-support\"", StringComparison.Ordinal), "play shell must expose support posture alongside current state");
     Assert(html.Contains("id=\"workspace-support-status\"", StringComparison.Ordinal), "play shell must expose support status alongside current state");

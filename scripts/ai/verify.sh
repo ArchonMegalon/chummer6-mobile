@@ -59,6 +59,7 @@ test -f src/Chummer.Play.Player/Chummer.Play.Player.csproj
 test -f src/Chummer.Play.Gm/Chummer.Play.Gm.csproj
 test -f eng/package-stubs/EngineContractsStub/EngineContractsStub.csproj
 test -f eng/package-stubs/CampaignContractsStub/CampaignContractsStub.csproj
+test -f eng/package-stubs/ControlContractsStub/ControlContractsStub.csproj
 test -f eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj
 test -f eng/package-stubs/UiKitStub/UiKitStub.csproj
 
@@ -110,16 +111,20 @@ fi
 
 rg -n "<PackageVersion Include=\"Chummer\\.Engine\\.Contracts\"" Directory.Packages.props >/dev/null
 rg -n "<PackageVersion Include=\"Chummer\\.Campaign\\.Contracts\"" Directory.Packages.props >/dev/null
+rg -n "<PackageVersion Include=\"Chummer\\.Control\\.Contracts\"" Directory.Packages.props >/dev/null
 rg -n "<PackageVersion Include=\"Chummer\\.Play\\.Contracts\"" Directory.Packages.props >/dev/null
 rg -n "<PackageVersion Include=\"Chummer\\.Ui\\.Kit\"" Directory.Packages.props >/dev/null
 rg -n "<ChummerEngineContractsPackageId" Directory.Build.props >/dev/null
 rg -n "<ChummerCampaignContractsPackageId" Directory.Build.props >/dev/null
+rg -n "<ChummerControlContractsPackageId" Directory.Build.props >/dev/null
 rg -n "<ChummerEngineContractsPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<ChummerCampaignContractsPackageVersion>" Directory.Packages.props >/dev/null
+rg -n "<ChummerControlContractsPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<ChummerPlayContractsPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<ChummerUiKitPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerEngineContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerCampaignContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
+rg -n "<PackageReference Include=\"\\$\\(ChummerControlContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerPlayContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerUiKitPackageId\\)\"" src/Chummer.Play.Components/Chummer.Play.Components.csproj >/dev/null
 
@@ -135,9 +140,9 @@ mapfile -t package_references < <(
 
 for package_reference in "${package_references[@]}"; do
   case "${package_reference}" in
-    '$(ChummerEngineContractsPackageId)'|'$(ChummerCampaignContractsPackageId)'|'$(ChummerPlayContractsPackageId)'|'$(ChummerUiKitPackageId)')
+    '$(ChummerEngineContractsPackageId)'|'$(ChummerCampaignContractsPackageId)'|'$(ChummerControlContractsPackageId)'|'$(ChummerPlayContractsPackageId)'|'$(ChummerUiKitPackageId)')
       ;;
-    Chummer.Engine.Contracts|Chummer.Campaign.Contracts|Chummer.Play.Contracts|Chummer.Ui.Kit)
+    Chummer.Engine.Contracts|Chummer.Campaign.Contracts|Chummer.Control.Contracts|Chummer.Play.Contracts|Chummer.Ui.Kit)
       echo "shared Chummer package references must use Directory.Build.props package id properties: ${package_reference}" >&2
       exit 1
       ;;
@@ -311,6 +316,7 @@ if [[ -n "${published_feed_sources}" ]]; then
   bash "${package_plane_runner}" restore src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo >/dev/null
   bash "${package_plane_runner}" restore src/Chummer.Play.Gm/Chummer.Play.Gm.csproj --nologo >/dev/null
   bash "${package_plane_runner}" restore src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo >/dev/null
+  bash "${package_plane_runner}" restore src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo >/dev/null
   bash "${package_plane_runner}" build src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" build src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" build src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo --no-restore >/dev/null
@@ -327,6 +333,7 @@ else
   bash "${package_plane_runner}" restore src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo >/dev/null
   bash "${package_plane_runner}" restore src/Chummer.Play.Gm/Chummer.Play.Gm.csproj --nologo >/dev/null
   bash "${package_plane_runner}" restore src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo >/dev/null
+  bash "${package_plane_runner}" restore src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo >/dev/null
   bash "${package_plane_runner}" build src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" build src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" build src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo --no-restore >/dev/null

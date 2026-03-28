@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Chummer.PackageStubs.ControlContracts</AssemblyName>
+    <RootNamespace>Chummer.PackageStubs.ControlContracts</RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Chummer.Control.Contracts</PackageId>
+    <Version>0.1.0-preview</Version>
+    <Description>Local verification stub for control contract package-plane enforcement in chummer6-mobile.</Description>
+    <IsPackable>true</IsPackable>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+</Project>

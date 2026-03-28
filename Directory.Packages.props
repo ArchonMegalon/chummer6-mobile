@@ -4,12 +4,14 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <ChummerEngineContractsPackageVersion>0.1.0-preview</ChummerEngineContractsPackageVersion>
     <ChummerCampaignContractsPackageVersion>0.1.0-preview</ChummerCampaignContractsPackageVersion>
+    <ChummerControlContractsPackageVersion>0.1.0-preview</ChummerControlContractsPackageVersion>
     <ChummerPlayContractsPackageVersion>0.1.0-preview</ChummerPlayContractsPackageVersion>
     <ChummerUiKitPackageVersion>0.1.0-preview</ChummerUiKitPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Chummer.Engine.Contracts" Version="$(ChummerEngineContractsPackageVersion)" />
     <PackageVersion Include="Chummer.Campaign.Contracts" Version="$(ChummerCampaignContractsPackageVersion)" />
+    <PackageVersion Include="Chummer.Control.Contracts" Version="$(ChummerControlContractsPackageVersion)" />
     <PackageVersion Include="Chummer.Play.Contracts" Version="$(ChummerPlayContractsPackageVersion)" />
     <PackageVersion Include="Chummer.Ui.Kit" Version="$(ChummerUiKitPackageVersion)" />
   </ItemGroup>

@@ -44,6 +44,15 @@
       <p id="workspace-fix-state" class="hint"></p>
     </div>
     <div class="card">
+      <div class="eyebrow">Campaign server plane</div>
+      <p id="workspace-server-plane" class="hint"></p>
+      <p id="workspace-roster" class="hint"></p>
+      <p id="workspace-runboard" class="hint"></p>
+      <p id="workspace-recap" class="hint"></p>
+      <p id="workspace-decision-notice" class="hint"></p>
+      <p><a id="workspace-decision-notice-link" class="hint" href="/">Open decision notice action</a></p>
+    </div>
+    <div class="card">
       <div class="eyebrow">Change packet</div>
       <ul id="change-packet-list"></ul>
     </div>
@@ -115,6 +124,12 @@
     document.getElementById("workspace-continuity").textContent = payload.continuityPosture || "No continuity posture is available yet.";
     document.getElementById("workspace-cache").textContent = payload.cachePosture || "No cache posture is available yet.";
     document.getElementById("workspace-update").textContent = payload.updatePosture || "No update posture is available yet.";
+    document.getElementById("workspace-server-plane").textContent = payload.serverPlaneSummary || "No campaign server-plane summary is available yet.";
+    document.getElementById("workspace-roster").textContent = payload.rosterSummary || "No roster readiness summary is available yet.";
+    document.getElementById("workspace-runboard").textContent = payload.runboardSummary || "No runboard summary is available yet.";
+    document.getElementById("workspace-recap").textContent = payload.recapSummary || "No recap-safe packet summary is available yet.";
+    document.getElementById("workspace-decision-notice").textContent = payload.decisionNotice || "No campaign decision notice is available yet.";
+    document.getElementById("workspace-decision-notice-link").href = payload.decisionNoticeHref || "/";
     document.getElementById("workspace-support").textContent = payload.supportPosture || "No support posture is available yet.";
     document.getElementById("workspace-support-status").textContent = payload.supportStatus || "No support status is available yet.";
     document.getElementById("workspace-known-issue").textContent = payload.knownIssueSummary || "No known issue summary is available yet.";
