@@ -153,7 +153,13 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
             [new PlayQuickAction("player-mark-ready", "Mark Ready", "play.session.sync", true)]),
         Checkpoint: new SyncCheckpoint("session-redmond", "scene-redmond", "scene-r9", "sr6.preview.v1", 12, DateTimeOffset.Parse("2026-03-27T21:00:00+00:00")),
         RuntimeBundle: new PlayRuntimeBundleMetadata("sr6.preview.v1", "scene-r9", "bundle-redmond", DateTimeOffset.Parse("2026-03-27T20:55:00+00:00"), DateTimeOffset.Parse("2026-03-27T20:56:00+00:00")),
-        CachePressure: new PlayCachePressureSnapshot(2, 8, false, 0, [], DateTimeOffset.Parse("2026-03-27T21:00:00+00:00")));
+        CachePressure: new PlayCachePressureSnapshot(2, 8, false, 0, [], DateTimeOffset.Parse("2026-03-27T21:00:00+00:00")),
+        SupportNotice: new PlaySupportClosureNotice(
+            StatusLabel: "Ready to verify",
+            KnownIssueSummary: "If session-redmond/scene-redmond still reproduces the same problem, report it against bundle-redmond so support can ground the case against this mobile shell.",
+            FixAvailabilitySummary: "Bundle bundle-redmond is the grounded local fix and update target for sr6.preview.v1.",
+            NextSafeAction: "Use the current bundle proof for scene-redmond if you verify a fix or reopen support on this device.",
+            FollowThroughHref: "/contact?kind=install_help&sessionId=session-redmond&sceneId=scene-redmond&bundle=bundle-redmond"));
 
     var projection = PlayCampaignWorkspaceLiteProjector.Create(response);
 
@@ -172,9 +178,12 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.CachePosture.Contains("2/8", StringComparison.Ordinal), "workspace-lite summary must expose cache posture");
     Assert(projection.UpdatePosture.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the current update posture for the validated runtime bundle");
     Assert(projection.SupportPosture.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose install-safe support posture for the current session");
+    Assert(projection.SupportStatus.Contains("Ready to verify", StringComparison.Ordinal), "workspace-lite summary must expose support case status for the current mobile shell.");
+    Assert(projection.KnownIssueSummary.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the known issue summary for the current grounded shell.");
+    Assert(projection.FixAvailabilitySummary.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must expose channel-aware fix availability for the grounded runtime bundle.");
     Assert(projection.UpdateFollowThrough.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must surface an explicit update follow-through route for the validated runtime bundle.");
     Assert(projection.UpdateFollowThroughHref.Contains("/downloads", StringComparison.Ordinal), "workspace-lite summary must provide a direct update follow-through href.");
-    Assert(projection.SupportFollowThrough.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary must surface an explicit support follow-through route tied to the grounded session context.");
+    Assert(projection.SupportFollowThrough.Contains("bundle proof", StringComparison.Ordinal), "workspace-lite summary must surface an explicit support follow-through route tied to grounded fix verification.");
     Assert(projection.SupportFollowThroughHref.Contains("/contact", StringComparison.Ordinal), "workspace-lite summary must provide a direct support follow-through href.");
     Assert(projection.SupportFollowThroughHref.Contains("kind=install_help", StringComparison.Ordinal), "workspace-lite summary must preselect the install-help support intake for direct follow-through.");
     Assert(projection.SupportFollowThroughHref.Contains("sessionId=session-redmond", StringComparison.Ordinal), "workspace-lite summary must keep the session id in the support follow-through href.");
@@ -1054,6 +1063,9 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"change-packet-list\"", StringComparison.Ordinal), "play shell must expose change-packet labels for the current return anchor");
     Assert(html.Contains("id=\"workspace-update\"", StringComparison.Ordinal), "play shell must expose update posture alongside current state");
     Assert(html.Contains("id=\"workspace-support\"", StringComparison.Ordinal), "play shell must expose support posture alongside current state");
+    Assert(html.Contains("id=\"workspace-support-status\"", StringComparison.Ordinal), "play shell must expose support status alongside current state");
+    Assert(html.Contains("id=\"workspace-known-issue\"", StringComparison.Ordinal), "play shell must expose the current known-issue summary alongside current state");
+    Assert(html.Contains("id=\"workspace-fix-state\"", StringComparison.Ordinal), "play shell must expose fix-availability truth alongside current state");
     Assert(html.Contains("id=\"follow-through-update\"", StringComparison.Ordinal), "play shell must expose the explicit update follow-through route.");
     Assert(html.Contains("id=\"follow-through-update-link\"", StringComparison.Ordinal), "play shell must expose a direct update follow-through link.");
     Assert(html.Contains("id=\"follow-through-support\"", StringComparison.Ordinal), "play shell must expose the explicit support follow-through route.");

@@ -39,6 +39,9 @@
       <p id="workspace-cache" class="hint"></p>
       <p id="workspace-update" class="hint"></p>
       <p id="workspace-support" class="hint"></p>
+      <p id="workspace-support-status" class="hint"></p>
+      <p id="workspace-known-issue" class="hint"></p>
+      <p id="workspace-fix-state" class="hint"></p>
     </div>
     <div class="card">
       <div class="eyebrow">Change packet</div>
@@ -113,6 +116,9 @@
     document.getElementById("workspace-cache").textContent = payload.cachePosture || "No cache posture is available yet.";
     document.getElementById("workspace-update").textContent = payload.updatePosture || "No update posture is available yet.";
     document.getElementById("workspace-support").textContent = payload.supportPosture || "No support posture is available yet.";
+    document.getElementById("workspace-support-status").textContent = payload.supportStatus || "No support status is available yet.";
+    document.getElementById("workspace-known-issue").textContent = payload.knownIssueSummary || "No known issue summary is available yet.";
+    document.getElementById("workspace-fix-state").textContent = payload.fixAvailabilitySummary || "No fix-availability summary is available yet.";
     setList("change-packet-list", payload.changePacketLabels);
     document.getElementById("follow-through-update").textContent = payload.updateFollowThrough || "No update follow-through is available yet.";
     document.getElementById("follow-through-update-link").href = payload.updateFollowThroughHref || "/downloads";

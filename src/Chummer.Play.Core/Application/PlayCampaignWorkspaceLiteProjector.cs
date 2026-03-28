@@ -18,6 +18,9 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string CachePosture,
     string UpdatePosture,
     string SupportPosture,
+    string SupportStatus,
+    string KnownIssueSummary,
+    string FixAvailabilitySummary,
     string UpdateFollowThrough,
     string UpdateFollowThroughHref,
     string SupportFollowThrough,
@@ -59,6 +62,9 @@ public static class PlayCampaignWorkspaceLiteProjector
         string safeNextAction = BuildSafeNextAction(resume, session);
         string updatePosture = BuildUpdatePosture(resume, session);
         string supportPosture = BuildSupportPosture(resume, session);
+        string supportStatus = BuildSupportStatus(resume);
+        string knownIssueSummary = BuildKnownIssueSummary(resume, session);
+        string fixAvailabilitySummary = BuildFixAvailabilitySummary(resume, session);
         string updateFollowThrough = BuildUpdateFollowThrough(resume, session);
         string updateFollowThroughHref = BuildUpdateFollowThroughHref(resume, session);
         string supportFollowThrough = BuildSupportFollowThrough(resume, session);
@@ -102,6 +108,9 @@ public static class PlayCampaignWorkspaceLiteProjector
             CachePosture: cachePosture,
             UpdatePosture: updatePosture,
             SupportPosture: supportPosture,
+            SupportStatus: supportStatus,
+            KnownIssueSummary: knownIssueSummary,
+            FixAvailabilitySummary: fixAvailabilitySummary,
             UpdateFollowThrough: updateFollowThrough,
             UpdateFollowThroughHref: updateFollowThroughHref,
             SupportFollowThrough: supportFollowThrough,
@@ -177,6 +186,11 @@ public static class PlayCampaignWorkspaceLiteProjector
 
     private static string BuildSupportPosture(PlayResumeResponse resume, EngineSessionEnvelope session)
     {
+        if (resume.SupportNotice is not null)
+        {
+            return $"Support posture: {resume.SupportNotice.StatusLabel}. {resume.SupportNotice.KnownIssueSummary}";
+        }
+
         if (resume.RuntimeBundle is null)
         {
             return $"Support posture: report {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device has no local runtime bundle yet.";
@@ -184,6 +198,27 @@ public static class PlayCampaignWorkspaceLiteProjector
 
         return $"Support posture: report {resume.SessionId}/{session.SceneId}, runtime {session.RuntimeFingerprint}, and bundle {resume.RuntimeBundle.BundleTag} so support can ground the case against this mobile shell.";
     }
+
+    private static string BuildSupportStatus(PlayResumeResponse resume)
+        => resume.SupportNotice is not null
+            ? $"Support status: {resume.SupportNotice.StatusLabel}."
+            : resume.RuntimeBundle is null
+                ? "Support status: runtime proof is still missing on this device."
+                : "Support status: grounded bundle proof is present, so this shell is ready for traced support or fix verification.";
+
+    private static string BuildKnownIssueSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.SupportNotice is not null
+            ? $"Known issue: {resume.SupportNotice.KnownIssueSummary}"
+            : resume.RuntimeBundle is null
+                ? $"Known issue: {resume.SessionId}/{session.SceneId} resumed without a validated local bundle, so offline trust is still provisional."
+                : $"Known issue: if {resume.SessionId}/{session.SceneId} still reproduces the same problem, support should cite the current bundle proof rather than reopen without runtime context.";
+
+    private static string BuildFixAvailabilitySummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.SupportNotice is not null
+            ? $"Fix availability: {resume.SupportNotice.FixAvailabilitySummary}"
+            : resume.RuntimeBundle is null
+                ? $"Fix availability: no validated local fix target is cached yet for {session.RuntimeFingerprint}."
+                : $"Fix availability: bundle {resume.RuntimeBundle.BundleTag} is the grounded local fix and update target for {session.RuntimeFingerprint}.";
 
     private static string BuildUpdateFollowThrough(PlayResumeResponse resume, EngineSessionEnvelope session)
         => resume.RuntimeBundle is null
@@ -196,12 +231,19 @@ public static class PlayCampaignWorkspaceLiteProjector
             : $"/downloads?bundle={Uri.EscapeDataString(resume.RuntimeBundle.BundleTag)}&runtime={Uri.EscapeDataString(session.RuntimeFingerprint)}";
 
     private static string BuildSupportFollowThrough(PlayResumeResponse resume, EngineSessionEnvelope session)
-        => resume.RuntimeBundle is null
-            ? $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device still lacks a local bundle."
-            : $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and bundle {resume.RuntimeBundle.BundleTag}.";
+        => resume.SupportNotice is not null
+            ? $"Support follow-through for {resume.SessionId}/{session.SceneId}: {resume.SupportNotice.NextSafeAction}"
+            : resume.RuntimeBundle is null
+                ? $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device still lacks a local bundle."
+                : $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and bundle {resume.RuntimeBundle.BundleTag}.";
 
     private static string BuildSupportFollowThroughHref(PlayResumeResponse resume, EngineSessionEnvelope session)
     {
+        if (!string.IsNullOrWhiteSpace(resume.SupportNotice?.FollowThroughHref))
+        {
+            return resume.SupportNotice.FollowThroughHref!;
+        }
+
         string bundle = resume.RuntimeBundle?.BundleTag ?? string.Empty;
         string title = resume.RuntimeBundle is null
             ? $"Mobile follow-through needs grounded runtime for {session.SceneId}"

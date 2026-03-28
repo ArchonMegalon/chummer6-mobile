@@ -1,6 +1,6 @@
 {
   "contract_name": "chummer6-mobile.local_release_proof",
-  "generated_at": "2026-03-28T15:23:56Z",
+  "generated_at": "2026-03-28T16:03:54Z",
   "status": "passed",
   "proof_kind": "source_backed_local_regression_contract",
   "source_files": [
@@ -35,6 +35,9 @@
       "id=\"workspace-role\"",
       "id=\"workspace-update\"",
       "id=\"workspace-support\"",
+      "id=\"workspace-support-status\"",
+      "id=\"workspace-known-issue\"",
+      "id=\"workspace-fix-state\"",
       "id=\"restore-follow-through\""
     ],
     "recover_from_sync_conflict": [

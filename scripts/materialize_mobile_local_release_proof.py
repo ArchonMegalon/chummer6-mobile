@@ -35,6 +35,9 @@ REQUIRED_MARKERS = {
         'id="workspace-role"',
         'id="workspace-update"',
         'id="workspace-support"',
+        'id="workspace-support-status"',
+        'id="workspace-known-issue"',
+        'id="workspace-fix-state"',
         'id="restore-follow-through"',
     ],
     "recover_from_sync_conflict": [

@@ -344,6 +344,11 @@ public static class PlayWebApplication
             PlayRouteHandlers.BuildQuickActions(role, roleCapabilities)
         );
         var cachePressure = await offlineCacheService.GetCachePressureAsync(cancellationToken);
+        var supportNotice = BuildSupportClosureNotice(
+            sessionId,
+            resumeState.Session,
+            resumeState.RuntimeBundle,
+            cachePressure);
 
         return new PlayResumeResponse(
             sessionId,
@@ -352,8 +357,48 @@ public static class PlayWebApplication
             bootstrap,
             resumeState.Checkpoint,
             resumeState.RuntimeBundle,
-            cachePressure
+            cachePressure,
+            supportNotice
         );
+    }
+
+    private static PlaySupportClosureNotice BuildSupportClosureNotice(
+        string sessionId,
+        EngineSessionEnvelope session,
+        PlayRuntimeBundleMetadata? runtimeBundle,
+        PlayCachePressureSnapshot cachePressure)
+    {
+        string bundle = runtimeBundle?.BundleTag ?? string.Empty;
+        string followThroughHref = runtimeBundle is null
+            ? $"/contact?kind=install_help&title={Uri.EscapeDataString($"Mobile runtime proof is missing for {session.SceneId}")}&summary={Uri.EscapeDataString($"This mobile shell resumed {sessionId}/{session.SceneId} on {session.RuntimeFingerprint} without a validated local bundle.")}&detail={Uri.EscapeDataString($"Session: {sessionId}\nScene: {session.SceneId}\nRuntime: {session.RuntimeFingerprint}\nBundle: none cached locally\n\nWhat happened:\n- This device resumed without a validated runtime bundle.\n- Please ground the next recovery or support step against the reconnect path.")}&sessionId={Uri.EscapeDataString(sessionId)}&sceneId={Uri.EscapeDataString(session.SceneId)}&runtime={Uri.EscapeDataString(session.RuntimeFingerprint)}"
+            : $"/contact?kind=install_help&title={Uri.EscapeDataString($"Mobile fix review for {session.SceneId}")}&summary={Uri.EscapeDataString($"This mobile shell resumed {sessionId}/{session.SceneId} on {session.RuntimeFingerprint} with bundle {bundle}.")}&detail={Uri.EscapeDataString($"Session: {sessionId}\nScene: {session.SceneId}\nRuntime: {session.RuntimeFingerprint}\nBundle: {bundle}\n\nWhat happened:\n- This device resumed with a validated runtime bundle.\n- Please ground the next support or fix-verification step against the current mobile shell.")}&sessionId={Uri.EscapeDataString(sessionId)}&sceneId={Uri.EscapeDataString(session.SceneId)}&runtime={Uri.EscapeDataString(session.RuntimeFingerprint)}&bundle={Uri.EscapeDataString(bundle)}";
+
+        if (runtimeBundle is null)
+        {
+            return new PlaySupportClosureNotice(
+                StatusLabel: "Runtime proof missing",
+                KnownIssueSummary: $"This device resumed {sessionId}/{session.SceneId} without a validated local bundle, so offline trust and support closure are still provisional.",
+                FixAvailabilitySummary: $"No grounded local fix target is available yet for {session.RuntimeFingerprint}.",
+                NextSafeAction: $"Reconnect {session.SceneId} and validate a grounded runtime bundle before you trust offline continuation or fix closure on this device.",
+                FollowThroughHref: followThroughHref);
+        }
+
+        if (cachePressure.BackpressureActive)
+        {
+            return new PlaySupportClosureNotice(
+                StatusLabel: "Watch cache drift",
+                KnownIssueSummary: $"Cache pressure already touched {cachePressure.EvictedEntryCount} session(s), so bundle {bundle} may need revalidation before you trust support closure on this shell.",
+                FixAvailabilitySummary: $"Bundle {bundle} is validated now, but cache pressure can still evict the active local fix target.",
+                NextSafeAction: $"Clear cache pressure, then re-check bundle {bundle} before you verify a fix or trust the next offline session.",
+                FollowThroughHref: followThroughHref);
+        }
+
+        return new PlaySupportClosureNotice(
+            StatusLabel: "Ready to verify",
+            KnownIssueSummary: $"If {sessionId}/{session.SceneId} still reproduces the same problem, report it against bundle {bundle} so support can ground the case against this mobile shell.",
+            FixAvailabilitySummary: $"Bundle {bundle} is the grounded local fix and update target for {session.RuntimeFingerprint}.",
+            NextSafeAction: $"Use the current bundle proof for {session.SceneId} if you verify a fix or reopen support on this device.",
+            FollowThroughHref: followThroughHref);
     }
 
     private static PlayShellSnapshot SelectShell(
