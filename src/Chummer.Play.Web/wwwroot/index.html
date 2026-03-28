@@ -66,8 +66,11 @@
       <ul id="quick-actions"></ul>
       <p style="margin-top: 12px;"><strong>Follow-through routes</strong></p>
       <p id="follow-through-update" class="hint"></p>
+      <p><a id="follow-through-update-link" class="hint" href="/downloads">Open update follow-through</a></p>
       <p id="follow-through-support" class="hint"></p>
+      <p><a id="follow-through-support-link" class="hint" href="/contact">Open support follow-through</a></p>
       <p id="follow-through-role" class="hint"></p>
+      <p><a id="follow-through-role-link" class="hint" href="/">Open role follow-through</a></p>
       <p style="margin-top: 12px;"><strong>Additional follow-through</strong></p>
       <ul id="follow-through"></ul>
       <p style="margin-top: 12px;"><strong>Coach hints</strong></p>
@@ -101,8 +104,11 @@
     document.getElementById("workspace-update").textContent = payload.updatePosture || "No update posture is available yet.";
     document.getElementById("workspace-support").textContent = payload.supportPosture || "No support posture is available yet.";
     document.getElementById("follow-through-update").textContent = payload.updateFollowThrough || "No update follow-through is available yet.";
+    document.getElementById("follow-through-update-link").href = payload.updateFollowThroughHref || "/downloads";
     document.getElementById("follow-through-support").textContent = payload.supportFollowThrough || "No support follow-through is available yet.";
+    document.getElementById("follow-through-support-link").href = payload.supportFollowThroughHref || "/contact";
     document.getElementById("follow-through-role").textContent = payload.roleFollowThrough || "No role follow-through is available yet.";
+    document.getElementById("follow-through-role-link").href = payload.roleFollowThroughHref || "/";
     setList("attention-list", payload.attentionItems);
     setList("quick-actions", payload.quickActionLabels);
     setList("follow-through", payload.followThroughLabels);

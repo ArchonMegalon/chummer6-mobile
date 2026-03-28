@@ -163,8 +163,11 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.UpdatePosture.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the current update posture for the validated runtime bundle");
     Assert(projection.SupportPosture.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose install-safe support posture for the current session");
     Assert(projection.UpdateFollowThrough.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must surface an explicit update follow-through route for the validated runtime bundle.");
+    Assert(projection.UpdateFollowThroughHref.Contains("/downloads", StringComparison.Ordinal), "workspace-lite summary must provide a direct update follow-through href.");
     Assert(projection.SupportFollowThrough.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary must surface an explicit support follow-through route tied to the grounded session context.");
+    Assert(projection.SupportFollowThroughHref.Contains("/contact", StringComparison.Ordinal), "workspace-lite summary must provide a direct support follow-through href.");
     Assert(projection.RoleFollowThrough.Contains("player lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must surface an explicit role follow-through route for the current device posture.");
+    Assert(projection.RoleFollowThroughHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must provide a direct role follow-through href.");
     Assert(projection.QuickActionLabels.SequenceEqual(["Mark Ready"]), "workspace-lite summary must surface quick action labels");
     Assert(projection.FollowThroughLabels.Count >= 3, "workspace-lite summary must surface explicit follow-through labels for update, support, and role posture.");
     Assert(projection.FollowThroughLabels.Any(item => item.Contains("bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep the update follow-through tied to the validated runtime bundle.");
@@ -1031,8 +1034,11 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"workspace-update\"", StringComparison.Ordinal), "play shell must expose update posture alongside current state");
     Assert(html.Contains("id=\"workspace-support\"", StringComparison.Ordinal), "play shell must expose support posture alongside current state");
     Assert(html.Contains("id=\"follow-through-update\"", StringComparison.Ordinal), "play shell must expose the explicit update follow-through route.");
+    Assert(html.Contains("id=\"follow-through-update-link\"", StringComparison.Ordinal), "play shell must expose a direct update follow-through link.");
     Assert(html.Contains("id=\"follow-through-support\"", StringComparison.Ordinal), "play shell must expose the explicit support follow-through route.");
+    Assert(html.Contains("id=\"follow-through-support-link\"", StringComparison.Ordinal), "play shell must expose a direct support follow-through link.");
     Assert(html.Contains("id=\"follow-through-role\"", StringComparison.Ordinal), "play shell must expose the explicit role follow-through route.");
+    Assert(html.Contains("id=\"follow-through-role-link\"", StringComparison.Ordinal), "play shell must expose a direct role follow-through link.");
     Assert(html.Contains("id=\"follow-through\"", StringComparison.Ordinal), "play shell must expose explicit follow-through labels for update and support posture");
     Assert(html.Contains("id=\"attention-list\"", StringComparison.Ordinal), "play shell must expose an attention list for continuity risks");
     Assert(html.Contains("id=\"restore-summary\"", StringComparison.Ordinal), "play shell must expose a claimed-device recovery summary region");

@@ -18,8 +18,11 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string UpdatePosture,
     string SupportPosture,
     string UpdateFollowThrough,
+    string UpdateFollowThroughHref,
     string SupportFollowThrough,
+    string SupportFollowThroughHref,
     string RoleFollowThrough,
+    string RoleFollowThroughHref,
     IReadOnlyList<string> AttentionItems,
     IReadOnlyList<string> QuickActionLabels,
     IReadOnlyList<string> FollowThroughLabels,
@@ -54,8 +57,11 @@ public static class PlayCampaignWorkspaceLiteProjector
         string updatePosture = BuildUpdatePosture(resume, session);
         string supportPosture = BuildSupportPosture(resume, session);
         string updateFollowThrough = BuildUpdateFollowThrough(resume, session);
+        string updateFollowThroughHref = BuildUpdateFollowThroughHref(resume, session);
         string supportFollowThrough = BuildSupportFollowThrough(resume, session);
+        string supportFollowThroughHref = BuildSupportFollowThroughHref(resume, session);
         string roleFollowThrough = BuildRoleFollowThrough(resume, session);
+        string roleFollowThroughHref = BuildRoleFollowThroughHref(resume, session);
         string[] followThroughLabels = BuildFollowThroughLabels(resume, session, updateFollowThrough, supportFollowThrough, roleFollowThrough);
 
         List<string> attentionItems = [];
@@ -92,8 +98,11 @@ public static class PlayCampaignWorkspaceLiteProjector
             UpdatePosture: updatePosture,
             SupportPosture: supportPosture,
             UpdateFollowThrough: updateFollowThrough,
+            UpdateFollowThroughHref: updateFollowThroughHref,
             SupportFollowThrough: supportFollowThrough,
+            SupportFollowThroughHref: supportFollowThroughHref,
             RoleFollowThrough: roleFollowThrough,
+            RoleFollowThroughHref: roleFollowThroughHref,
             AttentionItems: attentionItems.Count == 0
                 ? ["No blocking continuity issues are active on this device."]
                 : attentionItems,
@@ -161,10 +170,21 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? $"Reconnect {session.SceneId} and validate a grounded runtime bundle before trusting offline updates on this device."
             : $"Review update posture for bundle {resume.RuntimeBundle.BundleTag} before the next offline or travel session.";
 
+    private static string BuildUpdateFollowThroughHref(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"/downloads?runtime={Uri.EscapeDataString(session.RuntimeFingerprint)}&sessionId={Uri.EscapeDataString(resume.SessionId)}"
+            : $"/downloads?bundle={Uri.EscapeDataString(resume.RuntimeBundle.BundleTag)}&runtime={Uri.EscapeDataString(session.RuntimeFingerprint)}";
+
     private static string BuildSupportFollowThrough(PlayResumeResponse resume, EngineSessionEnvelope session)
         => resume.RuntimeBundle is null
             ? $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device still lacks a local bundle."
             : $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and bundle {resume.RuntimeBundle.BundleTag}.";
+
+    private static string BuildSupportFollowThroughHref(PlayResumeResponse resume, EngineSessionEnvelope session)
+    {
+        string bundle = resume.RuntimeBundle?.BundleTag ?? string.Empty;
+        return $"/contact?sessionId={Uri.EscapeDataString(resume.SessionId)}&sceneId={Uri.EscapeDataString(session.SceneId)}&runtime={Uri.EscapeDataString(session.RuntimeFingerprint)}&bundle={Uri.EscapeDataString(bundle)}";
+    }
 
     private static string BuildRoleFollowThrough(PlayResumeResponse resume, EngineSessionEnvelope session)
         => resume.Role switch
@@ -173,6 +193,11 @@ public static class PlayCampaignWorkspaceLiteProjector
             PlaySurfaceRole.Observer => $"Keep the observer lane read-mostly until the owner lane confirms the next scene revision.",
             _ => $"Keep the player lane focused on one grounded move before you reopen build or support follow-through elsewhere."
         };
+
+    private static string BuildRoleFollowThroughHref(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => string.IsNullOrWhiteSpace(resume.DeepLinkOwnerRoute)
+            ? $"/play?sessionId={Uri.EscapeDataString(resume.SessionId)}&role={Uri.EscapeDataString(resume.Role.ToString())}"
+            : resume.DeepLinkOwnerRoute!;
 
     private static string[] BuildFollowThroughLabels(
         PlayResumeResponse resume,
