@@ -19,6 +19,7 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string SupportPosture,
     IReadOnlyList<string> AttentionItems,
     IReadOnlyList<string> QuickActionLabels,
+    IReadOnlyList<string> FollowThroughLabels,
     IReadOnlyList<string> CoachHints);
 
 public static class PlayCampaignWorkspaceLiteProjector
@@ -49,6 +50,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         string safeNextAction = BuildSafeNextAction(resume, session);
         string updatePosture = BuildUpdatePosture(resume, session);
         string supportPosture = BuildSupportPosture(resume, session);
+        string[] followThroughLabels = BuildFollowThroughLabels(resume, session);
 
         List<string> attentionItems = [];
         if (resume.RuntimeBundle is null)
@@ -87,6 +89,7 @@ public static class PlayCampaignWorkspaceLiteProjector
                 ? ["No blocking continuity issues are active on this device."]
                 : attentionItems,
             QuickActionLabels: resume.Bootstrap.QuickActions.Select(action => action.Label).ToArray(),
+            FollowThroughLabels: followThroughLabels,
             CoachHints: resume.Bootstrap.CoachHints.Select(hint => hint.Message).ToArray());
     }
 
@@ -142,5 +145,36 @@ public static class PlayCampaignWorkspaceLiteProjector
         }
 
         return $"Support posture: report {resume.SessionId}/{session.SceneId}, runtime {session.RuntimeFingerprint}, and bundle {resume.RuntimeBundle.BundleTag} so support can ground the case against this mobile shell.";
+    }
+
+    private static string[] BuildFollowThroughLabels(PlayResumeResponse resume, EngineSessionEnvelope session)
+    {
+        List<string> labels =
+        [
+            resume.RuntimeBundle is null
+                ? $"Reconnect {session.SceneId} and validate a grounded runtime bundle before trusting offline updates on this device."
+                : $"Review update posture for bundle {resume.RuntimeBundle.BundleTag} before the next offline or travel session.",
+            resume.RuntimeBundle is null
+                ? $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device still lacks a local bundle."
+                : $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and bundle {resume.RuntimeBundle.BundleTag}.",
+            resume.Role switch
+            {
+                PlaySurfaceRole.GameMaster => $"Keep GM changes anchored on {session.SceneId} before they fan out to other devices.",
+                PlaySurfaceRole.Observer => $"Keep the observer lane read-mostly until the owner lane confirms the next scene revision.",
+                _ => $"Keep the player lane focused on one grounded move before you reopen build or support follow-through elsewhere."
+            }
+        ];
+
+        if (resume.CachePressure.BackpressureActive)
+        {
+            labels.Insert(0, "Clear cache pressure before you pin more travel or observer state on this device.");
+        }
+
+        if (resume.Checkpoint is null)
+        {
+            labels.Add("Seed a local continuity checkpoint before you trust this device as a stable return path.");
+        }
+
+        return labels.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 }

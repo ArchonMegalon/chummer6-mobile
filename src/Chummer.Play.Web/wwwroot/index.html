@@ -47,6 +47,8 @@
       <div class="eyebrow">Quick actions and hints</div>
       <p><strong>Quick actions</strong></p>
       <ul id="quick-actions"></ul>
+      <p style="margin-top: 12px;"><strong>Follow-through</strong></p>
+      <ul id="follow-through"></ul>
       <p style="margin-top: 12px;"><strong>Coach hints</strong></p>
       <ul id="coach-hints"></ul>
     </div>
@@ -79,6 +81,7 @@
     document.getElementById("workspace-support").textContent = payload.supportPosture || "No support posture is available yet.";
     setList("attention-list", payload.attentionItems);
     setList("quick-actions", payload.quickActionLabels);
+    setList("follow-through", payload.followThroughLabels);
     setList("coach-hints", payload.coachHints);
     document.getElementById("workspace-shell").hidden = false;
   }
