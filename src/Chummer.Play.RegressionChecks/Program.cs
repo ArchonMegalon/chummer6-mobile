@@ -129,6 +129,10 @@ static void VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState()
     Assert(plan.PrefetchReadinessSummary.Contains("1 dossier", StringComparison.Ordinal), "roaming restore must keep the prefetch inventory visible inside the readiness summary");
     Assert(plan.LocalCacheBoundarySummary.Contains("install-local", StringComparison.Ordinal), "roaming restore must expose an install-local cache boundary summary");
     Assert(plan.PrefetchLabels.Any(item => item.Contains("Prefetch inventory", StringComparison.Ordinal)), "roaming restore must expose explicit prefetch inventory labels");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("Kestrel (dossier-kestrel)", StringComparison.Ordinal)), "roaming restore must expose the exact dossier set staged for offline restore");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("Redmond Patrol (campaign-redmond)", StringComparison.Ordinal)), "roaming restore must expose the exact campaign set staged for offline restore");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("sr6.preview.v1 [approved]", StringComparison.Ordinal)), "roaming restore must expose the exact rule posture staged for offline restore");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("Linux preview installer (artifact-linux-preview)", StringComparison.Ordinal)), "roaming restore must expose the exact artifact set staged for offline restore");
     Assert(plan.PrefetchLabels.Any(item => item.Contains("Companion device", StringComparison.Ordinal)), "roaming restore must keep alternate claimed-device lanes visible when planning offline prefetch");
     Assert(plan.ReturnTargetCampaignName == "Redmond Patrol", "roaming restore must expose the primary campaign return target");
     Assert(plan.AttentionItems.Count == 1, "roaming restore should keep install-local guardrails visible even when restore state is conflict-free");
@@ -193,6 +197,9 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.TravelPosture.Contains("bounded offline use", StringComparison.Ordinal), "workspace-lite summary must make travel readiness deliberate on the claimed device");
     Assert(projection.TravelPosture.Contains("checkpoint 12", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must keep the travel posture tied to the pinned local checkpoint");
     Assert(projection.OfflinePrefetchSummary.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the grounded runtime bundle inside the offline prefetch summary");
+    Assert(projection.OfflinePrefetchSummary.Contains("scene-redmond return dossier", StringComparison.Ordinal), "workspace-lite summary must name the grounded dossier staged for offline travel");
+    Assert(projection.OfflinePrefetchSummary.Contains("scene-redmond mobile return", StringComparison.Ordinal), "workspace-lite summary must name the grounded campaign staged for offline travel");
+    Assert(projection.OfflinePrefetchSummary.Contains("sr6.preview.v1", StringComparison.Ordinal), "workspace-lite summary must name the grounded rule environment staged for offline travel");
     Assert(projection.OfflinePrefetchSummary.Contains("install-local", StringComparison.Ordinal), "workspace-lite summary must keep the offline prefetch summary explicit about install-local boundaries");
     Assert(projection.UpdatePosture.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the current update posture for the validated runtime bundle");
     Assert(projection.SupportPosture.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose install-safe support posture for the current session");
@@ -280,6 +287,10 @@ static void VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery()
     Assert(plan.RuleEnvironmentSummary == "sr6.preview.v1 · approved · campaign", "play restore service must keep the approved runtime fingerprint visible");
     Assert(plan.PrefetchReadinessSummary.Contains("bounded offline use", StringComparison.Ordinal), "play restore service must make bounded offline prefetch deliberate on the claimed device");
     Assert(plan.LocalCacheBoundarySummary.Contains("install-local", StringComparison.Ordinal), "play restore service must keep install-local cache boundaries explicit");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("scene-redmond return dossier", StringComparison.Ordinal)), "play restore service must expose the exact dossier staged for offline restore");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("scene-redmond mobile return", StringComparison.Ordinal)), "play restore service must expose the exact campaign staged for offline restore");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("sr6.preview.v1 [approved]", StringComparison.Ordinal)), "play restore service must expose the exact rule posture staged for offline restore");
+    Assert(plan.PrefetchLabels.Any(item => item.Contains("bundle-redmond runtime bundle (artifact:session-redmond:bundle)", StringComparison.Ordinal)), "play restore service must expose the exact artifact set staged for offline restore");
     Assert(plan.PrefetchLabels.Any(item => item.Contains("Travel cache", StringComparison.Ordinal)), "play restore service must keep the sibling travel cache visible in restore planning");
     Assert(plan.SafeNextAction.Contains("Open scene-redmond mobile return", StringComparison.Ordinal), "play restore service must point the claimed device at the next safe campaign action");
     Assert(plan.ResumeFollowThroughHref.Contains("/play/session-redmond", StringComparison.Ordinal), "play restore service must expose the direct claimed-device resume href.");

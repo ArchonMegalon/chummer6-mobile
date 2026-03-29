@@ -257,8 +257,11 @@ public static class PlayCampaignWorkspaceLiteProjector
         string bundleSummary = resume.RuntimeBundle is null
             ? "runtime proof pending"
             : $"bundle {resume.RuntimeBundle.BundleTag}";
+        string dossierSummary = $"{resume.Bootstrap.Projection.Cursor.Session.SceneId} return dossier";
+        string campaignSummary = serverPlane.Campaign.CampaignName;
+        string ruleSummary = resume.Bootstrap.Projection.Cursor.Session.RuntimeFingerprint;
         string recapSummary = serverPlane.RecapShelf.FirstOrDefault()?.Label ?? "no recap-safe packet yet";
-        return $"Offline prefetch: {checkpointSummary}, {bundleSummary}, {recapSummary}, and the {roleLabel} return lane stay install-local and bounded to this device.";
+        return $"Offline prefetch: {checkpointSummary}, {bundleSummary}, dossier '{dossierSummary}', campaign '{campaignSummary}', rules '{ruleSummary}', {recapSummary}, and the {roleLabel} return lane stay install-local and bounded to this device.";
     }
 
     private static string BuildSupportPosture(PlayResumeResponse resume, PlayCampaignWorkspaceServerPlane serverPlane)

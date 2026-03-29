@@ -214,6 +214,7 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
         List<string> labels =
         [
             $"Prefetch inventory: {DescribePrefetchInventory(restore)}",
+            .. BuildPrefetchScopeLabels(restore),
             $"Target device: {targetDevice.InstallationId} · {targetDevice.DeviceRole} · {targetDevice.Platform} · {targetDevice.Channel}"
         ];
 
@@ -229,6 +230,29 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
             .Where(static item => !string.IsNullOrWhiteSpace(item))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    private static IEnumerable<string> BuildPrefetchScopeLabels(WorkspaceRestoreProjection restore)
+    {
+        if (restore.RecentDossiers.Count > 0)
+        {
+            yield return $"Prefetch dossiers: {string.Join(", ", restore.RecentDossiers.Select(static dossier => $"{dossier.DisplayName} ({dossier.DossierId})"))}";
+        }
+
+        if (restore.RecentCampaigns.Count > 0)
+        {
+            yield return $"Prefetch campaigns: {string.Join(", ", restore.RecentCampaigns.Select(static campaign => $"{campaign.Name} ({campaign.CampaignId})"))}";
+        }
+
+        if (restore.RecentRuleEnvironments.Count > 0)
+        {
+            yield return $"Prefetch rules: {string.Join(", ", restore.RecentRuleEnvironments.Select(static environment => $"{environment.CompatibilityFingerprint} [{environment.ApprovalState}]"))}";
+        }
+
+        if (restore.RecentArtifacts.Count > 0)
+        {
+            yield return $"Prefetch artifacts: {string.Join(", ", restore.RecentArtifacts.Select(static artifact => $"{artifact.Label} ({artifact.ArtifactId})"))}";
+        }
     }
 
     private static IReadOnlyList<string> BuildAttentionItems(
