@@ -15,7 +15,7 @@ Purpose: keep the live mobile queue readable. Historical queue churn and audit r
 | M6 Local-first runtime seam | done | 100% | 2026-03-13 | high | Ledger, cache, offline queue, and replay ownership are real and regression-guarded. |
 | M10 Hardening | done | 100% | 2026-03-13 | high | Accessibility, replay resilience, and performance-budget truth gates are closed. |
 | M11 Finished mobile shell gate | done | 100% | 2026-03-13 | high | Role-shell completion, cross-device continuity, and release closure gates are closed. |
-| M12 Play-shell completion depth (post-closure) | in_progress | 75% | 2026-04-10 | medium | Browser transport, event-log persistence, offline resume, and observer-lane read-mostly shell posture remain closed, and post-closure role-shell completion gates are now explicit and verify-enforced; the latest additive depth slices now prove player/GM capability leakage cannot bleed into observer bootstrap or resume payloads and that authorization denials preserve stored replay context instead of blanking the shell, with remaining scope limited to sustained release proof refresh and further role-depth assertions. |
+| M12 Play-shell completion depth (post-closure) | in_progress | 85% | 2026-04-10 | medium | Browser transport, event-log persistence, offline resume, and observer-lane read-mostly shell posture remain closed, and post-closure role-shell completion gates are now explicit and verify-enforced; the latest additive depth slices now prove player/GM capability leakage cannot bleed into observer bootstrap or resume payloads, authorization denials preserve stored replay context instead of blanking the shell, and workspace-lite continuity stays role-correct for both observer and GM follow-through, with remaining scope limited to sustained release proof refresh and any future role-depth regressions opened by new shell surfaces. |
 
 ## Queue
 | ID | Status | Priority | Task | Owner | Notes |
@@ -40,7 +40,7 @@ Purpose: keep the live mobile queue readable. Historical queue churn and audit r
 ## Current repo truth
 
 - Repo-local live queue: none (all currently materialized worklist rows are done; `M12` remains in progress for additive depth evidence beyond this closure slice)
-- The player and GM shells are materially release-complete on the current replay/reconnect/observe/offline/installable-PWA axis, and the observer lane now has explicit read-mostly bootstrap/resume proof; remaining change pressure is explicitly tracked as post-closure capability depth and release-proof refresh under `M12`.
+- The player and GM shells are materially release-complete on the current replay/reconnect/observe/offline/installable-PWA axis, the observer lane now has explicit read-mostly bootstrap/resume proof, and workspace-lite continuity now has explicit observer/GM regression coverage; remaining change pressure is explicitly tracked as post-closure release-proof refresh and any future additive role-depth slices under `M12`.
 - Historical feedback references still mention `chummer-play`; those are retained as audit history, not current repo identity
 
 ## Historical log
