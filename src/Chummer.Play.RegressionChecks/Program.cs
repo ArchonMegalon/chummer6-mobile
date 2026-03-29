@@ -41,6 +41,7 @@ await RunCheckAsync(nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewes
 await RunCheckAsync(nameof(VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync), VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync);
 await RunCheckAsync(nameof(VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync), VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync);
 await RunCheckAsync(nameof(VerifyIndexShellAccessibilityContractAsync), VerifyIndexShellAccessibilityContractAsync);
+await RunCheckAsync(nameof(VerifyIndexShellBindsContextualActionLabelsAsync), VerifyIndexShellBindsContextualActionLabelsAsync);
 await RunCheckAsync(nameof(VerifyBootstrapRoleShellEntryPointsAsync), VerifyBootstrapRoleShellEntryPointsAsync);
 await RunCheckAsync(nameof(VerifyRoleBoundarySurvivesCapabilityLeakageAsync), VerifyRoleBoundarySurvivesCapabilityLeakageAsync);
 await RunCheckAsync(nameof(VerifyQuickActionRejectsCrossRoleAuthorizationAsync), VerifyQuickActionRejectsCrossRoleAuthorizationAsync);
@@ -1277,6 +1278,19 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"restore-local-notes\"", StringComparison.Ordinal), "play shell must expose install-local restore notes");
     Assert(html.Contains("/api/play/workspace-lite/", StringComparison.Ordinal), "play shell must fetch the workspace-lite projection instead of dumping only the raw resume payload");
     Assert(html.Contains("/api/play/restore-plan/", StringComparison.Ordinal), "play shell must fetch the claimed-device restore projection alongside the workspace-lite payload");
+}
+
+static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
+{
+    var indexHtmlPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "index.html");
+    var html = await File.ReadAllTextAsync(indexHtmlPath);
+
+    Assert(html.Contains("document.getElementById(\"workspace-decision-notice-link\").textContent = payload.decisionNotice || \"Decision notice follow-through\";", StringComparison.Ordinal), "play shell must bind decision-notice link text to the workspace projection instead of hiding it behind generic copy.");
+    Assert(html.Contains("document.getElementById(\"follow-through-update-link\").textContent = payload.updateFollowThrough || \"Update follow-through\";", StringComparison.Ordinal), "play shell must bind update follow-through link text to the workspace projection.");
+    Assert(html.Contains("document.getElementById(\"follow-through-support-link\").textContent = payload.supportFollowThrough || \"Support follow-through\";", StringComparison.Ordinal), "play shell must bind support follow-through link text to the workspace projection.");
+    Assert(html.Contains("document.getElementById(\"follow-through-role-link\").textContent = payload.roleFollowThrough || \"Role follow-through\";", StringComparison.Ordinal), "play shell must bind role follow-through link text to the workspace projection.");
+    Assert(html.Contains("document.getElementById(\"restore-follow-through-link\").textContent = payload.resumeFollowThrough || \"Claimed-device follow-through\";", StringComparison.Ordinal), "play shell must bind claimed-device follow-through link text to the restore projection.");
+    Assert(html.Contains("document.getElementById(\"restore-support-follow-through-link\").textContent = payload.supportFollowThrough || \"Restore support follow-through\";", StringComparison.Ordinal), "play shell must bind restore support follow-through link text to the restore projection.");
 }
 
 static Task VerifyBootstrapRoleShellEntryPointsAsync()

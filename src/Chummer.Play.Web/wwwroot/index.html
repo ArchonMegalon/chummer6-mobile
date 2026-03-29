@@ -54,7 +54,7 @@
       <p id="workspace-memory" class="hint"></p>
       <p id="workspace-memory-return" class="hint"></p>
       <p id="workspace-decision-notice" class="hint"></p>
-      <p><a id="workspace-decision-notice-link" class="hint" href="/">Open decision notice action</a></p>
+      <p><a id="workspace-decision-notice-link" class="hint" href="/">Decision notice follow-through</a></p>
     </div>
     <div class="card">
       <div class="eyebrow">Change packet</div>
@@ -74,9 +74,9 @@
       <p id="restore-return-target" class="hint"></p>
       <p id="restore-device-role" class="hint"></p>
       <p id="restore-follow-through" class="hint"></p>
-      <p><a id="restore-follow-through-link" class="hint" href="/play">Open claimed-device follow-through</a></p>
+      <p><a id="restore-follow-through-link" class="hint" href="/play">Claimed-device follow-through</a></p>
       <p id="restore-support-follow-through" class="hint"></p>
-      <p><a id="restore-support-follow-through-link" class="hint" href="/contact">Open restore support follow-through</a></p>
+      <p><a id="restore-support-follow-through-link" class="hint" href="/contact">Restore support follow-through</a></p>
       <ul id="restore-prefetch-labels"></ul>
     </div>
     <div class="card">
@@ -94,11 +94,11 @@
       <ul id="quick-actions"></ul>
       <p style="margin-top: 12px;"><strong>Follow-through routes</strong></p>
       <p id="follow-through-update" class="hint"></p>
-      <p><a id="follow-through-update-link" class="hint" href="/downloads">Open update follow-through</a></p>
+      <p><a id="follow-through-update-link" class="hint" href="/downloads">Update follow-through</a></p>
       <p id="follow-through-support" class="hint"></p>
-      <p><a id="follow-through-support-link" class="hint" href="/contact">Open support follow-through</a></p>
+      <p><a id="follow-through-support-link" class="hint" href="/contact">Support follow-through</a></p>
       <p id="follow-through-role" class="hint"></p>
-      <p><a id="follow-through-role-link" class="hint" href="/">Open role follow-through</a></p>
+      <p><a id="follow-through-role-link" class="hint" href="/">Role follow-through</a></p>
       <p style="margin-top: 12px;"><strong>Additional follow-through</strong></p>
       <ul id="follow-through"></ul>
       <p style="margin-top: 12px;"><strong>Coach hints</strong></p>
@@ -141,6 +141,7 @@
     document.getElementById("workspace-memory-return").textContent = payload.campaignMemoryReturnSummary || "No campaign-memory return cue is available yet.";
     document.getElementById("workspace-decision-notice").textContent = payload.decisionNotice || "No campaign decision notice is available yet.";
     document.getElementById("workspace-decision-notice-link").href = payload.decisionNoticeHref || "/";
+    document.getElementById("workspace-decision-notice-link").textContent = payload.decisionNotice || "Decision notice follow-through";
     document.getElementById("workspace-support").textContent = payload.supportPosture || "No support posture is available yet.";
     document.getElementById("workspace-support-status").textContent = payload.supportStatus || "No support status is available yet.";
     document.getElementById("workspace-known-issue").textContent = payload.knownIssueSummary || "No known issue summary is available yet.";
@@ -148,10 +149,13 @@
     setList("change-packet-list", payload.changePacketLabels);
     document.getElementById("follow-through-update").textContent = payload.updateFollowThrough || "No update follow-through is available yet.";
     document.getElementById("follow-through-update-link").href = payload.updateFollowThroughHref || "/downloads";
+    document.getElementById("follow-through-update-link").textContent = payload.updateFollowThrough || "Update follow-through";
     document.getElementById("follow-through-support").textContent = payload.supportFollowThrough || "No support follow-through is available yet.";
     document.getElementById("follow-through-support-link").href = payload.supportFollowThroughHref || "/contact";
+    document.getElementById("follow-through-support-link").textContent = payload.supportFollowThrough || "Support follow-through";
     document.getElementById("follow-through-role").textContent = payload.roleFollowThrough || "No role follow-through is available yet.";
     document.getElementById("follow-through-role-link").href = payload.roleFollowThroughHref || "/";
+    document.getElementById("follow-through-role-link").textContent = payload.roleFollowThrough || "Role follow-through";
     setList("attention-list", payload.attentionItems);
     setList("quick-actions", payload.quickActionLabels);
     setList("follow-through", payload.followThroughLabels);
@@ -173,8 +177,10 @@
       : "Target role is not available yet.";
     document.getElementById("restore-follow-through").textContent = payload.resumeFollowThrough || "No claimed-device follow-through is available yet.";
     document.getElementById("restore-follow-through-link").href = payload.resumeFollowThroughHref || "/play";
+    document.getElementById("restore-follow-through-link").textContent = payload.resumeFollowThrough || "Claimed-device follow-through";
     document.getElementById("restore-support-follow-through").textContent = payload.supportFollowThrough || "No restore-support follow-through is available yet.";
     document.getElementById("restore-support-follow-through-link").href = payload.supportFollowThroughHref || "/contact";
+    document.getElementById("restore-support-follow-through-link").textContent = payload.supportFollowThrough || "Restore support follow-through";
     setList("restore-prefetch-labels", payload.prefetchLabels);
     setList("restore-attention", payload.attentionItems);
     setList("restore-conflicts", payload.conflictSummaries);

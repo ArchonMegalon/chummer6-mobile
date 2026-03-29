@@ -1,6 +1,6 @@
 {
   "contract_name": "chummer6-mobile.local_release_proof",
-  "generated_at": "2026-03-29T17:36:34Z",
+  "generated_at": "2026-03-29T18:06:09Z",
   "status": "passed",
   "proof_kind": "source_backed_local_regression_contract",
   "source_files": [
@@ -24,12 +24,19 @@
     ],
     "campaign_session_recover_recap": [
       "VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary",
+      "VerifyIndexShellBindsContextualActionLabelsAsync",
       "VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery",
       "Assert(plan.SafeNextAction.Contains(\"Open scene-redmond mobile return\"",
       "Assert(projection.ChangePacketSummary.Contains(\"Return anchor stays on checkpoint 12\"",
       "Assert(projection.ChangePacketLabels.Any(item => item.Contains(\"Scene packet: scene-redmond\"",
       "Assert(projection.RolePosture.Contains(\"player lane\"",
       "Assert(projection.RoleFollowThroughHref.Contains(\"/play/{sessionId}\"",
+      "document.getElementById(\"workspace-decision-notice-link\").textContent = payload.decisionNotice || \"Decision notice follow-through\";",
+      "document.getElementById(\"follow-through-update-link\").textContent = payload.updateFollowThrough || \"Update follow-through\";",
+      "document.getElementById(\"follow-through-support-link\").textContent = payload.supportFollowThrough || \"Support follow-through\";",
+      "document.getElementById(\"follow-through-role-link\").textContent = payload.roleFollowThrough || \"Role follow-through\";",
+      "document.getElementById(\"restore-follow-through-link\").textContent = payload.resumeFollowThrough || \"Claimed-device follow-through\";",
+      "document.getElementById(\"restore-support-follow-through-link\").textContent = payload.supportFollowThrough || \"Restore support follow-through\";",
       "id=\"change-packet-summary\"",
       "id=\"change-packet-list\"",
       "id=\"workspace-role\"",
