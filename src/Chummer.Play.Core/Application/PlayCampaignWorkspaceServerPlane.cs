@@ -361,7 +361,7 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
                     NoticeId: $"notice:{resume.SessionId}:cache",
                     Kind: "cache_pressure",
                     Summary: $"Clear cache pressure before you seed more travel or observer state on this device.",
-                    ActionLabel: "Open support follow-through",
+                    ActionLabel: BuildSupportDecisionActionLabel(resume, session),
                     ActionHref: resume.SupportNotice?.FollowThroughHref
                         ?? $"/contact?kind=install_help&sessionId={Uri.EscapeDataString(resume.SessionId)}&sceneId={Uri.EscapeDataString(session.SceneId)}")
             ];
@@ -378,5 +378,28 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
                     ? $"/play?sessionId={Uri.EscapeDataString(resume.SessionId)}&role={Uri.EscapeDataString(resume.Role.ToString())}"
                     : resume.DeepLinkOwnerRoute!)
         ];
+    }
+
+    private static string BuildSupportDecisionActionLabel(PlayResumeResponse resume, EngineSessionEnvelope session)
+    {
+        string rawAction = !string.IsNullOrWhiteSpace(resume.SupportNotice?.NextSafeAction)
+            ? resume.SupportNotice.NextSafeAction!
+            : resume.RuntimeBundle is null
+                ? $"Review install support for {session.SceneId}"
+                : $"Review support for bundle {resume.RuntimeBundle.BundleTag}";
+
+        string trimmed = rawAction.Trim().TrimEnd('.', '!', '?');
+        int delimiter = trimmed.IndexOfAny([',', ';']);
+        string clause = delimiter > 0 ? trimmed[..delimiter] : trimmed;
+        clause = clause.Trim();
+        if (clause.Length > 52)
+        {
+            int boundary = clause.LastIndexOf(' ', 52);
+            clause = boundary > 12 ? clause[..boundary] : clause[..52];
+        }
+
+        return string.IsNullOrWhiteSpace(clause)
+            ? "Review install support"
+            : clause;
     }
 }

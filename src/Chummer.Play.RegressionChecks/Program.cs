@@ -73,6 +73,7 @@ await RunCheckAsync(nameof(VerifyRuntimeBundleSessionLockReleasesOnCanceledAcqui
 RunCheck(nameof(VerifyCheckpointLineageAlignment), VerifyCheckpointLineageAlignment);
 RunCheck(nameof(VerifyStoredLineageAlignment), VerifyStoredLineageAlignment);
 RunCheck(nameof(VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary), VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary);
+RunCheck(nameof(VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy), VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy);
 RunCheck(nameof(VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth), VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth);
 RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState), VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState);
 RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails), VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails);
@@ -230,6 +231,44 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.FollowThroughLabels.Any(item => item.Contains("bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep the update follow-through tied to the validated runtime bundle.");
     Assert(projection.FollowThroughLabels.Any(item => item.Contains("session-redmond/scene-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep support follow-through tied to the grounded session context.");
     Assert(projection.CoachHints.SequenceEqual(["Sync before submitting quick actions after reconnect."]), "workspace-lite summary must surface coach hints");
+}
+
+static void VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy()
+{
+    var response = CreateWorkspaceLiteProjectionResponse(
+        sessionId: "session-cache-support",
+        sceneId: "scene-redmond",
+        sceneRevision: "scene-r9",
+        runtimeFingerprint: "sr6.preview.v1",
+        role: PlaySurfaceRole.Player,
+        route: "/play/session-cache-support",
+        timeline: ["Reconnect complete", "Objective board refreshed"],
+        capabilities: ["play.session.sync"],
+        coachHints:
+        [
+            new PlayCoachHint("coach-player-sync", "Sync before submitting quick actions after reconnect.")
+        ],
+        quickActions:
+        [
+            new PlayQuickAction("player-mark-ready", "Mark Ready", "play.session.sync", true)
+        ],
+        bundleTag: "bundle-redmond",
+        sequence: 12) with
+    {
+        CachePressure = new PlayCachePressureSnapshot(8, 8, true, 2, [], DateTimeOffset.Parse("2026-03-29T18:40:00+00:00")),
+        SupportNotice = new PlaySupportClosureNotice(
+            StatusLabel: "Ready to verify",
+            KnownIssueSummary: "Cache pressure can still evict bundle-redmond before the next safe return.",
+            FixAvailabilitySummary: "Bundle bundle-redmond is the grounded local fix target for sr6.preview.v1.",
+            NextSafeAction: "Use the current bundle proof for scene-redmond if you verify a fix or reopen support on this device.",
+            FollowThroughHref: "/contact?kind=install_help&sessionId=session-cache-support&sceneId=scene-redmond&bundle=bundle-redmond")
+    };
+
+    var projection = PlayCampaignWorkspaceLiteProjector.Create(response);
+
+    Assert(projection.DecisionNotice.Contains("Use the current bundle proof for scene-redmond", StringComparison.Ordinal), "cache-pressure decision notices must reuse the live support next-safe action instead of a generic support-follow-through label.");
+    Assert(!projection.DecisionNotice.Contains("Open support follow-through", StringComparison.Ordinal), "cache-pressure decision notices must not fall back to the old generic support-follow-through label.");
+    Assert(projection.DecisionNoticeHref.Contains("/contact", StringComparison.Ordinal), "cache-pressure decision notices must keep the direct support follow-through href.");
 }
 
 static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails()
