@@ -188,6 +188,11 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.RunboardSummary.Contains("scene-redmond live runboard", StringComparison.Ordinal), "workspace-lite summary must expose the current runboard summary.");
     Assert(projection.RosterSummary.Contains("Roster readiness", StringComparison.Ordinal), "workspace-lite summary must expose roster readiness alongside the server plane.");
     Assert(projection.RecapSummary.Contains("recap-safe packet", StringComparison.Ordinal), "workspace-lite summary must expose the recap-safe packet summary.");
+    Assert(projection.CampaignMemorySummary.Contains("Campaign memory:", StringComparison.Ordinal), "workspace-lite summary must expose a first-class campaign-memory summary.");
+    Assert(projection.CampaignMemorySummary.Contains("governed memory lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must keep the governed memory-lane wording explicit.");
+    Assert(projection.CampaignMemorySummary.Contains("player lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must keep the current role inside the campaign-memory summary.");
+    Assert(projection.CampaignMemoryReturnSummary.Contains("Memory return:", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated campaign-memory return cue.");
+    Assert(projection.CampaignMemoryReturnSummary.Contains("Next:", StringComparison.Ordinal), "workspace-lite summary must keep the next safe action attached to the memory return cue.");
     Assert(projection.DecisionNotice.Contains("Continue scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the active campaign decision notice.");
     Assert(projection.DecisionNoticeHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose a direct decision-notice follow-through href.");
     Assert(projection.RolePosture.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose the role route posture");
@@ -289,6 +294,8 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(observerProjection.RoleFollowThrough.Contains("read-mostly", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the read-mostly follow-through posture");
     Assert(observerProjection.RoleFollowThroughHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer role follow-through href");
     Assert(observerProjection.QuickActionLabels.Count == 0, "observer workspace-lite projection must not expose quick actions");
+    Assert(observerProjection.CampaignMemorySummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer lane explicit inside campaign memory.");
+    Assert(observerProjection.CampaignMemoryReturnSummary.Contains("install-local continuity lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep campaign-memory return bounded to the same install-local lane.");
     Assert(observerProjection.OfflinePrefetchSummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer return lane explicit in offline prefetch");
     Assert(observerProjection.FollowThroughLabels.Any(item => item.Contains("observer lane", StringComparison.OrdinalIgnoreCase)), "observer workspace-lite projection must surface observer-specific follow-through labels");
     Assert(observerProjection.CoachHints.SequenceEqual(
@@ -331,6 +338,8 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(gmProjection.RoleFollowThroughHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm role follow-through href");
     Assert(gmProjection.QuickActionLabels.SequenceEqual(["Advance Initiative", "Publish Spider Card"]), "gm workspace-lite projection must preserve gm quick actions");
     Assert(gmProjection.AttentionItems.SequenceEqual(["No blocking continuity issues are active on this device."]), "gm workspace-lite projection must stay clear when gm continuity is fully aligned");
+    Assert(gmProjection.CampaignMemorySummary.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm lane explicit inside campaign memory.");
+    Assert(gmProjection.CampaignMemoryReturnSummary.Contains("Next:", StringComparison.Ordinal), "gm workspace-lite projection must keep the next safe action attached to the campaign-memory return cue.");
     Assert(gmProjection.OfflinePrefetchSummary.Contains("GM runboard return lane", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm return lane explicit in offline prefetch");
     Assert(gmProjection.FollowThroughLabels.Any(item => item.Contains("GM changes anchored", StringComparison.Ordinal)), "gm workspace-lite projection must surface gm-specific follow-through labels");
     Assert(gmProjection.CoachHints.SequenceEqual(
@@ -1240,6 +1249,8 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"workspace-roster\"", StringComparison.Ordinal), "play shell must expose roster readiness alongside current state");
     Assert(html.Contains("id=\"workspace-runboard\"", StringComparison.Ordinal), "play shell must expose the current runboard summary alongside current state");
     Assert(html.Contains("id=\"workspace-recap\"", StringComparison.Ordinal), "play shell must expose a recap-safe packet summary alongside current state");
+    Assert(html.Contains("id=\"workspace-memory\"", StringComparison.Ordinal), "play shell must expose the campaign-memory summary alongside current state");
+    Assert(html.Contains("id=\"workspace-memory-return\"", StringComparison.Ordinal), "play shell must expose the campaign-memory return cue alongside current state");
     Assert(html.Contains("id=\"workspace-decision-notice\"", StringComparison.Ordinal), "play shell must expose the current decision notice alongside current state");
     Assert(html.Contains("id=\"workspace-decision-notice-link\"", StringComparison.Ordinal), "play shell must expose a direct decision-notice follow-through link.");
     Assert(html.Contains("id=\"workspace-travel\"", StringComparison.Ordinal), "play shell must expose deliberate travel readiness alongside current state");

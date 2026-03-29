@@ -19,6 +19,8 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string DecisionNotice,
     string DecisionNoticeHref,
     string RecapSummary,
+    string CampaignMemorySummary,
+    string CampaignMemoryReturnSummary,
     string RolePosture,
     string RulePosture,
     string SafeNextAction,
@@ -82,6 +84,8 @@ public static class PlayCampaignWorkspaceLiteProjector
         string recapSummary = serverPlane.RecapShelf.FirstOrDefault() is { } recapEntry
             ? $"{recapEntry.Label}: {recapEntry.Summary}"
             : "No recap-safe packet is available yet.";
+        string campaignMemorySummary = BuildCampaignMemorySummary(resume, serverPlane, roleLabel, latestTimeline);
+        string campaignMemoryReturnSummary = BuildCampaignMemoryReturnSummary(resume, serverPlane, roleLabel);
         string rolePosture = BuildRolePosture(resume, session);
         string safeNextAction = serverPlane.NextSafeAction.Summary;
         string updatePosture = BuildUpdatePosture(resume, session);
@@ -141,6 +145,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             DecisionNotice: decisionNoticeSummary,
             DecisionNoticeHref: decisionNoticeHref,
             RecapSummary: recapSummary,
+            CampaignMemorySummary: campaignMemorySummary,
+            CampaignMemoryReturnSummary: campaignMemoryReturnSummary,
             RolePosture: rolePosture,
             RulePosture: $"{session.RuntimeFingerprint}. {runtimeBundleSummary}",
             SafeNextAction: safeNextAction,
@@ -262,6 +268,29 @@ public static class PlayCampaignWorkspaceLiteProjector
         string ruleSummary = resume.Bootstrap.Projection.Cursor.Session.RuntimeFingerprint;
         string recapSummary = serverPlane.RecapShelf.FirstOrDefault()?.Label ?? "no recap-safe packet yet";
         return $"Offline prefetch: {checkpointSummary}, {bundleSummary}, dossier '{dossierSummary}', campaign '{campaignSummary}', rules '{ruleSummary}', {recapSummary}, and the {roleLabel} return lane stay install-local and bounded to this device.";
+    }
+
+    private static string BuildCampaignMemorySummary(
+        PlayResumeResponse resume,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel,
+        string latestTimeline)
+    {
+        string checkpointSummary = resume.Checkpoint is null
+            ? "checkpoint pending"
+            : $"checkpoint {resume.Checkpoint.AppliedThroughSequence}";
+        string recapLabel = serverPlane.RecapShelf.FirstOrDefault()?.Label ?? "recap-safe packet pending";
+        return $"Campaign memory: {serverPlane.Workspace.CampaignName}, {checkpointSummary}, '{latestTimeline}', and {recapLabel} stay on one governed memory lane for the {roleLabel}.";
+    }
+
+    private static string BuildCampaignMemoryReturnSummary(
+        PlayResumeResponse resume,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel)
+    {
+        string returnSummary = serverPlane.Workspace.ReturnSummary;
+        string nextSafeAction = serverPlane.NextSafeAction.Summary;
+        return $"Memory return: {returnSummary} Next: {nextSafeAction} Keep the {roleLabel} on the same install-local continuity lane.";
     }
 
     private static string BuildSupportPosture(PlayResumeResponse resume, PlayCampaignWorkspaceServerPlane serverPlane)

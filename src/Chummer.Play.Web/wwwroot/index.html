@@ -51,6 +51,8 @@
       <p id="workspace-roster" class="hint"></p>
       <p id="workspace-runboard" class="hint"></p>
       <p id="workspace-recap" class="hint"></p>
+      <p id="workspace-memory" class="hint"></p>
+      <p id="workspace-memory-return" class="hint"></p>
       <p id="workspace-decision-notice" class="hint"></p>
       <p><a id="workspace-decision-notice-link" class="hint" href="/">Open decision notice action</a></p>
     </div>
@@ -135,6 +137,8 @@
     document.getElementById("workspace-roster").textContent = payload.rosterSummary || "No roster readiness summary is available yet.";
     document.getElementById("workspace-runboard").textContent = payload.runboardSummary || "No runboard summary is available yet.";
     document.getElementById("workspace-recap").textContent = payload.recapSummary || "No recap-safe packet summary is available yet.";
+    document.getElementById("workspace-memory").textContent = payload.campaignMemorySummary || "No campaign-memory summary is available yet.";
+    document.getElementById("workspace-memory-return").textContent = payload.campaignMemoryReturnSummary || "No campaign-memory return cue is available yet.";
     document.getElementById("workspace-decision-notice").textContent = payload.decisionNotice || "No campaign decision notice is available yet.";
     document.getElementById("workspace-decision-notice-link").href = payload.decisionNoticeHref || "/";
     document.getElementById("workspace-support").textContent = payload.supportPosture || "No support posture is available yet.";
