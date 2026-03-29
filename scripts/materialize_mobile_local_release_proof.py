@@ -64,6 +64,10 @@ def iso_now() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _payload_without_generated_at(payload: dict[str, object]) -> dict[str, object]:
+    return {key: value for key, value in payload.items() if key != "generated_at"}
+
+
 def main() -> int:
     if not REGRESSION_SOURCE.is_file():
         print(f"missing regression source: {REGRESSION_SOURCE}", file=sys.stderr)
@@ -104,7 +108,20 @@ def main() -> int:
         "required_markers": REQUIRED_MARKERS,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    if OUT.is_file():
+        try:
+            existing_payload = json.loads(OUT.read_text(encoding="utf-8"))
+        except Exception:
+            existing_payload = None
+        if isinstance(existing_payload, dict) and _payload_without_generated_at(existing_payload) == _payload_without_generated_at(payload):
+            payload["generated_at"] = str(existing_payload.get("generated_at") or payload["generated_at"])
+
+    serialized = json.dumps(payload, indent=2) + "\n"
+    if OUT.is_file() and OUT.read_text(encoding="utf-8") == serialized:
+        print(f"mobile local release proof unchanged: {OUT}")
+        return 0
+
+    OUT.write_text(serialized, encoding="utf-8")
     print(f"wrote mobile local release proof: {OUT}")
     return 0
 
