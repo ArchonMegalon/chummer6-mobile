@@ -72,6 +72,7 @@ await RunCheckAsync(nameof(VerifyRuntimeBundleSessionLockReleasesOnCanceledAcqui
 RunCheck(nameof(VerifyCheckpointLineageAlignment), VerifyCheckpointLineageAlignment);
 RunCheck(nameof(VerifyStoredLineageAlignment), VerifyStoredLineageAlignment);
 RunCheck(nameof(VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary), VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary);
+RunCheck(nameof(VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth), VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth);
 RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState), VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState);
 RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails), VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails);
 RunCheck(nameof(VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery), VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery);
@@ -254,6 +255,92 @@ static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGua
     Assert(plan.LocalOnlyNotes.All(note => !note.Contains("secret=", StringComparison.OrdinalIgnoreCase)), "roaming restore must not leak install-local secrets into the roaming packet");
 }
 
+static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth()
+{
+    var observerProjection = PlayCampaignWorkspaceLiteProjector.Create(
+        CreateWorkspaceLiteProjectionResponse(
+            sessionId: "session-observer-lite",
+            sceneId: "scene-observer",
+            sceneRevision: "scene-r5",
+            runtimeFingerprint: "runtime-observer",
+            role: PlaySurfaceRole.Observer,
+            route: "/observe/session-observer-lite",
+            timeline: ["Read-only watch resumed", "Lead player confirmed route"],
+            capabilities: ["play.session.read"],
+            coachHints:
+            [
+                new PlayCoachHint("coach-observer-continuity", "Stay read-mostly until the owner lane confirms the next revision."),
+                new PlayCoachHint("coach-observer-shadow", "Mirror only grounded tactical changes after continuity is confirmed.")
+            ],
+            quickActions: [],
+            bundleTag: "bundle-observer",
+            sequence: 6));
+
+    Assert(observerProjection.Role == PlaySurfaceRole.Observer, "observer workspace-lite projection must preserve the observer role");
+    Assert(observerProjection.RolePosture.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer lane posture explicit");
+    Assert(observerProjection.RolePosture.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer owner route visible");
+    Assert(observerProjection.SafeNextAction.Contains("Resume the observer lane for scene-observer", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer-specific next safe action");
+    Assert(observerProjection.SafeNextAction.Contains("confirm continuity", StringComparison.Ordinal), "observer workspace-lite projection must require continuity confirmation before mirrored updates");
+    Assert(observerProjection.RosterSummary.Contains("1 blocker", StringComparison.Ordinal), "observer workspace-lite projection must preserve the read-mostly blocker count");
+    Assert(observerProjection.AttentionItems.Any(item => item.Contains("No quick actions", StringComparison.Ordinal)), "observer workspace-lite projection must explain the review-only posture when quick actions are unavailable");
+    Assert(observerProjection.AttentionItems.Any(item => item.Contains("read-mostly", StringComparison.OrdinalIgnoreCase)), "observer workspace-lite projection must keep the read-mostly attention item visible");
+    Assert(observerProjection.DecisionNoticeHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer lane decision follow-through route");
+    Assert(observerProjection.RoleFollowThrough.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep observer-specific role follow-through text");
+    Assert(observerProjection.RoleFollowThrough.Contains("read-mostly", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the read-mostly follow-through posture");
+    Assert(observerProjection.RoleFollowThroughHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer role follow-through href");
+    Assert(observerProjection.QuickActionLabels.Count == 0, "observer workspace-lite projection must not expose quick actions");
+    Assert(observerProjection.OfflinePrefetchSummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer return lane explicit in offline prefetch");
+    Assert(observerProjection.FollowThroughLabels.Any(item => item.Contains("observer lane", StringComparison.OrdinalIgnoreCase)), "observer workspace-lite projection must surface observer-specific follow-through labels");
+    Assert(observerProjection.CoachHints.SequenceEqual(
+        [
+            "Stay read-mostly until the owner lane confirms the next revision.",
+            "Mirror only grounded tactical changes after continuity is confirmed."
+        ]),
+        "observer workspace-lite projection must preserve observer-specific coach hints");
+
+    var gmProjection = PlayCampaignWorkspaceLiteProjector.Create(
+        CreateWorkspaceLiteProjectionResponse(
+            sessionId: "session-gm-lite",
+            sceneId: "scene-rigel",
+            sceneRevision: "scene-r8",
+            runtimeFingerprint: "runtime-gm",
+            role: PlaySurfaceRole.GameMaster,
+            route: "/gm/session-gm-lite",
+            timeline: ["Initiative tracker grounded", "Opposition packet refreshed"],
+            capabilities: ["play.gm.actions", "play.spider.cards"],
+            coachHints:
+            [
+                new PlayCoachHint("coach-gm-runboard", "Confirm the grounded scene before advancing the runboard."),
+                new PlayCoachHint("coach-gm-spider", "Publish spider cards only after the next safe initiative step is pinned.")
+            ],
+            quickActions:
+            [
+                new PlayQuickAction("gm-advance-initiative", "Advance Initiative", "play.gm.actions", true),
+                new PlayQuickAction("gm-publish-spider-card", "Publish Spider Card", "play.spider.cards", true)
+            ],
+            bundleTag: "bundle-gm",
+            sequence: 9));
+
+    Assert(gmProjection.Role == PlaySurfaceRole.GameMaster, "gm workspace-lite projection must preserve the gm role");
+    Assert(gmProjection.RolePosture.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm posture explicit");
+    Assert(gmProjection.RolePosture.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm owner route visible");
+    Assert(gmProjection.SafeNextAction.Contains("Open the GM shell, confirm scene scene-rigel", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm-specific next safe action");
+    Assert(gmProjection.RosterSummary.Contains("GM runboard is clear to continue scene-rigel", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm roster lane unblocked when continuity is aligned");
+    Assert(gmProjection.DecisionNoticeHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm decision follow-through route");
+    Assert(gmProjection.RoleFollowThrough.Contains("GM changes anchored on scene-rigel", StringComparison.Ordinal), "gm workspace-lite projection must keep gm changes anchored on the current scene");
+    Assert(gmProjection.RoleFollowThroughHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm role follow-through href");
+    Assert(gmProjection.QuickActionLabels.SequenceEqual(["Advance Initiative", "Publish Spider Card"]), "gm workspace-lite projection must preserve gm quick actions");
+    Assert(gmProjection.AttentionItems.SequenceEqual(["No blocking continuity issues are active on this device."]), "gm workspace-lite projection must stay clear when gm continuity is fully aligned");
+    Assert(gmProjection.OfflinePrefetchSummary.Contains("GM runboard return lane", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm return lane explicit in offline prefetch");
+    Assert(gmProjection.FollowThroughLabels.Any(item => item.Contains("GM changes anchored", StringComparison.Ordinal)), "gm workspace-lite projection must surface gm-specific follow-through labels");
+    Assert(gmProjection.CoachHints.SequenceEqual(
+        [
+            "Confirm the grounded scene before advancing the runboard.",
+            "Publish spider cards only after the next safe initiative step is pinned."
+        ]),
+        "gm workspace-lite projection must preserve gm-specific coach hints");
+}
+
 static void VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery()
 {
     IPlayRoamingRestoreService service = new PlayRoamingRestoreService(new RoamingWorkspaceSyncPlanner());
@@ -301,6 +388,58 @@ static void VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery()
     Assert(plan.LocalOnlyNotes.Any(item => item.Contains("install-local", StringComparison.Ordinal)), "play restore service must expose install-local notes on the shell projection");
     Assert(plan.Campaigns.Count == 1, "play restore service must project at least one campaign return target");
     Assert(plan.Dossiers.Count == 1, "play restore service must project at least one grounded dossier return target");
+}
+
+static PlayResumeResponse CreateWorkspaceLiteProjectionResponse(
+    string sessionId,
+    string sceneId,
+    string sceneRevision,
+    string runtimeFingerprint,
+    PlaySurfaceRole role,
+    string route,
+    IReadOnlyList<string> timeline,
+    IReadOnlyList<string> capabilities,
+    IReadOnlyList<PlayCoachHint> coachHints,
+    IReadOnlyList<PlayQuickAction> quickActions,
+    string bundleTag,
+    long sequence)
+{
+    DateTimeOffset generatedAtUtc = DateTimeOffset.Parse("2026-03-28T09:00:00+00:00");
+    string shellName = role switch
+    {
+        PlaySurfaceRole.GameMaster => "GM Shell",
+        PlaySurfaceRole.Observer => "Observer Shell",
+        _ => "Player shell"
+    };
+    string shellSummary = role switch
+    {
+        PlaySurfaceRole.GameMaster => "Runboard-first shell for grounded scene coordination.",
+        PlaySurfaceRole.Observer => "Read-mostly shell that mirrors grounded tactical changes.",
+        _ => "Table-safe shell"
+    };
+
+    return new PlayResumeResponse(
+        SessionId: sessionId,
+        Role: role,
+        DeepLinkOwnerRoute: route,
+        Bootstrap: new PlayBootstrapResponse(
+            "chummer6-mobile",
+            new PlaySessionProjection(
+                new EngineSessionCursor(
+                    new EngineSessionEnvelope(sessionId, sceneId, sceneRevision, runtimeFingerprint),
+                    sequence),
+                Timeline: timeline,
+                GeneratedAtUtc: generatedAtUtc),
+            new PlayShellSnapshot(role, shellName, shellSummary, capabilities),
+            [new PlayShellSnapshot(role, shellName, shellSummary, capabilities)],
+            new BrowserSessionShellProbe(true, true, true),
+            capabilities,
+            [],
+            coachHints,
+            quickActions),
+        Checkpoint: new SyncCheckpoint(sessionId, sceneId, sceneRevision, runtimeFingerprint, sequence, generatedAtUtc),
+        RuntimeBundle: new PlayRuntimeBundleMetadata(runtimeFingerprint, sceneRevision, bundleTag, generatedAtUtc.AddMinutes(-5), generatedAtUtc.AddMinutes(-4)),
+        CachePressure: new PlayCachePressureSnapshot(1, 8, false, 0, [], generatedAtUtc));
 }
 
 static WorkspaceRestoreProjection CreateWorkspaceRestoreProjection(IReadOnlyList<string> conflicts, string approvalState = "approved")
