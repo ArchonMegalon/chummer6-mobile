@@ -185,11 +185,11 @@ require_worklist_or_audit_pattern 'WL-026 .* done .*post-closure runnable backlo
 require_worklist_or_audit_pattern 'WL-026 .*Closed 2026-03-23.*M12 truth gates'
 require_worklist_or_audit_pattern 'M12 .*WL-024, WL-025, WL-026'
 require_worklist_or_audit_pattern 'TG-M12-PL .* done '
-require_worklist_or_audit_pattern 'TG-M12-PL .*VerifySyncPrefixAcknowledgementAsync.*VerifyStoredLineageAlignment.*VerifyStoredLineageStaleResponsesAsync.*VerifyBootstrapRoleShellEntryPointsAsync.*VerifyQuickActionRejectsCrossRoleAuthorizationAsync'
+require_worklist_or_audit_pattern 'TG-M12-PL .*VerifySyncPrefixAcknowledgementAsync.*VerifyStoredLineageAlignment.*VerifyStoredLineageStaleResponsesAsync.*VerifyBootstrapRoleShellEntryPointsAsync.*VerifyQuickActionRejectsCrossRoleAuthorizationAsync.*VerifyDeniedQuickActionsPreserveStoredReplayStateAsync'
 require_worklist_or_audit_pattern 'TG-M12-GM .* done '
-require_worklist_or_audit_pattern 'TG-M12-GM .*VerifyBootstrapRoleShellEntryPointsAsync.*VerifyQuickActionRejectsCrossRoleAuthorizationAsync.*VerifyContinuityClaimRejectsStaleLineageWithoutMutationAsync.*VerifyObserveReturnsLineageSafeContinuityAsync'
+require_worklist_or_audit_pattern 'TG-M12-GM .*VerifyBootstrapRoleShellEntryPointsAsync.*VerifyQuickActionRejectsCrossRoleAuthorizationAsync.*VerifyDeniedQuickActionsPreserveStoredReplayStateAsync.*VerifyContinuityClaimRejectsStaleLineageWithoutMutationAsync.*VerifyObserveReturnsLineageSafeContinuityAsync'
 require_worklist_or_audit_pattern 'TG-M12-OB .* done '
-require_worklist_or_audit_pattern 'TG-M12-OB .*VerifyObserverBootstrapAndResumeStayReadMostlyAsync.*VerifyRoleBoundarySurvivesCapabilityLeakageAsync'
+require_worklist_or_audit_pattern 'TG-M12-OB .*VerifyObserverBootstrapAndResumeStayReadMostlyAsync.*VerifyRoleBoundarySurvivesCapabilityLeakageAsync.*VerifyDeniedQuickActionsPreserveStoredReplayStateAsync'
 require_worklist_or_audit_pattern 'TG-M12-RP .* done '
 require_worklist_or_audit_pattern 'TG-M12-RP .*docs/PLAY_RELEASE_SIGNOFF.md.*scripts/ai/verify.sh'
 require_worklist_or_audit_pattern '2026-03-23: closed `WL-026`.*feedback/2026-03-21-204029-audit-task-2652.md.*feedback/2026-03-21-204029-audit-task-48734.md'
@@ -243,6 +243,7 @@ rg -n 'VerifyOfflineQueueRejectsStaleLineageAsync\(' src/Chummer.Play.Regression
 rg -n 'VerifyIndexShellAccessibilityContractAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyBootstrapRoleShellEntryPointsAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyQuickActionRejectsCrossRoleAuthorizationAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyDeniedQuickActionsPreserveStoredReplayStateAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyCachePressureBudgetContractAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'ClaimContinuityAsync\(' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
 rg -n 'ObserveAsync\(' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null
@@ -253,9 +254,9 @@ rg -n 'VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrai
 rg -n 'IsLedgerAligned\(' src/Chummer.Play.Web/SessionLineage.cs >/dev/null
 rg -n 'VerifyIndexShellAccessibilityContractAsync|VerifyBootstrapRoleShellEntryPointsAsync|VerifyCachePressureBudgetContractAsync|RuntimeBundleQuota == 8|<html lang="en">' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Post-closure completion criteria \(M12\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
-rg -n 'Player shell criteria: browser transport \+ event-log \+ offline resume stay lineage-safe' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
-rg -n 'GM shell criteria: GM-only action and Spider-card capability gates remain enforced' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
-rg -n 'Observer shell criteria: bootstrap and resume keep the lane read-mostly' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Player shell criteria: browser transport \+ event-log \+ offline resume stay lineage-safe.*authorization denials preserve stored replay context' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'GM shell criteria: GM-only action and Spider-card capability gates remain enforced.*preserve stored replay context' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Observer shell criteria: bootstrap and resume keep the lane read-mostly.*denied quick-action attempts replay-safe' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Release-proof cadence criteria: each closure slice must keep these criteria represented in `WORKLIST.md` \(`TG-M12-PL`, `TG-M12-GM`, `TG-M12-OB`, `TG-M12-RP`\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Math\.Max\(ledgerBeforeAppend\.LastKnownSequence, cursor\.AppliedThroughSequence\) \+ 1' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'EnsureStoredLineageAlignedAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null

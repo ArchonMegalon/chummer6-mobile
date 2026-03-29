@@ -25,7 +25,7 @@ The mobile/play head no longer blocks the product on shell reality, replay safet
 
 The post-closure depth lane is considered executable when the following remain true and regression-backed:
 
-- Player shell criteria: browser transport + event-log + offline resume stay lineage-safe, and player role actions stay limited to player-safe capabilities even when capability descriptors are over-provisioned.
-- GM shell criteria: GM-only action and Spider-card capability gates remain enforced even when player-safe capabilities are present, and continuity/observe routes keep stale-lineage-safe behavior.
-- Observer shell criteria: bootstrap and resume keep the lane read-mostly, surface observer-owned shell metadata, and never inherit player quick actions, player write posture, or GM tactical cards.
+- Player shell criteria: browser transport + event-log + offline resume stay lineage-safe, player role actions stay limited to player-safe capabilities even when capability descriptors are over-provisioned, and authorization denials preserve stored replay context instead of blanking the shell.
+- GM shell criteria: GM-only action and Spider-card capability gates remain enforced even when player-safe capabilities are present, continuity/observe routes keep stale-lineage-safe behavior, and denied player-safe requests preserve stored replay context.
+- Observer shell criteria: bootstrap and resume keep the lane read-mostly, surface observer-owned shell metadata, never inherit player quick actions, player write posture, or GM tactical cards, and keep denied quick-action attempts replay-safe.
 - Release-proof cadence criteria: each closure slice must keep these criteria represented in `WORKLIST.md` (`TG-M12-PL`, `TG-M12-GM`, `TG-M12-OB`, `TG-M12-RP`) and preserved by `scripts/ai/verify.sh`.

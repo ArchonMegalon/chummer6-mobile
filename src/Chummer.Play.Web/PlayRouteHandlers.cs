@@ -313,6 +313,20 @@ public static class PlayRouteHandlers
             );
         }
 
+        var effectiveSession = ResolveStoredSession(requestSession, checkpoint, existingLedger);
+        var denialSequence = existingLedger?.LastKnownSequence
+            ?? checkpoint?.AppliedThroughSequence
+            ?? request.Cursor.AppliedThroughSequence;
+        var denialPendingEvents = existingLedger is not null
+            && SessionLineage.IsLedgerAligned(
+                existingLedger,
+                effectiveSession.SessionId,
+                effectiveSession.SceneId,
+                effectiveSession.SceneRevision,
+                effectiveSession.RuntimeFingerprint
+            )
+                ? existingLedger.PendingEvents
+                : Array.Empty<string>();
         var roleCapabilities = request.Role == PlaySurfaceRole.GameMaster
             ? ResolveRoleCapabilities(ToSnapshot(gmShell))
             : ResolveRoleCapabilities(ToSnapshot(playerShell));
@@ -321,22 +335,13 @@ public static class PlayRouteHandlers
         );
         if (quickAction is null)
         {
-            var fallbackCheckpoint = checkpoint
-                ?? new SyncCheckpoint(
-                    requestSession.SessionId,
-                    requestSession.SceneId,
-                    requestSession.SceneRevision,
-                    requestSession.RuntimeFingerprint,
-                    request.Cursor.AppliedThroughSequence,
-                    DateTimeOffset.UtcNow
-                );
             return Results.Json(
                 new PlayQuickActionResponse(
                     false,
                     false,
                     "action not permitted for role capabilities",
-                    BuildProjection(requestSession, fallbackCheckpoint.AppliedThroughSequence, Array.Empty<string>()),
-                    fallbackCheckpoint
+                    BuildProjection(effectiveSession, denialSequence, denialPendingEvents),
+                    CreateAlignedCheckpoint(effectiveSession, denialSequence, checkpoint)
                 )
             );
         }

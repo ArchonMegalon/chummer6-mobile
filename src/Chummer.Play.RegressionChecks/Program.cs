@@ -44,6 +44,7 @@ await RunCheckAsync(nameof(VerifyIndexShellAccessibilityContractAsync), VerifyIn
 await RunCheckAsync(nameof(VerifyBootstrapRoleShellEntryPointsAsync), VerifyBootstrapRoleShellEntryPointsAsync);
 await RunCheckAsync(nameof(VerifyRoleBoundarySurvivesCapabilityLeakageAsync), VerifyRoleBoundarySurvivesCapabilityLeakageAsync);
 await RunCheckAsync(nameof(VerifyQuickActionRejectsCrossRoleAuthorizationAsync), VerifyQuickActionRejectsCrossRoleAuthorizationAsync);
+await RunCheckAsync(nameof(VerifyDeniedQuickActionsPreserveStoredReplayStateAsync), VerifyDeniedQuickActionsPreserveStoredReplayStateAsync);
 await RunCheckAsync(nameof(VerifyObserverBootstrapAndResumeStayReadMostlyAsync), VerifyObserverBootstrapAndResumeStayReadMostlyAsync);
 await RunCheckAsync(nameof(VerifyCachePressureBudgetContractAsync), VerifyCachePressureBudgetContractAsync);
 await RunCheckAsync(nameof(VerifyEventLogDropsMalformedStoredLedgerAsync), VerifyEventLogDropsMalformedStoredLedgerAsync);
@@ -1286,6 +1287,71 @@ static async Task VerifyQuickActionRejectsCrossRoleAuthorizationAsync()
     Assert(ledger is not null, "cross-role quick action denial must preserve existing ledger");
     Assert(ledger!.LastKnownSequence == 5, "cross-role quick action denial must not mutate sequence ownership");
     Assert(ledger.PendingEvents.SequenceEqual(["evt-existing"]), "cross-role quick action denial must not mutate pending events");
+}
+
+static async Task VerifyDeniedQuickActionsPreserveStoredReplayStateAsync()
+{
+    const string sessionId = "session-role-denial-replay";
+    var store = new BrowserSessionEventLogStore(new InMemoryBrowserKeyValueStore());
+    var cache = new BrowserSessionOfflineCacheService(new InMemoryBrowserKeyValueStore());
+    var queue = new BrowserSessionOfflineQueueService(store, cache);
+    var session = new EngineSessionEnvelope(sessionId, "scene-role", "scene-r6", "runtime-role");
+    await store.AppendPendingEventsAsync(
+        session.SessionId,
+        session.SceneId,
+        session.SceneRevision,
+        session.RuntimeFingerprint,
+        ["evt-existing"],
+        7
+    );
+    await cache.SetCheckpointAsync(
+        new SyncCheckpoint(
+            session.SessionId,
+            session.SceneId,
+            session.SceneRevision,
+            session.RuntimeFingerprint,
+            7,
+            DateTimeOffset.UtcNow
+        )
+    );
+
+    async Task AssertDeniedStateAsync(PlaySurfaceRole role, string actionId)
+    {
+        var response = await ExecuteResultAsync<PlayQuickActionResponse>(
+            await PlayRouteHandlers.HandleQuickActionAsync(
+                new PlayQuickActionRequest(new EngineSessionCursor(session, 7), role, actionId),
+                cache,
+                store,
+                queue,
+                PlayerShellModule.CreateDescriptor(),
+                GmTacticalShellModule.CreateDescriptor(),
+                CancellationToken.None
+            )
+        );
+
+        Assert(!response.Accepted, $"{role} denial must not be accepted");
+        Assert(!response.Stale, $"{role} denial must stay authorization-based instead of stale");
+        Assert(response.Reason == "action not permitted for role capabilities", $"{role} denial must return deterministic authorization reason");
+        Assert(response.Projection.Cursor.Session.SceneId == session.SceneId, $"{role} denial must preserve stored scene lineage");
+        Assert(response.Projection.Cursor.Session.RuntimeFingerprint == session.RuntimeFingerprint, $"{role} denial must preserve stored runtime lineage");
+        Assert(response.Projection.Cursor.AppliedThroughSequence == 7, $"{role} denial must preserve stored sequence ownership");
+        Assert(
+            response.Projection.Timeline.Any(item => string.Equals(item, "pending:evt-existing", StringComparison.Ordinal)),
+            $"{role} denial must preserve stored pending replay state"
+        );
+        Assert(response.Checkpoint is not null, $"{role} denial must return an aligned checkpoint");
+        Assert(response.Checkpoint!.SceneRevision == session.SceneRevision, $"{role} denial checkpoint must preserve stored scene revision");
+        Assert(response.Checkpoint.AppliedThroughSequence == 7, $"{role} denial checkpoint must preserve stored sequence ownership");
+    }
+
+    await AssertDeniedStateAsync(PlaySurfaceRole.Player, "gm-advance-initiative");
+    await AssertDeniedStateAsync(PlaySurfaceRole.GameMaster, "player-mark-ready");
+    await AssertDeniedStateAsync(PlaySurfaceRole.Observer, "player-mark-ready");
+
+    var ledger = await store.GetExistingAsync(sessionId);
+    Assert(ledger is not null, "authorization denials must preserve the existing ledger");
+    Assert(ledger!.LastKnownSequence == 7, "authorization denials must not mutate stored sequence ownership");
+    Assert(ledger.PendingEvents.SequenceEqual(["evt-existing"]), "authorization denials must not mutate stored pending events");
 }
 
 static async Task VerifyCachePressureBudgetContractAsync()
