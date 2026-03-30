@@ -244,6 +244,8 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.RoleFollowThroughHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must provide a direct role follow-through href.");
     Assert(projection.QuickActionLabels.SequenceEqual(["Mark Ready"]), "workspace-lite summary must surface quick action labels");
     Assert(projection.FollowThroughLabels.Count >= 3, "workspace-lite summary must surface explicit follow-through labels for update, support, and role posture.");
+    Assert(projection.FollowThroughLabels.Any(item => item.Contains("Review Pending", StringComparison.Ordinal)), "workspace-lite summary must carry artifact publication trust ranking into follow-through labels.");
+    Assert(projection.FollowThroughLabels.Any(item => item.Contains("creator publication status", StringComparison.Ordinal)), "workspace-lite summary must carry the artifact publication next step into follow-through labels.");
     Assert(projection.FollowThroughLabels.Any(item => item.Contains("Current caution:", StringComparison.Ordinal) && item.Contains("bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep the explicit caution lane inside follow-through labels.");
     Assert(projection.ChangePacketLabels.Any(item => item.Contains("Travel-safe packet: checkpoint 12 + bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must expose the bounded offline travel packet inside the change packet labels.");
     Assert(projection.FollowThroughLabels.Any(item => item.Contains("bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep the update follow-through tied to the validated runtime bundle.");

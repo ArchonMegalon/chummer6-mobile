@@ -128,7 +128,15 @@ public static class PlayCampaignWorkspaceLiteProjector
         string roleFollowThrough = BuildRoleFollowThrough(resume, session);
         string roleFollowThroughHref = BuildRoleFollowThroughHref(resume, session);
         string[] changePacketLabels = BuildChangePacketLabels(resume, session, latestTimeline);
-        string[] followThroughLabels = BuildFollowThroughLabels(resume, session, currentCautionSummary, updateFollowThrough, supportFollowThrough, roleFollowThrough);
+        string[] followThroughLabels = BuildFollowThroughLabels(
+            resume,
+            session,
+            recapPublicationSummary,
+            recapNextAction,
+            currentCautionSummary,
+            updateFollowThrough,
+            supportFollowThrough,
+            roleFollowThrough);
 
         List<string> attentionItems = [];
         if (resume.RuntimeBundle is null)
@@ -526,6 +534,8 @@ public static class PlayCampaignWorkspaceLiteProjector
     private static string[] BuildFollowThroughLabels(
         PlayResumeResponse resume,
         EngineSessionEnvelope session,
+        string recapPublicationSummary,
+        string recapNextAction,
         string currentCautionSummary,
         string updateFollowThrough,
         string supportFollowThrough,
@@ -533,6 +543,8 @@ public static class PlayCampaignWorkspaceLiteProjector
     {
         List<string> labels =
         [
+            recapPublicationSummary,
+            recapNextAction,
             currentCautionSummary,
             updateFollowThrough,
             supportFollowThrough,
