@@ -22,6 +22,7 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string RecapAudienceSummary,
     string RecapOwnershipSummary,
     string RecapPublicationSummary,
+    string RecapLineageSummary,
     string RecapNextAction,
     string RecapPublicationHref,
     string CampaignMemorySummary,
@@ -102,6 +103,9 @@ public static class PlayCampaignWorkspaceLiteProjector
         string recapPublicationSummary = recapEntry is null
             ? "Artifact publication: no creator-shelf posture is attached yet."
             : $"Artifact publication: {HumanizeState(recapEntry.PublicationState, "Ready")}. Trust ranking: {HumanizeState(recapEntry.TrustBand, "Draft")}. Discoverable now: {(recapEntry.Discoverable ? "Eligible now" : "Still bounded")}. {recapEntry.PublicationSummary}";
+        string recapLineageSummary = recapEntry is null
+            ? "Artifact lineage: no creator-publication lineage is attached yet."
+            : BuildRecapLineageSummary(recapEntry);
         string recapNextAction = recapEntry is null
             ? $"Artifact next: {serverPlane.NextSafeAction.Summary}"
             : $"Artifact next: {recapEntry.NextSafeAction ?? serverPlane.NextSafeAction.Summary}";
@@ -132,6 +136,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             resume,
             session,
             recapPublicationSummary,
+            recapLineageSummary,
             recapNextAction,
             currentCautionSummary,
             updateFollowThrough,
@@ -184,6 +189,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             RecapAudienceSummary: recapAudienceSummary,
             RecapOwnershipSummary: recapOwnershipSummary,
             RecapPublicationSummary: recapPublicationSummary,
+            RecapLineageSummary: recapLineageSummary,
             RecapNextAction: recapNextAction,
             RecapPublicationHref: recapPublicationHref,
             CampaignMemorySummary: campaignMemorySummary,
@@ -463,6 +469,11 @@ public static class PlayCampaignWorkspaceLiteProjector
                 ? $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device still lacks a local bundle."
                 : $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and bundle {resume.RuntimeBundle.BundleTag}.";
 
+    private static string BuildRecapLineageSummary(RecapShelfEntry recapEntry)
+        => string.IsNullOrWhiteSpace(recapEntry.CreatorPublicationId)
+            ? $"Artifact lineage: {recapEntry.Label} stays on one governed recap lane until a successor publication replaces it."
+            : $"Artifact lineage: {recapEntry.Label} stays attached to {recapEntry.CreatorPublicationId} until a governed successor publication replaces it.";
+
     private static string BuildSupportFollowThroughHref(PlayResumeResponse resume, EngineSessionEnvelope session)
     {
         if (!string.IsNullOrWhiteSpace(resume.SupportNotice?.FollowThroughHref))
@@ -535,6 +546,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         PlayResumeResponse resume,
         EngineSessionEnvelope session,
         string recapPublicationSummary,
+        string recapLineageSummary,
         string recapNextAction,
         string currentCautionSummary,
         string updateFollowThrough,
@@ -544,6 +556,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         List<string> labels =
         [
             recapPublicationSummary,
+            recapLineageSummary,
             recapNextAction,
             currentCautionSummary,
             updateFollowThrough,

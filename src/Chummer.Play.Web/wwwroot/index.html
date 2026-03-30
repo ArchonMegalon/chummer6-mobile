@@ -57,6 +57,7 @@
       <p id="workspace-recap-audience" class="hint"></p>
       <p id="workspace-recap-ownership" class="hint"></p>
       <p id="workspace-recap-publication" class="hint"></p>
+      <p id="workspace-recap-lineage" class="hint"></p>
       <p id="workspace-recap-next" class="hint"></p>
       <p><a id="workspace-recap-publication-link" class="hint" href="/account/work">Artifact shelf follow-through</a></p>
       <p id="workspace-memory" class="hint"></p>
@@ -151,6 +152,7 @@
     document.getElementById("workspace-recap-audience").textContent = payload.recapAudienceSummary || "No artifact audience summary is available yet.";
     document.getElementById("workspace-recap-ownership").textContent = payload.recapOwnershipSummary || "No artifact ownership summary is available yet.";
     document.getElementById("workspace-recap-publication").textContent = payload.recapPublicationSummary || "No artifact publication summary is available yet.";
+    document.getElementById("workspace-recap-lineage").textContent = payload.recapLineageSummary || "No artifact lineage summary is available yet.";
     document.getElementById("workspace-recap-next").textContent = payload.recapNextAction || "No artifact next step is available yet.";
     document.getElementById("workspace-recap-publication-link").href = payload.recapPublicationHref || "/account/work";
     document.getElementById("workspace-recap-publication-link").textContent = payload.recapNextAction || "Artifact shelf follow-through";
