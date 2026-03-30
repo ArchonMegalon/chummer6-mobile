@@ -35,6 +35,9 @@
       <p id="change-packet-summary" class="hint"></p>
       <p id="workspace-role" class="hint"></p>
       <p id="workspace-rule-posture" class="hint"></p>
+      <p id="workspace-legal-runner" class="hint"></p>
+      <p id="workspace-understandable-return" class="hint"></p>
+      <p id="workspace-campaign-ready" class="hint"></p>
       <p id="workspace-continuity" class="hint"></p>
       <p id="workspace-cache" class="hint"></p>
       <p id="workspace-travel" class="hint"></p>
@@ -133,6 +136,9 @@
     document.getElementById("change-packet-summary").textContent = payload.changePacketSummary || "No change packet is available yet.";
     document.getElementById("workspace-role").textContent = payload.rolePosture || "No role posture is available yet.";
     document.getElementById("workspace-rule-posture").textContent = payload.rulePosture || "No rule posture is available yet.";
+    document.getElementById("workspace-legal-runner").textContent = payload.legalRunnerSummary || "No legal-runner summary is available yet.";
+    document.getElementById("workspace-understandable-return").textContent = payload.understandableReturnSummary || "No understandable-return summary is available yet.";
+    document.getElementById("workspace-campaign-ready").textContent = payload.campaignReadySummary || "No campaign-ready summary is available yet.";
     document.getElementById("workspace-continuity").textContent = payload.continuityPosture || "No continuity posture is available yet.";
     document.getElementById("workspace-cache").textContent = payload.cachePosture || "No cache posture is available yet.";
     document.getElementById("workspace-travel").textContent = payload.travelPosture || "No travel posture is available yet.";

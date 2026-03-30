@@ -208,6 +208,12 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.RolePosture.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose the role route posture");
     Assert(projection.RolePosture.Contains("player lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must expose the current device role posture");
     Assert(projection.RulePosture.Contains("sr6.preview.v1", StringComparison.Ordinal), "workspace-lite summary must surface the runtime fingerprint");
+    Assert(projection.LegalRunnerSummary.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must surface explicit legal-runner proof for the grounded bundle.");
+    Assert(projection.LegalRunnerSummary.Contains("sr6.preview.v1", StringComparison.Ordinal), "workspace-lite summary must keep the grounded runtime fingerprint inside the legal-runner proof.");
+    Assert(projection.UnderstandableReturnSummary.Contains("Checkpoint 12", StringComparison.Ordinal), "workspace-lite summary must surface the checkpoint inside the understandable-return proof.");
+    Assert(projection.UnderstandableReturnSummary.Contains("Restore summary:", StringComparison.Ordinal), "workspace-lite summary must keep the restore lane explicit inside the understandable-return proof.");
+    Assert(projection.CampaignReadySummary.Contains("Session readiness is green", StringComparison.Ordinal), "workspace-lite summary must surface explicit campaign-ready proof for the grounded shell.");
+    Assert(projection.CampaignReadySummary.Contains("Roster readiness", StringComparison.Ordinal), "workspace-lite summary must keep roster posture attached to the campaign-ready proof.");
     Assert(projection.SafeNextAction.Contains("Sync before taking the next quick action", StringComparison.Ordinal), "workspace-lite summary must point the player lane at the next safe action");
     Assert(projection.ContinuityPosture.Contains("Checkpoint 12", StringComparison.Ordinal), "workspace-lite summary must expose the aligned continuity checkpoint");
     Assert(projection.CachePosture.Contains("2/8", StringComparison.Ordinal), "workspace-lite summary must expose cache posture");
@@ -344,6 +350,7 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(observerProjection.RoleFollowThrough.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep observer-specific role follow-through text");
     Assert(observerProjection.RoleFollowThrough.Contains("read-mostly", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the read-mostly follow-through posture");
     Assert(observerProjection.RoleFollowThroughHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer role follow-through href");
+    Assert(observerProjection.CampaignReadySummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep observer posture explicit inside campaign-ready proof");
     Assert(observerProjection.QuickActionLabels.Count == 0, "observer workspace-lite projection must not expose quick actions");
     Assert(observerProjection.CampaignMemorySummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer lane explicit inside campaign memory.");
     Assert(observerProjection.CampaignMemoryReturnSummary.Contains("install-local continuity lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep campaign-memory return bounded to the same install-local lane.");
@@ -387,6 +394,7 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(gmProjection.DecisionNoticeHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm decision follow-through route");
     Assert(gmProjection.RoleFollowThrough.Contains("GM changes anchored on scene-rigel", StringComparison.Ordinal), "gm workspace-lite projection must keep gm changes anchored on the current scene");
     Assert(gmProjection.RoleFollowThroughHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm role follow-through href");
+    Assert(gmProjection.CampaignReadySummary.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep gm posture explicit inside campaign-ready proof");
     Assert(gmProjection.QuickActionLabels.SequenceEqual(["Advance Initiative", "Publish Spider Card"]), "gm workspace-lite projection must preserve gm quick actions");
     Assert(gmProjection.AttentionItems.SequenceEqual(["No blocking continuity issues are active on this device."]), "gm workspace-lite projection must stay clear when gm continuity is fully aligned");
     Assert(gmProjection.CampaignMemorySummary.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm lane explicit inside campaign memory.");
@@ -1295,6 +1303,9 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"workspace-summary\"", StringComparison.Ordinal), "play shell must expose a workspace-lite summary region");
     Assert(html.Contains("id=\"workspace-role\"", StringComparison.Ordinal), "play shell must expose role posture alongside current state");
     Assert(html.Contains("id=\"change-packet-summary\"", StringComparison.Ordinal), "play shell must expose a change-packet summary alongside current state");
+    Assert(html.Contains("id=\"workspace-legal-runner\"", StringComparison.Ordinal), "play shell must expose legal-runner proof alongside current state");
+    Assert(html.Contains("id=\"workspace-understandable-return\"", StringComparison.Ordinal), "play shell must expose understandable-return proof alongside current state");
+    Assert(html.Contains("id=\"workspace-campaign-ready\"", StringComparison.Ordinal), "play shell must expose campaign-ready proof alongside current state");
     Assert(html.Contains("id=\"change-packet-list\"", StringComparison.Ordinal), "play shell must expose change-packet labels for the current return anchor");
     Assert(html.Contains("id=\"workspace-server-plane\"", StringComparison.Ordinal), "play shell must expose a campaign server-plane summary alongside current state");
     Assert(html.Contains("id=\"workspace-roster\"", StringComparison.Ordinal), "play shell must expose roster readiness alongside current state");
@@ -1345,6 +1356,9 @@ static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
     Assert(html.Contains("document.getElementById(\"workspace-recap-ownership\").textContent = payload.recapOwnershipSummary || \"No artifact ownership summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact ownership posture from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-publication\").textContent = payload.recapPublicationSummary || \"No artifact publication summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact publication posture from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-next\").textContent = payload.recapNextAction || \"No artifact next step is available yet.\";", StringComparison.Ordinal), "play shell must bind the next artifact-shelf step from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"workspace-legal-runner\").textContent = payload.legalRunnerSummary || \"No legal-runner summary is available yet.\";", StringComparison.Ordinal), "play shell must bind legal-runner proof from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"workspace-understandable-return\").textContent = payload.understandableReturnSummary || \"No understandable-return summary is available yet.\";", StringComparison.Ordinal), "play shell must bind understandable-return proof from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"workspace-campaign-ready\").textContent = payload.campaignReadySummary || \"No campaign-ready summary is available yet.\";", StringComparison.Ordinal), "play shell must bind campaign-ready proof from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-publication-link\").href = payload.recapPublicationHref || \"/account/work\";", StringComparison.Ordinal), "play shell must bind the artifact-shelf follow-through href from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-publication-link\").textContent = payload.recapNextAction || \"Artifact shelf follow-through\";", StringComparison.Ordinal), "play shell must bind the artifact-shelf follow-through link text from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"follow-through-update-link\").textContent = payload.updateFollowThrough || \"Update follow-through\";", StringComparison.Ordinal), "play shell must bind update follow-through link text to the workspace projection.");

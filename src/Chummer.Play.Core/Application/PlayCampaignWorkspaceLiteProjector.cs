@@ -28,6 +28,9 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string CampaignMemoryReturnSummary,
     string RolePosture,
     string RulePosture,
+    string LegalRunnerSummary,
+    string UnderstandableReturnSummary,
+    string CampaignReadySummary,
     string SafeNextAction,
     string ContinuityPosture,
     string CachePosture,
@@ -108,6 +111,9 @@ public static class PlayCampaignWorkspaceLiteProjector
         string campaignMemorySummary = BuildCampaignMemorySummary(resume, serverPlane, roleLabel, latestTimeline);
         string campaignMemoryReturnSummary = BuildCampaignMemoryReturnSummary(resume, serverPlane, roleLabel);
         string rolePosture = BuildRolePosture(resume, session);
+        string legalRunnerSummary = BuildLegalRunnerSummary(resume, session);
+        string understandableReturnSummary = BuildUnderstandableReturnSummary(serverPlane, continuityPosture);
+        string campaignReadySummary = BuildCampaignReadySummary(serverPlane);
         string safeNextAction = serverPlane.NextSafeAction.Summary;
         string updatePosture = BuildUpdatePosture(resume, session);
         string supportPosture = BuildSupportPosture(resume, serverPlane);
@@ -176,6 +182,9 @@ public static class PlayCampaignWorkspaceLiteProjector
             CampaignMemoryReturnSummary: campaignMemoryReturnSummary,
             RolePosture: rolePosture,
             RulePosture: $"{session.RuntimeFingerprint}. {runtimeBundleSummary}",
+            LegalRunnerSummary: legalRunnerSummary,
+            UnderstandableReturnSummary: understandableReturnSummary,
+            CampaignReadySummary: campaignReadySummary,
             SafeNextAction: safeNextAction,
             ContinuityPosture: continuityPosture,
             CachePosture: cachePosture,
@@ -264,6 +273,19 @@ public static class PlayCampaignWorkspaceLiteProjector
             _ => $"Role posture: player lane on {route}. Keep this shell focused on one grounded move at a time and leave prep-heavy changes to the workbench."
         };
     }
+
+    private static string BuildLegalRunnerSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Legal runner: {session.RuntimeFingerprint} is loaded, but this shell still needs grounded bundle proof before you trust the first playable session."
+            : $"Legal runner: bundle {resume.RuntimeBundle.BundleTag} keeps {session.RuntimeFingerprint} grounded on this shell.";
+
+    private static string BuildUnderstandableReturnSummary(
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string continuityPosture)
+        => $"Understandable return: {continuityPosture} {serverPlane.Campaign.RestoreSummary}";
+
+    private static string BuildCampaignReadySummary(PlayCampaignWorkspaceServerPlane serverPlane)
+        => $"Campaign-ready lane: {serverPlane.Campaign.SessionReadinessSummary} {serverPlane.Roster.Summary}";
 
     private static string BuildSafeNextAction(PlayResumeResponse resume, EngineSessionEnvelope session)
     {
