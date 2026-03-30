@@ -59,6 +59,8 @@
       <p id="workspace-recap-publication" class="hint"></p>
       <p id="workspace-recap-lineage" class="hint"></p>
       <p id="workspace-recap-next" class="hint"></p>
+      <p id="workspace-recap-view" class="hint"></p>
+      <ul id="workspace-recap-views"></ul>
       <p><a id="workspace-recap-publication-link" class="hint" href="/account/work">Artifact shelf follow-through</a></p>
       <p id="workspace-memory" class="hint"></p>
       <p id="workspace-memory-return" class="hint"></p>
@@ -130,6 +132,20 @@
     }
   }
 
+  function setLinkList(id, items) {
+    const list = document.getElementById(id);
+    list.replaceChildren();
+    for (const item of items || []) {
+      const entry = document.createElement("li");
+      const link = document.createElement("a");
+      link.className = "hint";
+      link.href = item.href || "/artifacts";
+      link.textContent = `${item.label || "Artifact view"}${item.isSelected ? " (current)" : ""}: ${item.summary || "No view summary is available yet."}`;
+      entry.appendChild(link);
+      list.appendChild(entry);
+    }
+  }
+
   function renderWorkspace(payload) {
     document.getElementById("workspace-summary").textContent = payload.summary || "No campaign workspace summary is available yet.";
     document.getElementById("workspace-safe-action").textContent = payload.safeNextAction || "No safe next action is available yet.";
@@ -154,6 +170,11 @@
     document.getElementById("workspace-recap-publication").textContent = payload.recapPublicationSummary || "No artifact publication summary is available yet.";
     document.getElementById("workspace-recap-lineage").textContent = payload.recapLineageSummary || "No artifact lineage summary is available yet.";
     document.getElementById("workspace-recap-next").textContent = payload.recapNextAction || "No artifact next step is available yet.";
+    const selectedArtifactView = (payload.artifactShelfViews || []).find((item) => item.isSelected);
+    document.getElementById("workspace-recap-view").textContent = selectedArtifactView
+      ? `Artifact shelf view: ${selectedArtifactView.label}`
+      : "Artifact shelf view: no browse lane is selected yet.";
+    setLinkList("workspace-recap-views", payload.artifactShelfViews);
     document.getElementById("workspace-recap-publication-link").href = payload.recapPublicationHref || "/account/work";
     document.getElementById("workspace-recap-publication-link").textContent = payload.recapNextAction || "Artifact shelf follow-through";
     document.getElementById("workspace-memory").textContent = payload.campaignMemorySummary || "No campaign-memory summary is available yet.";

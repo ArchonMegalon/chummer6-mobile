@@ -25,6 +25,8 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string RecapLineageSummary,
     string RecapNextAction,
     string RecapPublicationHref,
+    string SelectedArtifactView,
+    IReadOnlyList<PlayArtifactShelfViewLink> ArtifactShelfViews,
     string CampaignMemorySummary,
     string CampaignMemoryReturnSummary,
     string RolePosture,
@@ -54,6 +56,13 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     IReadOnlyList<string> QuickActionLabels,
     IReadOnlyList<string> FollowThroughLabels,
     IReadOnlyList<string> CoachHints);
+
+public sealed record PlayArtifactShelfViewLink(
+    string ViewId,
+    string Label,
+    string Summary,
+    string Href,
+    bool IsSelected);
 
 public static class PlayCampaignWorkspaceLiteProjector
 {
@@ -112,6 +121,8 @@ public static class PlayCampaignWorkspaceLiteProjector
         string recapPublicationHref = string.IsNullOrWhiteSpace(recapEntry?.CreatorPublicationId)
             ? "/account/work"
             : $"/account/work/publications/{Uri.EscapeDataString(recapEntry.CreatorPublicationId!)}";
+        string selectedArtifactView = SelectArtifactShelfView(resume.Role, recapEntry);
+        PlayArtifactShelfViewLink[] artifactShelfViews = BuildArtifactShelfViews(recapEntry, selectedArtifactView);
         string campaignMemorySummary = BuildCampaignMemorySummary(resume, serverPlane, roleLabel, latestTimeline);
         string campaignMemoryReturnSummary = BuildCampaignMemoryReturnSummary(resume, serverPlane, roleLabel);
         string rolePosture = BuildRolePosture(resume, session);
@@ -192,6 +203,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             RecapLineageSummary: recapLineageSummary,
             RecapNextAction: recapNextAction,
             RecapPublicationHref: recapPublicationHref,
+            SelectedArtifactView: selectedArtifactView,
+            ArtifactShelfViews: artifactShelfViews,
             CampaignMemorySummary: campaignMemorySummary,
             CampaignMemoryReturnSummary: campaignMemoryReturnSummary,
             RolePosture: rolePosture,
@@ -223,6 +236,89 @@ public static class PlayCampaignWorkspaceLiteProjector
             QuickActionLabels: resume.Bootstrap.QuickActions.Select(action => action.Label).ToArray(),
             FollowThroughLabels: followThroughLabels,
             CoachHints: resume.Bootstrap.CoachHints.Select(hint => hint.Message).ToArray());
+    }
+
+    private static string SelectArtifactShelfView(PlaySurfaceRole role, RecapShelfEntry? recapEntry)
+    {
+        HashSet<string> availableViews = GetArtifactAudienceKinds(recapEntry?.Audience);
+        string preferredView = role switch
+        {
+            PlaySurfaceRole.GameMaster => "campaign",
+            PlaySurfaceRole.Observer when recapEntry?.Discoverable == true => "creator",
+            PlaySurfaceRole.Observer => "campaign",
+            _ => "personal"
+        };
+
+        if (availableViews.Contains(preferredView))
+        {
+            return preferredView;
+        }
+
+        foreach (string fallbackView in new[] { "campaign", "personal", "creator" })
+        {
+            if (availableViews.Contains(fallbackView))
+            {
+                return fallbackView;
+            }
+        }
+
+        return "campaign";
+    }
+
+    private static PlayArtifactShelfViewLink[] BuildArtifactShelfViews(RecapShelfEntry? recapEntry, string selectedArtifactView)
+    {
+        HashSet<string> availableViews = GetArtifactAudienceKinds(recapEntry?.Audience);
+
+        return
+        [
+            new(
+                ViewId: "personal",
+                Label: "My stuff",
+                Summary: availableViews.Contains("personal")
+                    ? $"Reuse the same dossier-safe return lane without duplicating records. {recapEntry?.OwnershipSummary ?? "This view keeps install-local ownership explicit."}"
+                    : "No dossier-safe return lane is attached yet, but this view stays reserved for personal artifact truth.",
+                Href: "/artifacts?view=personal",
+                IsSelected: string.Equals(selectedArtifactView, "personal", StringComparison.Ordinal)),
+            new(
+                ViewId: "campaign",
+                Label: "Campaign stuff",
+                Summary: availableViews.Contains("campaign")
+                    ? $"Browse the live campaign recap packet on the shared lane. {recapEntry?.Summary ?? "This view keeps the table-facing recap artifact attached to the current workspace."}"
+                    : "No shared campaign recap packet is attached yet, but this view stays reserved for campaign artifact truth.",
+                Href: "/artifacts?view=campaign",
+                IsSelected: string.Equals(selectedArtifactView, "campaign", StringComparison.Ordinal)),
+            new(
+                ViewId: "creator",
+                Label: "Published stuff",
+                Summary: availableViews.Contains("creator")
+                    ? recapEntry?.Discoverable == true
+                        ? $"Browse the governed creator packet directly from the same recap-safe artifact. {recapEntry.PublicationSummary}"
+                        : $"The same creator packet is still bounded until publication clears review. {recapEntry?.NextSafeAction ?? "Review creator publication status before you widen the audience."}"
+                    : "No creator-safe packet is attached yet, but this view stays reserved for published artifact truth.",
+                Href: "/artifacts?view=creator",
+                IsSelected: string.Equals(selectedArtifactView, "creator", StringComparison.Ordinal))
+        ];
+    }
+
+    private static HashSet<string> GetArtifactAudienceKinds(string? audience)
+    {
+        if (string.IsNullOrWhiteSpace(audience))
+        {
+            return ["campaign"];
+        }
+
+        HashSet<string> kinds = audience
+            .Split([',', ';', '/'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(static value => value.Trim().ToLowerInvariant())
+            .Where(static value => !string.IsNullOrWhiteSpace(value))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (kinds.Count == 0)
+        {
+            kinds.Add("campaign");
+        }
+
+        return kinds;
     }
 
     private static string HumanizeAudience(string? audience)

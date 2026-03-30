@@ -202,6 +202,11 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.RecapLineageSummary.Contains("governed successor publication", StringComparison.Ordinal), "workspace-lite summary must keep recap lineage anchored to governed successor promotion.");
     Assert(projection.RecapNextAction.Contains("creator publication status", StringComparison.Ordinal), "workspace-lite summary must expose the next artifact-shelf step directly from the server-plane recap projection.");
     Assert(projection.RecapPublicationHref.Contains("/account/work/publications/", StringComparison.Ordinal), "workspace-lite summary must expose a direct follow-through href into creator publication status.");
+    Assert(projection.SelectedArtifactView == "personal", "workspace-lite summary must default the player lane to the personal artifact shelf view.");
+    Assert(projection.ArtifactShelfViews.Count == 3, "workspace-lite summary must expose first-class artifact shelf views for personal, campaign, and published browsing.");
+    Assert(projection.ArtifactShelfViews.Any(item => item.ViewId == "personal" && item.Label == "My stuff" && item.IsSelected && item.Href == "/artifacts?view=personal"), "workspace-lite summary must expose a selected personal artifact shelf view.");
+    Assert(projection.ArtifactShelfViews.Any(item => item.ViewId == "campaign" && item.Label == "Campaign stuff" && item.Href == "/artifacts?view=campaign"), "workspace-lite summary must expose the campaign artifact shelf view as a direct browse target.");
+    Assert(projection.ArtifactShelfViews.Any(item => item.ViewId == "creator" && item.Label == "Published stuff" && item.Href == "/artifacts?view=creator"), "workspace-lite summary must expose the published artifact shelf view as a direct browse target.");
     Assert(projection.CampaignMemorySummary.Contains("Campaign memory:", StringComparison.Ordinal), "workspace-lite summary must expose a first-class campaign-memory summary.");
     Assert(projection.CampaignMemorySummary.Contains("governed memory lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must keep the governed memory-lane wording explicit.");
     Assert(projection.CampaignMemorySummary.Contains("player lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must keep the current role inside the campaign-memory summary.");
@@ -363,6 +368,8 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(observerProjection.CampaignMemoryReturnSummary.Contains("install-local continuity lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep campaign-memory return bounded to the same install-local lane.");
     Assert(observerProjection.OfflinePrefetchSummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer return lane explicit in offline prefetch");
     Assert(observerProjection.FollowThroughLabels.Any(item => item.Contains("observer lane", StringComparison.OrdinalIgnoreCase)), "observer workspace-lite projection must surface observer-specific follow-through labels");
+    Assert(observerProjection.SelectedArtifactView == "campaign", "observer workspace-lite projection must fall back to the campaign artifact shelf view while creator discovery stays bounded.");
+    Assert(observerProjection.ArtifactShelfViews.Any(item => item.ViewId == "campaign" && item.IsSelected), "observer workspace-lite projection must keep the campaign artifact shelf view selected while creator discovery stays bounded.");
     Assert(observerProjection.CoachHints.SequenceEqual(
         [
             "Stay read-mostly until the owner lane confirms the next revision.",
@@ -408,6 +415,8 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(gmProjection.CampaignMemoryReturnSummary.Contains("Next:", StringComparison.Ordinal), "gm workspace-lite projection must keep the next safe action attached to the campaign-memory return cue.");
     Assert(gmProjection.OfflinePrefetchSummary.Contains("GM runboard return lane", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm return lane explicit in offline prefetch");
     Assert(gmProjection.FollowThroughLabels.Any(item => item.Contains("GM changes anchored", StringComparison.Ordinal)), "gm workspace-lite projection must surface gm-specific follow-through labels");
+    Assert(gmProjection.SelectedArtifactView == "campaign", "gm workspace-lite projection must default to the campaign artifact shelf view.");
+    Assert(gmProjection.ArtifactShelfViews.Any(item => item.ViewId == "campaign" && item.IsSelected), "gm workspace-lite projection must keep the campaign artifact shelf view selected.");
     Assert(gmProjection.CoachHints.SequenceEqual(
         [
             "Confirm the grounded scene before advancing the runboard.",
@@ -1322,6 +1331,8 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"workspace-recap-ownership\"", StringComparison.Ordinal), "play shell must expose artifact ownership posture alongside the recap-safe packet.");
     Assert(html.Contains("id=\"workspace-recap-publication\"", StringComparison.Ordinal), "play shell must expose artifact publication posture alongside the recap-safe packet.");
     Assert(html.Contains("id=\"workspace-recap-next\"", StringComparison.Ordinal), "play shell must expose the next artifact-shelf step alongside the recap-safe packet.");
+    Assert(html.Contains("id=\"workspace-recap-view\"", StringComparison.Ordinal), "play shell must expose the selected artifact shelf view alongside the recap-safe packet.");
+    Assert(html.Contains("id=\"workspace-recap-views\"", StringComparison.Ordinal), "play shell must expose first-class artifact shelf browse targets alongside the recap-safe packet.");
     Assert(html.Contains("id=\"workspace-recap-publication-link\"", StringComparison.Ordinal), "play shell must expose a direct artifact-shelf follow-through link.");
     Assert(html.Contains("id=\"workspace-memory\"", StringComparison.Ordinal), "play shell must expose the campaign-memory summary alongside current state");
     Assert(html.Contains("id=\"workspace-memory-return\"", StringComparison.Ordinal), "play shell must expose the campaign-memory return cue alongside current state");
@@ -1364,6 +1375,9 @@ static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
     Assert(html.Contains("document.getElementById(\"workspace-recap-publication\").textContent = payload.recapPublicationSummary || \"No artifact publication summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact publication posture from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-lineage\").textContent = payload.recapLineageSummary || \"No artifact lineage summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact lineage posture from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-next\").textContent = payload.recapNextAction || \"No artifact next step is available yet.\";", StringComparison.Ordinal), "play shell must bind the next artifact-shelf step from the workspace-lite projection.");
+    Assert(html.Contains("const selectedArtifactView = (payload.artifactShelfViews || []).find((item) => item.isSelected);", StringComparison.Ordinal), "play shell must derive the selected artifact shelf view from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"workspace-recap-view\").textContent = selectedArtifactView", StringComparison.Ordinal), "play shell must bind the selected artifact shelf view from the workspace-lite projection.");
+    Assert(html.Contains("setLinkList(\"workspace-recap-views\", payload.artifactShelfViews);", StringComparison.Ordinal), "play shell must bind explicit artifact shelf browse links from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-legal-runner\").textContent = payload.legalRunnerSummary || \"No legal-runner summary is available yet.\";", StringComparison.Ordinal), "play shell must bind legal-runner proof from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-understandable-return\").textContent = payload.understandableReturnSummary || \"No understandable-return summary is available yet.\";", StringComparison.Ordinal), "play shell must bind understandable-return proof from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-campaign-ready\").textContent = payload.campaignReadySummary || \"No campaign-ready summary is available yet.\";", StringComparison.Ordinal), "play shell must bind campaign-ready proof from the workspace-lite projection.");
