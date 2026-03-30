@@ -52,6 +52,8 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
                 Audience: "personal,campaign,creator",
                 OwnershipSummary: $"{session.SceneId} keeps the same recap-safe artifact on the owned mobile return lane instead of forking a shadow export.",
                 PublicationState: resume.RuntimeBundle is null ? "publication_safe" : "preview_ready",
+                TrustBand: resume.RuntimeBundle is null ? "draft" : "review-pending",
+                Discoverable: false,
                 PublicationSummary: BuildRecapPublicationSummary(resume, session),
                 CreatorPublicationId: $"publication:{resume.SessionId}",
                 NextSafeAction: BuildRecapNextSafeAction(resume, session))

@@ -195,6 +195,8 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.RecapAudienceSummary.Contains("Published stuff", StringComparison.Ordinal), "workspace-lite summary must expose the published artifact shelf view.");
     Assert(projection.RecapOwnershipSummary.Contains("owned mobile return lane", StringComparison.Ordinal), "workspace-lite summary must expose artifact ownership posture for the mobile return lane.");
     Assert(projection.RecapPublicationSummary.Contains("Preview Ready", StringComparison.Ordinal), "workspace-lite summary must expose artifact publication state for the recap shelf.");
+    Assert(projection.RecapPublicationSummary.Contains("Review Pending", StringComparison.Ordinal), "workspace-lite summary must expose creator-publication trust ranking for the recap shelf.");
+    Assert(projection.RecapPublicationSummary.Contains("Still bounded", StringComparison.Ordinal), "workspace-lite summary must expose recap discoverability posture until publication actually goes live.");
     Assert(projection.RecapPublicationSummary.Contains("published stuff", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must explain that the same recap-safe packet feeds published artifact posture.");
     Assert(projection.RecapNextAction.Contains("creator publication status", StringComparison.Ordinal), "workspace-lite summary must expose the next artifact-shelf step directly from the server-plane recap projection.");
     Assert(projection.RecapPublicationHref.Contains("/account/work/publications/", StringComparison.Ordinal), "workspace-lite summary must expose a direct follow-through href into creator publication status.");

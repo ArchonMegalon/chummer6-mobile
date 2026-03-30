@@ -101,7 +101,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             ?? "Artifact ownership: no shared recap-safe packet is attached yet.";
         string recapPublicationSummary = recapEntry is null
             ? "Artifact publication: no creator-shelf posture is attached yet."
-            : $"Artifact publication: {HumanizeState(recapEntry.PublicationState, "Ready")}. {recapEntry.PublicationSummary}";
+            : $"Artifact publication: {HumanizeState(recapEntry.PublicationState, "Ready")}. Trust ranking: {HumanizeState(recapEntry.TrustBand, "Draft")}. Discoverable now: {(recapEntry.Discoverable ? "Eligible now" : "Still bounded")}. {recapEntry.PublicationSummary}";
         string recapNextAction = recapEntry is null
             ? $"Artifact next: {serverPlane.NextSafeAction.Summary}"
             : $"Artifact next: {recapEntry.NextSafeAction ?? serverPlane.NextSafeAction.Summary}";
