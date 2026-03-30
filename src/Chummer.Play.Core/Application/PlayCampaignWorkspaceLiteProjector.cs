@@ -22,6 +22,8 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string RecapAudienceSummary,
     string RecapOwnershipSummary,
     string RecapPublicationSummary,
+    string RecapProvenanceSummary,
+    string RecapAuditSummary,
     string RecapLineageSummary,
     string RecapNextAction,
     string RecapPublicationHref,
@@ -112,6 +114,10 @@ public static class PlayCampaignWorkspaceLiteProjector
         string recapPublicationSummary = recapEntry is null
             ? "Artifact publication: no creator-shelf posture is attached yet."
             : $"Artifact publication: {HumanizeState(recapEntry.PublicationState, "Ready")}. Trust ranking: {HumanizeState(recapEntry.TrustBand, "Draft")}. Discoverable now: {(recapEntry.Discoverable ? "Eligible now" : "Still bounded")}. {recapEntry.PublicationSummary}";
+        string recapProvenanceSummary = recapEntry?.ProvenanceSummary
+            ?? "Artifact provenance: no recap-safe provenance summary is attached yet.";
+        string recapAuditSummary = recapEntry?.AuditSummary
+            ?? "Artifact audit: no recap-safe audit summary is attached yet.";
         string recapLineageSummary = recapEntry is null
             ? "Artifact lineage: no creator-publication lineage is attached yet."
             : BuildRecapLineageSummary(recapEntry);
@@ -200,6 +206,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             RecapAudienceSummary: recapAudienceSummary,
             RecapOwnershipSummary: recapOwnershipSummary,
             RecapPublicationSummary: recapPublicationSummary,
+            RecapProvenanceSummary: recapProvenanceSummary,
+            RecapAuditSummary: recapAuditSummary,
             RecapLineageSummary: recapLineageSummary,
             RecapNextAction: recapNextAction,
             RecapPublicationHref: recapPublicationHref,

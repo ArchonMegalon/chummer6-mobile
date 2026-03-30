@@ -56,7 +56,9 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
                 Discoverable: false,
                 PublicationSummary: BuildRecapPublicationSummary(resume, session),
                 CreatorPublicationId: $"publication:{resume.SessionId}",
-                NextSafeAction: BuildRecapNextSafeAction(resume, session))
+                NextSafeAction: BuildRecapNextSafeAction(resume, session),
+                ProvenanceSummary: BuildRecapProvenanceSummary(resume, session),
+                AuditSummary: BuildRecapAuditSummary(resume, session))
         ];
 
         WorkspaceSummary workspace = new(
@@ -196,6 +198,16 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
         => resume.RuntimeBundle is null
             ? $"Reconnect {session.SceneId} once, then reopen creator publication status before you widen the artifact audience."
             : $"Open creator publication status for {session.SceneId}, then keep follow-through on the same recap-safe packet.";
+
+    private static string BuildRecapProvenanceSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"{session.RuntimeFingerprint} + {session.SceneId} + checkpoint pending keep the recap-safe packet bounded to the claimed-device return lane."
+            : $"{session.RuntimeFingerprint} + {session.SceneId} + checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"} keep the recap-safe packet grounded on the same return lane.";
+
+    private static string BuildRecapAuditSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.Checkpoint is null
+            ? $"Reconnect {session.SceneId} once so this claimed device records its first governed recap receipt."
+            : $"Checkpoint {resume.Checkpoint.AppliedThroughSequence} was captured at {resume.Checkpoint.CapturedAtUtc:yyyy-MM-dd HH:mm} UTC and remains reviewable on artifact artifact:{resume.SessionId}:recap.";
 
     private static string BuildRosterSummary(
         PlayResumeResponse resume,

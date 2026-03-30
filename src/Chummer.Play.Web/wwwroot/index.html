@@ -57,6 +57,8 @@
       <p id="workspace-recap-audience" class="hint"></p>
       <p id="workspace-recap-ownership" class="hint"></p>
       <p id="workspace-recap-publication" class="hint"></p>
+      <p id="workspace-recap-provenance" class="hint"></p>
+      <p id="workspace-recap-audit" class="hint"></p>
       <p id="workspace-recap-lineage" class="hint"></p>
       <p id="workspace-recap-next" class="hint"></p>
       <p id="workspace-recap-view" class="hint"></p>
@@ -168,6 +170,8 @@
     document.getElementById("workspace-recap-audience").textContent = payload.recapAudienceSummary || "No artifact audience summary is available yet.";
     document.getElementById("workspace-recap-ownership").textContent = payload.recapOwnershipSummary || "No artifact ownership summary is available yet.";
     document.getElementById("workspace-recap-publication").textContent = payload.recapPublicationSummary || "No artifact publication summary is available yet.";
+    document.getElementById("workspace-recap-provenance").textContent = payload.recapProvenanceSummary || "No artifact provenance summary is available yet.";
+    document.getElementById("workspace-recap-audit").textContent = payload.recapAuditSummary || "No artifact audit summary is available yet.";
     document.getElementById("workspace-recap-lineage").textContent = payload.recapLineageSummary || "No artifact lineage summary is available yet.";
     document.getElementById("workspace-recap-next").textContent = payload.recapNextAction || "No artifact next step is available yet.";
     const selectedArtifactView = (payload.artifactShelfViews || []).find((item) => item.isSelected);
