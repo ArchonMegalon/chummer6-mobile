@@ -40,26 +40,7 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
         ContinuityConflictCue[] continuityConflicts = BuildContinuityConflicts(resume, session);
         KnownIssueAffectingInstall[] knownIssues = BuildKnownIssues(resume, session, roleSummary);
         DecisionNotice[] decisionNotices = BuildDecisionNotices(resume, session);
-        RecapShelfEntry[] recapShelf =
-        [
-            new(
-                EntryId: $"recap:{resume.SessionId}",
-                Kind: "recap",
-                Label: $"{session.SceneId} recap-safe packet",
-                Summary: $"Recap stays anchored on '{latestTimeline}' and checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"} for the {roleLabel}.",
-                ArtifactId: $"artifact:{resume.SessionId}:recap",
-                UpdatedAtUtc: updatedAtUtc,
-                Audience: "personal,campaign,creator",
-                OwnershipSummary: $"{session.SceneId} keeps the same recap-safe artifact on the owned mobile return lane instead of forking a shadow export.",
-                PublicationState: resume.RuntimeBundle is null ? "publication_safe" : "preview_ready",
-                TrustBand: resume.RuntimeBundle is null ? "draft" : "review-pending",
-                Discoverable: false,
-                PublicationSummary: BuildRecapPublicationSummary(resume, session),
-                CreatorPublicationId: $"publication:{resume.SessionId}",
-                NextSafeAction: BuildRecapNextSafeAction(resume, session),
-                ProvenanceSummary: BuildRecapProvenanceSummary(resume, session),
-                AuditSummary: BuildRecapAuditSummary(resume, session))
-        ];
+        RecapShelfEntry[] recapShelf = BuildAftermathShelf(resume, session, roleLabel, latestTimeline, updatedAtUtc);
 
         WorkspaceSummary workspace = new(
             WorkspaceId: $"workspace:{resume.SessionId}",
@@ -128,6 +109,50 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
             NextSafeAction: nextSafeAction);
     }
 
+    private static RecapShelfEntry[] BuildAftermathShelf(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string latestTimeline,
+        DateTimeOffset updatedAtUtc)
+        =>
+        [
+            new(
+                EntryId: $"recap:{resume.SessionId}",
+                Kind: "recap",
+                Label: $"{session.SceneId} recap-safe packet",
+                Summary: $"Recap stays anchored on '{latestTimeline}' and checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"} for the {roleLabel}.",
+                ArtifactId: $"artifact:{resume.SessionId}:recap",
+                UpdatedAtUtc: updatedAtUtc,
+                Audience: "personal,campaign,creator",
+                OwnershipSummary: $"{session.SceneId} keeps the same recap-safe artifact on the owned mobile return lane instead of forking a shadow export.",
+                PublicationState: resume.RuntimeBundle is null ? "publication_safe" : "preview_ready",
+                TrustBand: resume.RuntimeBundle is null ? "draft" : "review-pending",
+                Discoverable: false,
+                PublicationSummary: BuildRecapPublicationSummary(resume, session),
+                CreatorPublicationId: $"publication:{resume.SessionId}",
+                NextSafeAction: BuildRecapNextSafeAction(resume, session),
+                ProvenanceSummary: BuildRecapProvenanceSummary(resume, session),
+                AuditSummary: BuildRecapAuditSummary(resume, session)),
+            new(
+                EntryId: $"replay:{resume.SessionId}",
+                Kind: "replay_timeline",
+                Label: $"{session.SceneId} replay timeline",
+                Summary: $"Replay keeps contested turns anchored on '{latestTimeline}' and checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"} for the {roleLabel}.",
+                ArtifactId: $"artifact:{resume.SessionId}:replay",
+                UpdatedAtUtc: updatedAtUtc,
+                Audience: "campaign,creator",
+                OwnershipSummary: $"{session.SceneId} keeps the same replay-safe artifact on the governed continuity lane so contested turns stay reviewable without forking campaign truth.",
+                PublicationState: resume.RuntimeBundle is null ? "publication_safe" : "preview_ready",
+                TrustBand: resume.RuntimeBundle is null ? "draft" : "review-pending",
+                Discoverable: false,
+                PublicationSummary: BuildReplayPublicationSummary(resume, session),
+                CreatorPublicationId: $"publication:{resume.SessionId}:replay",
+                NextSafeAction: BuildReplayNextSafeAction(resume, session),
+                ProvenanceSummary: BuildReplayProvenanceSummary(resume, session),
+                AuditSummary: BuildReplayAuditSummary(resume, session))
+        ];
+
     private static string ResolveRoleLabel(PlaySurfaceRole role)
         => role switch
         {
@@ -194,20 +219,40 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
             ? $"Creator shelf posture is still provisional for {session.SceneId}; reconnect once before you trust this recap-safe packet as published truth."
             : $"Creator shelf posture is grounded on bundle {resume.RuntimeBundle.BundleTag}, so the same recap-safe packet can reopen my stuff, campaign stuff, and published stuff without another export copy.";
 
+    private static string BuildReplayPublicationSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Creator shelf posture is still provisional for {session.SceneId}; reconnect once before you trust this replay timeline as published review truth."
+            : $"Creator shelf posture is grounded on bundle {resume.RuntimeBundle.BundleTag}, so the same replay timeline can reopen campaign stuff and published stuff without another export copy.";
+
     private static string BuildRecapNextSafeAction(PlayResumeResponse resume, EngineSessionEnvelope session)
         => resume.RuntimeBundle is null
             ? $"Reconnect {session.SceneId} once, then reopen creator publication status before you widen the artifact audience."
             : $"Open creator publication status for {session.SceneId}, then keep follow-through on the same recap-safe packet.";
+
+    private static string BuildReplayNextSafeAction(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Reconnect {session.SceneId} once, then reopen creator publication status before you widen the replay timeline audience."
+            : $"Open creator publication status for {session.SceneId}, then keep contested-turn review on the same replay timeline.";
 
     private static string BuildRecapProvenanceSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
         => resume.RuntimeBundle is null
             ? $"{session.RuntimeFingerprint} + {session.SceneId} + checkpoint pending keep the recap-safe packet bounded to the claimed-device return lane."
             : $"{session.RuntimeFingerprint} + {session.SceneId} + checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"} keep the recap-safe packet grounded on the same return lane.";
 
+    private static string BuildReplayProvenanceSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"{session.RuntimeFingerprint} + {session.SceneId} + checkpoint pending keep the replay timeline bounded to the claimed-device contested-turn review lane."
+            : $"{session.RuntimeFingerprint} + {session.SceneId} + checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"} keep the replay timeline grounded on the same contested-turn review lane.";
+
     private static string BuildRecapAuditSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
         => resume.Checkpoint is null
             ? $"Reconnect {session.SceneId} once so this claimed device records its first governed recap receipt."
             : $"Checkpoint {resume.Checkpoint.AppliedThroughSequence} was captured at {resume.Checkpoint.CapturedAtUtc:yyyy-MM-dd HH:mm} UTC and remains reviewable on artifact artifact:{resume.SessionId}:recap.";
+
+    private static string BuildReplayAuditSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.Checkpoint is null
+            ? $"Reconnect {session.SceneId} once so this claimed device records its first governed replay receipt."
+            : $"Checkpoint {resume.Checkpoint.AppliedThroughSequence} was captured at {resume.Checkpoint.CapturedAtUtc:yyyy-MM-dd HH:mm} UTC and remains reviewable on artifact artifact:{resume.SessionId}:replay.";
 
     private static string BuildRosterSummary(
         PlayResumeResponse resume,

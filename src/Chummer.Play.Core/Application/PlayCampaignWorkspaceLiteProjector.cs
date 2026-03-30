@@ -27,6 +27,15 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string RecapLineageSummary,
     string RecapNextAction,
     string RecapPublicationHref,
+    string ReplaySummary,
+    string ReplayAudienceSummary,
+    string ReplayOwnershipSummary,
+    string ReplayPublicationSummary,
+    string ReplayProvenanceSummary,
+    string ReplayAuditSummary,
+    string ReplayLineageSummary,
+    string ReplayNextAction,
+    string ReplayPublicationHref,
     string SelectedArtifactView,
     IReadOnlyList<PlayArtifactShelfViewLink> ArtifactShelfViews,
     string CampaignMemorySummary,
@@ -88,7 +97,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         string cachePosture = resume.CachePressure.BackpressureActive
             ? $"Cache pressure is active: {resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota} runtime bundles are pinned and eviction already touched {resume.CachePressure.EvictedEntryCount} session(s)."
             : $"Cache pressure is calm: {resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota} runtime bundles are pinned for this shell.";
-        string travelPosture = BuildTravelPosture(resume, session);
+        string travelPosture = BuildTravelPosture(resume, session, serverPlane);
         string offlinePrefetchSummary = BuildOfflinePrefetchSummary(resume, serverPlane, roleLabel);
         string runtimeBundleSummary = resume.RuntimeBundle is null
             ? "No runtime bundle is cached locally yet."
@@ -102,7 +111,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? "No campaign decision notices are active for this shell."
             : $"{decisionNotice.Summary} {decisionNotice.ActionLabel}.";
         string decisionNoticeHref = decisionNotice?.ActionHref ?? "/";
-        RecapShelfEntry? recapEntry = serverPlane.RecapShelf.FirstOrDefault();
+        RecapShelfEntry? recapEntry = FindLeadRecapEntry(serverPlane);
+        RecapShelfEntry? replayEntry = FindLeadReplayEntry(serverPlane);
         string recapSummary = recapEntry is { } boundedRecapEntry
             ? $"{boundedRecapEntry.Label}: {boundedRecapEntry.Summary}"
             : "No recap-safe packet is available yet.";
@@ -120,13 +130,37 @@ public static class PlayCampaignWorkspaceLiteProjector
             ?? "Artifact audit: no recap-safe audit summary is attached yet.";
         string recapLineageSummary = recapEntry is null
             ? "Artifact lineage: no creator-publication lineage is attached yet."
-            : BuildRecapLineageSummary(recapEntry);
+            : BuildArtifactLineageSummary(recapEntry);
         string recapNextAction = recapEntry is null
             ? $"Artifact next: {serverPlane.NextSafeAction.Summary}"
             : $"Artifact next: {recapEntry.NextSafeAction ?? serverPlane.NextSafeAction.Summary}";
         string recapPublicationHref = string.IsNullOrWhiteSpace(recapEntry?.CreatorPublicationId)
             ? "/account/work"
             : $"/account/work/publications/{Uri.EscapeDataString(recapEntry.CreatorPublicationId!)}";
+        string replaySummary = replayEntry is { } boundedReplayEntry
+            ? $"{boundedReplayEntry.Label}: {boundedReplayEntry.Summary}"
+            : "No replay-safe package is available yet.";
+        string replayAudienceSummary = replayEntry is null
+            ? "Artifact audience: no replay-safe package is attached yet."
+            : $"Artifact audience: {HumanizeAudience(replayEntry.Audience)}.";
+        string replayOwnershipSummary = replayEntry?.OwnershipSummary
+            ?? "Artifact ownership: no shared replay-safe package is attached yet.";
+        string replayPublicationSummary = replayEntry is null
+            ? "Artifact publication: no replay-safe creator-shelf posture is attached yet."
+            : $"Artifact publication: {HumanizeState(replayEntry.PublicationState, "Ready")}. Trust ranking: {HumanizeState(replayEntry.TrustBand, "Draft")}. Discoverable now: {(replayEntry.Discoverable ? "Eligible now" : "Still bounded")}. {replayEntry.PublicationSummary}";
+        string replayProvenanceSummary = replayEntry?.ProvenanceSummary
+            ?? "Artifact provenance: no replay-safe provenance summary is attached yet.";
+        string replayAuditSummary = replayEntry?.AuditSummary
+            ?? "Artifact audit: no replay-safe audit summary is attached yet.";
+        string replayLineageSummary = replayEntry is null
+            ? "Artifact lineage: no replay-safe creator-publication lineage is attached yet."
+            : BuildArtifactLineageSummary(replayEntry);
+        string replayNextAction = replayEntry is null
+            ? $"Artifact next: {serverPlane.NextSafeAction.Summary}"
+            : $"Artifact next: {replayEntry.NextSafeAction ?? serverPlane.NextSafeAction.Summary}";
+        string replayPublicationHref = string.IsNullOrWhiteSpace(replayEntry?.CreatorPublicationId)
+            ? "/account/work"
+            : $"/account/work/publications/{Uri.EscapeDataString(replayEntry.CreatorPublicationId!)}";
         string selectedArtifactView = SelectArtifactShelfView(resume.Role, recapEntry);
         PlayArtifactShelfViewLink[] artifactShelfViews = BuildArtifactShelfViews(recapEntry, selectedArtifactView);
         string campaignMemorySummary = BuildCampaignMemorySummary(resume, serverPlane, roleLabel, latestTimeline);
@@ -148,13 +182,17 @@ public static class PlayCampaignWorkspaceLiteProjector
         string supportFollowThroughHref = BuildSupportFollowThroughHref(resume, session);
         string roleFollowThrough = BuildRoleFollowThrough(resume, session);
         string roleFollowThroughHref = BuildRoleFollowThroughHref(resume, session);
-        string[] changePacketLabels = BuildChangePacketLabels(resume, session, latestTimeline);
+        string[] changePacketLabels = BuildChangePacketLabels(resume, session, latestTimeline, serverPlane);
         string[] followThroughLabels = BuildFollowThroughLabels(
             resume,
             session,
+            replayEntry,
             recapPublicationSummary,
             recapLineageSummary,
             recapNextAction,
+            replayPublicationSummary,
+            replayLineageSummary,
+            replayNextAction,
             currentCautionSummary,
             updateFollowThrough,
             supportFollowThrough,
@@ -211,6 +249,15 @@ public static class PlayCampaignWorkspaceLiteProjector
             RecapLineageSummary: recapLineageSummary,
             RecapNextAction: recapNextAction,
             RecapPublicationHref: recapPublicationHref,
+            ReplaySummary: replaySummary,
+            ReplayAudienceSummary: replayAudienceSummary,
+            ReplayOwnershipSummary: replayOwnershipSummary,
+            ReplayPublicationSummary: replayPublicationSummary,
+            ReplayProvenanceSummary: replayProvenanceSummary,
+            ReplayAuditSummary: replayAuditSummary,
+            ReplayLineageSummary: replayLineageSummary,
+            ReplayNextAction: replayNextAction,
+            ReplayPublicationHref: replayPublicationHref,
             SelectedArtifactView: selectedArtifactView,
             ArtifactShelfViews: artifactShelfViews,
             CampaignMemorySummary: campaignMemorySummary,
@@ -364,6 +411,16 @@ public static class PlayCampaignWorkspaceLiteProjector
             value.Replace('_', ' ').Replace('-', ' '));
     }
 
+    private static RecapShelfEntry? FindLeadRecapEntry(PlayCampaignWorkspaceServerPlane serverPlane)
+        => serverPlane.RecapShelf.FirstOrDefault(static item => !IsReplayEntry(item))
+            ?? serverPlane.RecapShelf.FirstOrDefault();
+
+    private static RecapShelfEntry? FindLeadReplayEntry(PlayCampaignWorkspaceServerPlane serverPlane)
+        => serverPlane.RecapShelf.FirstOrDefault(IsReplayEntry);
+
+    private static bool IsReplayEntry(RecapShelfEntry item)
+        => item.Kind.Contains("replay", StringComparison.OrdinalIgnoreCase);
+
     private static string BuildChangePacketSummary(
         PlayResumeResponse resume,
         EngineSessionEnvelope session,
@@ -435,11 +492,14 @@ public static class PlayCampaignWorkspaceLiteProjector
         return $"Update posture: bundle {resume.RuntimeBundle.BundleTag} for {session.RuntimeFingerprint} was validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC and is the grounded local update target.";
     }
 
-    private static string BuildTravelPosture(PlayResumeResponse resume, EngineSessionEnvelope session)
+    private static string BuildTravelPosture(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane)
     {
         if (resume.RuntimeBundle is null)
         {
-            return $"Travel posture: reconnect {session.SceneId} once so this claimed device can prefetch dossier, campaign, rule-environment, and recap truth before the next safehouse or travel handoff.";
+            return $"Travel posture: reconnect {session.SceneId} once so this claimed device can prefetch dossier, campaign, rule-environment, replay, and recap truth before the next safehouse or travel handoff.";
         }
 
         if (resume.CachePressure.BackpressureActive)
@@ -452,7 +512,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             return $"Travel posture: bundle {resume.RuntimeBundle.BundleTag} is grounded, but seed a local checkpoint before you trust this shell as a safehouse return anchor.";
         }
 
-        return $"Travel posture: checkpoint {resume.Checkpoint.AppliedThroughSequence}, bundle {resume.RuntimeBundle.BundleTag}, and the recap-safe packet are ready for bounded offline use on this claimed device.";
+        return $"Travel posture: checkpoint {resume.Checkpoint.AppliedThroughSequence}, bundle {resume.RuntimeBundle.BundleTag}, and {BuildAftermathCoverageSummary(serverPlane)} are ready for bounded offline use on this claimed device.";
     }
 
     private static string BuildOfflinePrefetchSummary(
@@ -469,8 +529,8 @@ public static class PlayCampaignWorkspaceLiteProjector
         string dossierSummary = $"{resume.Bootstrap.Projection.Cursor.Session.SceneId} return dossier";
         string campaignSummary = serverPlane.Campaign.CampaignName;
         string ruleSummary = resume.Bootstrap.Projection.Cursor.Session.RuntimeFingerprint;
-        string recapSummary = serverPlane.RecapShelf.FirstOrDefault()?.Label ?? "no recap-safe packet yet";
-        return $"Offline prefetch: {checkpointSummary}, {bundleSummary}, dossier '{dossierSummary}', campaign '{campaignSummary}', rules '{ruleSummary}', {recapSummary}, and the {roleLabel} return lane stay install-local and bounded to this device.";
+        string aftermathSummary = BuildAftermathCoverageSummary(serverPlane);
+        return $"Offline prefetch: {checkpointSummary}, {bundleSummary}, dossier '{dossierSummary}', campaign '{campaignSummary}', rules '{ruleSummary}', {aftermathSummary}, and the {roleLabel} return lane stay install-local and bounded to this device.";
     }
 
     private static string BuildCampaignMemorySummary(
@@ -482,8 +542,8 @@ public static class PlayCampaignWorkspaceLiteProjector
         string checkpointSummary = resume.Checkpoint is null
             ? "checkpoint pending"
             : $"checkpoint {resume.Checkpoint.AppliedThroughSequence}";
-        string recapLabel = serverPlane.RecapShelf.FirstOrDefault()?.Label ?? "recap-safe packet pending";
-        return $"Campaign memory: {serverPlane.Workspace.CampaignName}, {checkpointSummary}, '{latestTimeline}', and {recapLabel} stay on one governed memory lane for the {roleLabel}.";
+        string aftermathLabel = BuildAftermathCoverageSummary(serverPlane);
+        return $"Campaign memory: {serverPlane.Workspace.CampaignName}, {checkpointSummary}, '{latestTimeline}', and {aftermathLabel} stay on one governed memory lane for the {roleLabel}.";
     }
 
     private static string BuildCampaignMemoryReturnSummary(
@@ -573,10 +633,13 @@ public static class PlayCampaignWorkspaceLiteProjector
                 ? $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and note that this device still lacks a local bundle."
                 : $"Prepare support context for {resume.SessionId}/{session.SceneId} with runtime {session.RuntimeFingerprint} and bundle {resume.RuntimeBundle.BundleTag}.";
 
-    private static string BuildRecapLineageSummary(RecapShelfEntry recapEntry)
-        => string.IsNullOrWhiteSpace(recapEntry.CreatorPublicationId)
-            ? $"Artifact lineage: {recapEntry.Label} stays on one governed recap lane until a successor publication replaces it."
-            : $"Artifact lineage: {recapEntry.Label} stays attached to {recapEntry.CreatorPublicationId} until a governed successor publication replaces it.";
+    private static string BuildArtifactLineageSummary(RecapShelfEntry item)
+    {
+        string laneLabel = IsReplayEntry(item) ? "replay" : "recap";
+        return string.IsNullOrWhiteSpace(item.CreatorPublicationId)
+            ? $"Artifact lineage: {item.Label} stays on one governed {laneLabel} lane until a successor publication replaces it."
+            : $"Artifact lineage: {item.Label} stays attached to {item.CreatorPublicationId} until a governed successor publication replaces it.";
+    }
 
     private static string BuildSupportFollowThroughHref(PlayResumeResponse resume, EngineSessionEnvelope session)
     {
@@ -614,7 +677,8 @@ public static class PlayCampaignWorkspaceLiteProjector
     private static string[] BuildChangePacketLabels(
         PlayResumeResponse resume,
         EngineSessionEnvelope session,
-        string latestTimeline)
+        string latestTimeline,
+        PlayCampaignWorkspaceServerPlane serverPlane)
     {
         List<string> labels =
         [
@@ -630,6 +694,11 @@ public static class PlayCampaignWorkspaceLiteProjector
         if (resume.RuntimeBundle is not null)
         {
             labels.Add($"Bundle proof: {resume.RuntimeBundle.BundleTag}");
+        }
+
+        if (FindLeadReplayEntry(serverPlane) is { } replayEntry)
+        {
+            labels.Add($"Replay-safe packet: {replayEntry.Label}");
         }
 
         labels.Add(
@@ -649,9 +718,13 @@ public static class PlayCampaignWorkspaceLiteProjector
     private static string[] BuildFollowThroughLabels(
         PlayResumeResponse resume,
         EngineSessionEnvelope session,
+        RecapShelfEntry? replayEntry,
         string recapPublicationSummary,
         string recapLineageSummary,
         string recapNextAction,
+        string replayPublicationSummary,
+        string replayLineageSummary,
+        string replayNextAction,
         string currentCautionSummary,
         string updateFollowThrough,
         string supportFollowThrough,
@@ -668,6 +741,11 @@ public static class PlayCampaignWorkspaceLiteProjector
             roleFollowThrough
         ];
 
+        if (replayEntry is not null)
+        {
+            labels.InsertRange(3, [replayPublicationSummary, replayLineageSummary, replayNextAction]);
+        }
+
         if (resume.CachePressure.BackpressureActive)
         {
             labels.Insert(0, "Clear cache pressure before you pin more travel or observer state on this device.");
@@ -679,5 +757,19 @@ public static class PlayCampaignWorkspaceLiteProjector
         }
 
         return labels.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static string BuildAftermathCoverageSummary(PlayCampaignWorkspaceServerPlane serverPlane)
+    {
+        RecapShelfEntry? recapEntry = FindLeadRecapEntry(serverPlane);
+        RecapShelfEntry? replayEntry = FindLeadReplayEntry(serverPlane);
+
+        return (replayEntry, recapEntry) switch
+        {
+            ({ } replay, { } recap) => $"{replay.Label} and {recap.Label}",
+            ({ } replay, null) => replay.Label,
+            (null, { } recap) => recap.Label,
+            _ => "no replay-safe or recap-safe packages yet"
+        };
     }
 }

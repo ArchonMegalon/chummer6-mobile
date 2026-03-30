@@ -64,6 +64,15 @@
       <p id="workspace-recap-view" class="hint"></p>
       <ul id="workspace-recap-views"></ul>
       <p><a id="workspace-recap-publication-link" class="hint" href="/account/work">Artifact shelf follow-through</a></p>
+      <p id="workspace-replay" class="hint"></p>
+      <p id="workspace-replay-audience" class="hint"></p>
+      <p id="workspace-replay-ownership" class="hint"></p>
+      <p id="workspace-replay-publication" class="hint"></p>
+      <p id="workspace-replay-provenance" class="hint"></p>
+      <p id="workspace-replay-audit" class="hint"></p>
+      <p id="workspace-replay-lineage" class="hint"></p>
+      <p id="workspace-replay-next" class="hint"></p>
+      <p><a id="workspace-replay-publication-link" class="hint" href="/account/work">Replay artifact follow-through</a></p>
       <p id="workspace-memory" class="hint"></p>
       <p id="workspace-memory-return" class="hint"></p>
       <p id="workspace-decision-notice" class="hint"></p>
@@ -181,6 +190,16 @@
     setLinkList("workspace-recap-views", payload.artifactShelfViews);
     document.getElementById("workspace-recap-publication-link").href = payload.recapPublicationHref || "/account/work";
     document.getElementById("workspace-recap-publication-link").textContent = payload.recapNextAction || "Artifact shelf follow-through";
+    document.getElementById("workspace-replay").textContent = payload.replaySummary || "No replay-safe package summary is available yet.";
+    document.getElementById("workspace-replay-audience").textContent = payload.replayAudienceSummary || "No replay artifact audience summary is available yet.";
+    document.getElementById("workspace-replay-ownership").textContent = payload.replayOwnershipSummary || "No replay artifact ownership summary is available yet.";
+    document.getElementById("workspace-replay-publication").textContent = payload.replayPublicationSummary || "No replay artifact publication summary is available yet.";
+    document.getElementById("workspace-replay-provenance").textContent = payload.replayProvenanceSummary || "No replay artifact provenance summary is available yet.";
+    document.getElementById("workspace-replay-audit").textContent = payload.replayAuditSummary || "No replay artifact audit summary is available yet.";
+    document.getElementById("workspace-replay-lineage").textContent = payload.replayLineageSummary || "No replay artifact lineage summary is available yet.";
+    document.getElementById("workspace-replay-next").textContent = payload.replayNextAction || "No replay artifact next step is available yet.";
+    document.getElementById("workspace-replay-publication-link").href = payload.replayPublicationHref || "/account/work";
+    document.getElementById("workspace-replay-publication-link").textContent = payload.replayNextAction || "Replay artifact follow-through";
     document.getElementById("workspace-memory").textContent = payload.campaignMemorySummary || "No campaign-memory summary is available yet.";
     document.getElementById("workspace-memory-return").textContent = payload.campaignMemoryReturnSummary || "No campaign-memory return cue is available yet.";
     document.getElementById("workspace-decision-notice").textContent = payload.decisionNotice || "No campaign decision notice is available yet.";
