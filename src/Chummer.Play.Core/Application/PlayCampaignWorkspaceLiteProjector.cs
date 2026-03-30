@@ -19,6 +19,11 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string DecisionNotice,
     string DecisionNoticeHref,
     string RecapSummary,
+    string RecapAudienceSummary,
+    string RecapOwnershipSummary,
+    string RecapPublicationSummary,
+    string RecapNextAction,
+    string RecapPublicationHref,
     string CampaignMemorySummary,
     string CampaignMemoryReturnSummary,
     string RolePosture,
@@ -81,9 +86,24 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? "No campaign decision notices are active for this shell."
             : $"{decisionNotice.Summary} {decisionNotice.ActionLabel}.";
         string decisionNoticeHref = decisionNotice?.ActionHref ?? "/";
-        string recapSummary = serverPlane.RecapShelf.FirstOrDefault() is { } recapEntry
-            ? $"{recapEntry.Label}: {recapEntry.Summary}"
+        RecapShelfEntry? recapEntry = serverPlane.RecapShelf.FirstOrDefault();
+        string recapSummary = recapEntry is { } boundedRecapEntry
+            ? $"{boundedRecapEntry.Label}: {boundedRecapEntry.Summary}"
             : "No recap-safe packet is available yet.";
+        string recapAudienceSummary = recapEntry is null
+            ? "Artifact audience: no recap-safe packet is attached yet."
+            : $"Artifact audience: {HumanizeAudience(recapEntry.Audience)}.";
+        string recapOwnershipSummary = recapEntry?.OwnershipSummary
+            ?? "Artifact ownership: no shared recap-safe packet is attached yet.";
+        string recapPublicationSummary = recapEntry is null
+            ? "Artifact publication: no creator-shelf posture is attached yet."
+            : $"Artifact publication: {HumanizeState(recapEntry.PublicationState, "Ready")}. {recapEntry.PublicationSummary}";
+        string recapNextAction = recapEntry is null
+            ? $"Artifact next: {serverPlane.NextSafeAction.Summary}"
+            : $"Artifact next: {recapEntry.NextSafeAction ?? serverPlane.NextSafeAction.Summary}";
+        string recapPublicationHref = string.IsNullOrWhiteSpace(recapEntry?.CreatorPublicationId)
+            ? "/account/work"
+            : $"/account/work/publications/{Uri.EscapeDataString(recapEntry.CreatorPublicationId!)}";
         string campaignMemorySummary = BuildCampaignMemorySummary(resume, serverPlane, roleLabel, latestTimeline);
         string campaignMemoryReturnSummary = BuildCampaignMemoryReturnSummary(resume, serverPlane, roleLabel);
         string rolePosture = BuildRolePosture(resume, session);
@@ -145,6 +165,11 @@ public static class PlayCampaignWorkspaceLiteProjector
             DecisionNotice: decisionNoticeSummary,
             DecisionNoticeHref: decisionNoticeHref,
             RecapSummary: recapSummary,
+            RecapAudienceSummary: recapAudienceSummary,
+            RecapOwnershipSummary: recapOwnershipSummary,
+            RecapPublicationSummary: recapPublicationSummary,
+            RecapNextAction: recapNextAction,
+            RecapPublicationHref: recapPublicationHref,
             CampaignMemorySummary: campaignMemorySummary,
             CampaignMemoryReturnSummary: campaignMemoryReturnSummary,
             RolePosture: rolePosture,
@@ -172,6 +197,41 @@ public static class PlayCampaignWorkspaceLiteProjector
             QuickActionLabels: resume.Bootstrap.QuickActions.Select(action => action.Label).ToArray(),
             FollowThroughLabels: followThroughLabels,
             CoachHints: resume.Bootstrap.CoachHints.Select(hint => hint.Message).ToArray());
+    }
+
+    private static string HumanizeAudience(string? audience)
+    {
+        if (string.IsNullOrWhiteSpace(audience))
+        {
+            return "Campaign";
+        }
+
+        var labels = audience
+            .Split([',', ';', '/'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(static value => value.Trim())
+            .Where(static value => !string.IsNullOrWhiteSpace(value))
+            .Select(static value => value.ToLowerInvariant() switch
+            {
+                "personal" => "My stuff",
+                "campaign" => "Campaign stuff",
+                "creator" => "Published stuff",
+                _ => System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(value.Replace('_', ' ').Replace('-', ' '))
+            })
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return labels.Length == 0 ? "Campaign" : string.Join(", ", labels);
+    }
+
+    private static string HumanizeState(string? value, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return fallback;
+        }
+
+        return System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(
+            value.Replace('_', ' ').Replace('-', ' '));
     }
 
     private static string BuildChangePacketSummary(

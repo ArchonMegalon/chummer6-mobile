@@ -48,7 +48,13 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
                 Label: $"{session.SceneId} recap-safe packet",
                 Summary: $"Recap stays anchored on '{latestTimeline}' and checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"} for the {roleLabel}.",
                 ArtifactId: $"artifact:{resume.SessionId}:recap",
-                UpdatedAtUtc: updatedAtUtc)
+                UpdatedAtUtc: updatedAtUtc,
+                Audience: "personal,campaign,creator",
+                OwnershipSummary: $"{session.SceneId} keeps the same recap-safe artifact on the owned mobile return lane instead of forking a shadow export.",
+                PublicationState: resume.RuntimeBundle is null ? "publication_safe" : "preview_ready",
+                PublicationSummary: BuildRecapPublicationSummary(resume, session),
+                CreatorPublicationId: $"publication:{resume.SessionId}",
+                NextSafeAction: BuildRecapNextSafeAction(resume, session))
         ];
 
         WorkspaceSummary workspace = new(
@@ -178,6 +184,16 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
         => resume.RuntimeBundle is null
             ? $"Publication summary: {recapEntry.Label} exists, but reconnect once before you trust it as the final recap handoff for {session.SceneId}."
             : $"Publication summary: {recapEntry.Label} is grounded against bundle {resume.RuntimeBundle.BundleTag} for {session.SceneId}.";
+
+    private static string BuildRecapPublicationSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Creator shelf posture is still provisional for {session.SceneId}; reconnect once before you trust this recap-safe packet as published truth."
+            : $"Creator shelf posture is grounded on bundle {resume.RuntimeBundle.BundleTag}, so the same recap-safe packet can reopen my stuff, campaign stuff, and published stuff without another export copy.";
+
+    private static string BuildRecapNextSafeAction(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Reconnect {session.SceneId} once, then reopen creator publication status before you widen the artifact audience."
+            : $"Open creator publication status for {session.SceneId}, then keep follow-through on the same recap-safe packet.";
 
     private static string BuildRosterSummary(
         PlayResumeResponse resume,
