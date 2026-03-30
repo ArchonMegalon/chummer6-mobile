@@ -38,6 +38,7 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string SupportStatus,
     string KnownIssueSummary,
     string FixAvailabilitySummary,
+    string CurrentCautionSummary,
     string UpdateFollowThrough,
     string UpdateFollowThroughHref,
     string SupportFollowThrough,
@@ -113,6 +114,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         string supportStatus = BuildSupportStatus(serverPlane);
         string knownIssueSummary = BuildKnownIssueSummary(resume, session, serverPlane);
         string fixAvailabilitySummary = BuildFixAvailabilitySummary(resume, session, serverPlane);
+        string currentCautionSummary = BuildCurrentCautionSummary(resume, session);
         string updateFollowThrough = BuildUpdateFollowThrough(resume, session);
         string updateFollowThroughHref = BuildUpdateFollowThroughHref(resume, session);
         string supportFollowThrough = BuildSupportFollowThrough(resume, session);
@@ -120,7 +122,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         string roleFollowThrough = BuildRoleFollowThrough(resume, session);
         string roleFollowThroughHref = BuildRoleFollowThroughHref(resume, session);
         string[] changePacketLabels = BuildChangePacketLabels(resume, session, latestTimeline);
-        string[] followThroughLabels = BuildFollowThroughLabels(resume, session, updateFollowThrough, supportFollowThrough, roleFollowThrough);
+        string[] followThroughLabels = BuildFollowThroughLabels(resume, session, currentCautionSummary, updateFollowThrough, supportFollowThrough, roleFollowThrough);
 
         List<string> attentionItems = [];
         if (resume.RuntimeBundle is null)
@@ -184,6 +186,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             SupportStatus: supportStatus,
             KnownIssueSummary: knownIssueSummary,
             FixAvailabilitySummary: fixAvailabilitySummary,
+            CurrentCautionSummary: currentCautionSummary,
             UpdateFollowThrough: updateFollowThrough,
             UpdateFollowThroughHref: updateFollowThroughHref,
             SupportFollowThrough: supportFollowThrough,
@@ -395,6 +398,24 @@ public static class PlayCampaignWorkspaceLiteProjector
             : $"Fix availability: bundle {resume.RuntimeBundle.BundleTag} is the grounded local fix and update target for {session.RuntimeFingerprint}.";
     }
 
+    private static string BuildCurrentCautionSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session)
+    {
+        if (resume.RuntimeBundle is null)
+        {
+            string fallback = $"Reconnect {session.SceneId} and validate a grounded runtime bundle before you trust offline continuation or fix closure on this device.";
+            return $"Current caution: {resume.SupportNotice?.NextSafeAction ?? fallback}";
+        }
+
+        if (resume.CachePressure.BackpressureActive)
+        {
+            return $"Current caution: Clear cache pressure, then re-check bundle {resume.RuntimeBundle.BundleTag} before you verify a fix or trust the next offline session.";
+        }
+
+        return $"Current caution: no extra caution is published for {session.SceneId} right now; use bundle {resume.RuntimeBundle.BundleTag} when you verify the fix or reopen support on this device.";
+    }
+
     private static string BuildUpdateFollowThrough(PlayResumeResponse resume, EngineSessionEnvelope session)
         => resume.RuntimeBundle is null
             ? $"Reconnect {session.SceneId} and validate a grounded runtime bundle before trusting offline updates on this device."
@@ -483,12 +504,14 @@ public static class PlayCampaignWorkspaceLiteProjector
     private static string[] BuildFollowThroughLabels(
         PlayResumeResponse resume,
         EngineSessionEnvelope session,
+        string currentCautionSummary,
         string updateFollowThrough,
         string supportFollowThrough,
         string roleFollowThrough)
     {
         List<string> labels =
         [
+            currentCautionSummary,
             updateFollowThrough,
             supportFollowThrough,
             roleFollowThrough

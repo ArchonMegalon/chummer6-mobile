@@ -223,6 +223,7 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.SupportStatus.Contains("Ready to verify", StringComparison.Ordinal), "workspace-lite summary must expose support case status for the current mobile shell.");
     Assert(projection.KnownIssueSummary.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the known issue summary for the current grounded shell.");
     Assert(projection.FixAvailabilitySummary.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must expose channel-aware fix availability for the grounded runtime bundle.");
+    Assert(projection.CurrentCautionSummary.Contains("no extra caution is published", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must expose an explicit lowered caution lane when the grounded bundle is already available.");
     Assert(projection.UpdateFollowThrough.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must surface an explicit update follow-through route for the validated runtime bundle.");
     Assert(projection.UpdateFollowThroughHref.Contains("/downloads", StringComparison.Ordinal), "workspace-lite summary must provide a direct update follow-through href.");
     Assert(projection.SupportFollowThrough.Contains("bundle proof", StringComparison.Ordinal), "workspace-lite summary must surface an explicit support follow-through route tied to grounded fix verification.");
@@ -235,6 +236,7 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.RoleFollowThroughHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must provide a direct role follow-through href.");
     Assert(projection.QuickActionLabels.SequenceEqual(["Mark Ready"]), "workspace-lite summary must surface quick action labels");
     Assert(projection.FollowThroughLabels.Count >= 3, "workspace-lite summary must surface explicit follow-through labels for update, support, and role posture.");
+    Assert(projection.FollowThroughLabels.Any(item => item.Contains("Current caution:", StringComparison.Ordinal) && item.Contains("bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep the explicit caution lane inside follow-through labels.");
     Assert(projection.ChangePacketLabels.Any(item => item.Contains("Travel-safe packet: checkpoint 12 + bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must expose the bounded offline travel packet inside the change packet labels.");
     Assert(projection.FollowThroughLabels.Any(item => item.Contains("bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep the update follow-through tied to the validated runtime bundle.");
     Assert(projection.FollowThroughLabels.Any(item => item.Contains("session-redmond/scene-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep support follow-through tied to the grounded session context.");
@@ -277,6 +279,7 @@ static void VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy()
     Assert(projection.DecisionNotice.Contains("Use the current bundle proof for scene-redmond", StringComparison.Ordinal), "cache-pressure decision notices must reuse the live support next-safe action instead of a generic support-follow-through label.");
     Assert(!projection.DecisionNotice.Contains("Open support follow-through", StringComparison.Ordinal), "cache-pressure decision notices must not fall back to the old generic support-follow-through label.");
     Assert(projection.DecisionNoticeHref.Contains("/contact", StringComparison.Ordinal), "cache-pressure decision notices must keep the direct support follow-through href.");
+    Assert(projection.CurrentCautionSummary.Contains("Clear cache pressure", StringComparison.Ordinal), "cache-pressure workspace-lite projection must elevate the cache-pressure caution lane explicitly.");
 }
 
 static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails()
