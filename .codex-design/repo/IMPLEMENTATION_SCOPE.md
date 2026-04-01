@@ -45,3 +45,11 @@ Current exit criteria remain practical, not decorative:
 
 This split is materially healthy enough to close `B0`, `A2`, `D1`, and `E1`.
 Remaining work is future capability depth and cross-head polish, not whether the play shell, its replay/resume guarantees, or its package seams are real.
+
+## Flagship-grade bar
+
+`chummer6-mobile` is not flagship grade until:
+
+* reconnect, replay, and resume feel boring under real session stress
+* player and GM flows read as authored live-play experiences rather than downsized workbench screens
+* offline and degraded-network posture is visible enough that the table knows what is safe to trust
