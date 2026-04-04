@@ -42,6 +42,8 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string CampaignMemoryReturnSummary,
     string ContinuityRailSummary,
     IReadOnlyList<string> ContinuityRailLabels,
+    string GmOperationsSummary,
+    IReadOnlyList<string> GmOperationsLabels,
     string OfflineTruthSummary,
     IReadOnlyList<string> OfflineTruthLabels,
     string RolePosture,
@@ -171,6 +173,8 @@ public static class PlayCampaignWorkspaceLiteProjector
         string campaignMemoryReturnSummary = BuildCampaignMemoryReturnSummary(resume, serverPlane, roleLabel);
         string continuityRailSummary = BuildContinuityRailSummary(resume, session, serverPlane, roleLabel, latestTimeline);
         string[] continuityRailLabels = BuildContinuityRailLabels(resume, session, serverPlane, roleLabel, latestTimeline);
+        string gmOperationsSummary = BuildGmOperationsSummary(resume, session, serverPlane, roleLabel);
+        string[] gmOperationsLabels = BuildGmOperationsLabels(resume, session, serverPlane, roleLabel);
         string offlineTruthSummary = BuildOfflineTruthSummary(resume, session);
         string[] offlineTruthLabels = BuildOfflineTruthLabels(resume, session, roleLabel);
         string rolePosture = BuildRolePosture(resume, session);
@@ -272,6 +276,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             CampaignMemoryReturnSummary: campaignMemoryReturnSummary,
             ContinuityRailSummary: continuityRailSummary,
             ContinuityRailLabels: continuityRailLabels,
+            GmOperationsSummary: gmOperationsSummary,
+            GmOperationsLabels: gmOperationsLabels,
             OfflineTruthSummary: offlineTruthSummary,
             OfflineTruthLabels: offlineTruthLabels,
             RolePosture: rolePosture,
@@ -606,6 +612,41 @@ public static class PlayCampaignWorkspaceLiteProjector
         string aftermath = $"Aftermath lane: {BuildAftermathCoverageSummary(serverPlane)}.";
         string ret = $"Return lane: {serverPlane.Workspace.ReturnSummary}";
         return [downtime, diary, contacts, heat, aftermath, ret];
+    }
+
+    private static string BuildGmOperationsSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel)
+    {
+        string opposition = resume.RuntimeBundle is null
+            ? $"Opposition: pending grounded runtime proof for {session.SceneId} before opposition packets are travel-safe."
+            : $"Opposition: {session.SceneId} opposition packet remains governed on bundle {resume.RuntimeBundle.BundleTag}.";
+        string roster = $"Roster movement: {serverPlane.Roster.Summary}";
+        string prep = resume.CachePressure.BackpressureActive
+            ? "Prep library: warning-only while cache pressure is active; keep prep packets review-first."
+            : "Prep library: governed prep packets stay aligned to the current runboard lane.";
+        string events = $"Event controls: {serverPlane.NextSafeAction.Summary}";
+        return $"{opposition} {roster} {prep} {events} Keep GM and organizer actions on the same account-backed {roleLabel} lane.";
+    }
+
+    private static string[] BuildGmOperationsLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel)
+    {
+        string opposition = resume.RuntimeBundle is null
+            ? $"Opposition lane: reconnect {session.SceneId} once before you trust offline opposition packets."
+            : $"Opposition lane: bundle {resume.RuntimeBundle.BundleTag} keeps opposition packet posture grounded.";
+        string roster = $"Roster movement lane: {serverPlane.Roster.Summary}";
+        string prep = resume.CachePressure.BackpressureActive
+            ? $"Prep library lane: degraded while cache pressure is active ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota})."
+            : "Prep library lane: governed and aligned to the current runboard objective.";
+        string events = $"Event controls lane: {serverPlane.NextSafeAction.Summary}";
+        string governance = $"Governance lane: keep GM and organizer actions on the same account-backed {roleLabel} rail.";
+        return [opposition, roster, prep, events, governance];
     }
 
     private static string BuildOfflineTruthSummary(

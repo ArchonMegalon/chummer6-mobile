@@ -255,6 +255,15 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.ContinuityRailLabels.Any(item => item.Contains("Heat lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a heat continuity label.");
     Assert(projection.ContinuityRailLabels.Any(item => item.Contains("Aftermath lane:", StringComparison.Ordinal)), "workspace-lite summary must expose an aftermath continuity label.");
     Assert(projection.ContinuityRailLabels.Any(item => item.Contains("Return lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a return continuity label.");
+    Assert(projection.GmOperationsSummary.Contains("Opposition:", StringComparison.Ordinal), "workspace-lite summary must expose opposition packet posture on the same campaign lane.");
+    Assert(projection.GmOperationsSummary.Contains("Roster movement:", StringComparison.Ordinal), "workspace-lite summary must expose roster movement posture on the same campaign lane.");
+    Assert(projection.GmOperationsSummary.Contains("Prep library:", StringComparison.Ordinal), "workspace-lite summary must expose prep library posture on the same campaign lane.");
+    Assert(projection.GmOperationsSummary.Contains("Event controls:", StringComparison.Ordinal), "workspace-lite summary must expose event-control posture on the same campaign lane.");
+    Assert(projection.GmOperationsLabels.Any(item => item.Contains("Opposition lane:", StringComparison.Ordinal)), "workspace-lite summary must expose an opposition lane label for GM operations.");
+    Assert(projection.GmOperationsLabels.Any(item => item.Contains("Roster movement lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a roster movement lane label for GM operations.");
+    Assert(projection.GmOperationsLabels.Any(item => item.Contains("Prep library lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a prep library lane label for GM operations.");
+    Assert(projection.GmOperationsLabels.Any(item => item.Contains("Event controls lane:", StringComparison.Ordinal)), "workspace-lite summary must expose an event-controls lane label for GM operations.");
+    Assert(projection.GmOperationsLabels.Any(item => item.Contains("Governance lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a governance lane label for GM operations.");
     Assert(projection.OfflineTruthSummary.Contains("Cached:", StringComparison.Ordinal), "workspace-lite summary must expose explicit cached-state posture for offline continuity.");
     Assert(projection.OfflineTruthSummary.Contains("Stale:", StringComparison.Ordinal), "workspace-lite summary must expose explicit stale-state posture for offline continuity.");
     Assert(projection.OfflineTruthSummary.Contains("Offline actions:", StringComparison.Ordinal), "workspace-lite summary must expose explicit offline action posture for bounded local truth.");
@@ -1420,6 +1429,8 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"workspace-memory-return\"", StringComparison.Ordinal), "play shell must expose the campaign-memory return cue alongside current state");
     Assert(html.Contains("id=\"workspace-continuity-rail\"", StringComparison.Ordinal), "play shell must expose a continuity rail summary for downtime/diary/contacts/heat/aftermath/return.");
     Assert(html.Contains("id=\"workspace-continuity-rail-list\"", StringComparison.Ordinal), "play shell must expose continuity rail labels for downtime/diary/contacts/heat/aftermath/return.");
+    Assert(html.Contains("id=\"workspace-gm-ops\"", StringComparison.Ordinal), "play shell must expose GM operations summary for opposition/prep/roster/event controls.");
+    Assert(html.Contains("id=\"workspace-gm-ops-list\"", StringComparison.Ordinal), "play shell must expose GM operations lane labels for opposition/prep/roster/event controls.");
     Assert(html.Contains("id=\"workspace-offline-truth\"", StringComparison.Ordinal), "play shell must expose explicit cached/stale/offline-action truth alongside the continuity rail.");
     Assert(html.Contains("id=\"workspace-offline-truth-list\"", StringComparison.Ordinal), "play shell must expose explicit cached/stale/offline-action labels alongside the continuity rail.");
     Assert(html.Contains("id=\"workspace-decision-notice\"", StringComparison.Ordinal), "play shell must expose the current decision notice alongside current state");
@@ -1487,6 +1498,8 @@ static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
     Assert(html.Contains("document.getElementById(\"workspace-replay-publication-link\").textContent = payload.replayNextAction || \"Replay artifact follow-through\";", StringComparison.Ordinal), "play shell must bind the replay artifact follow-through link text from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-continuity-rail\").textContent = payload.continuityRailSummary || \"No continuity rail summary is available yet.\";", StringComparison.Ordinal), "play shell must bind continuity rail summary from the workspace-lite projection.");
     Assert(html.Contains("setList(\"workspace-continuity-rail-list\", payload.continuityRailLabels);", StringComparison.Ordinal), "play shell must bind continuity rail labels from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"workspace-gm-ops\").textContent = payload.gmOperationsSummary || \"No GM operations summary is available yet.\";", StringComparison.Ordinal), "play shell must bind GM operations summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-gm-ops-list\", payload.gmOperationsLabels);", StringComparison.Ordinal), "play shell must bind GM operations lane labels from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-offline-truth\").textContent = payload.offlineTruthSummary || \"No offline truth summary is available yet.\";", StringComparison.Ordinal), "play shell must bind cached/stale/offline-action summary from the workspace-lite projection.");
     Assert(html.Contains("setList(\"workspace-offline-truth-list\", payload.offlineTruthLabels);", StringComparison.Ordinal), "play shell must bind cached/stale/offline-action labels from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"follow-through-update-link\").textContent = payload.updateFollowThrough || \"Update follow-through\";", StringComparison.Ordinal), "play shell must bind update follow-through link text to the workspace projection.");
