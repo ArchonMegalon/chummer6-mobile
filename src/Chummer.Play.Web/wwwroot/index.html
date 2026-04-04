@@ -98,6 +98,7 @@
       <p id="restore-prefetch" class="hint"></p>
       <p id="restore-local-boundary" class="hint"></p>
       <p id="restore-offline-truth" class="hint"></p>
+      <p id="restore-travel-companion" class="hint"></p>
       <p id="restore-return-target" class="hint"></p>
       <p id="restore-device-role" class="hint"></p>
       <p id="restore-follow-through" class="hint"></p>
@@ -105,6 +106,7 @@
       <p id="restore-support-follow-through" class="hint"></p>
       <p><a id="restore-support-follow-through-link" class="hint" href="/contact">Restore support follow-through</a></p>
       <ul id="restore-offline-truth-labels"></ul>
+      <ul id="restore-travel-companion-labels"></ul>
       <ul id="restore-prefetch-labels"></ul>
     </div>
     <div class="card">
@@ -243,6 +245,7 @@
     document.getElementById("restore-prefetch").textContent = payload.prefetchReadinessSummary || "No offline prefetch readiness is available yet.";
     document.getElementById("restore-local-boundary").textContent = payload.localCacheBoundarySummary || "No install-local cache boundary summary is available yet.";
     document.getElementById("restore-offline-truth").textContent = payload.offlineTruthSummary || "No restore offline truth summary is available yet.";
+    document.getElementById("restore-travel-companion").textContent = payload.travelCompanionSummary || "No restore travel companion summary is available yet.";
     document.getElementById("restore-return-target").textContent = payload.returnTargetCampaignName
       ? `Return target: ${payload.returnTargetCampaignName}`
       : "Return target: no campaign return target is attached yet.";
@@ -256,6 +259,7 @@
     document.getElementById("restore-support-follow-through-link").href = payload.supportFollowThroughHref || "/contact";
     document.getElementById("restore-support-follow-through-link").textContent = payload.supportFollowThrough || "Restore support follow-through";
     setList("restore-offline-truth-labels", payload.offlineTruthLabels);
+    setList("restore-travel-companion-labels", payload.travelCompanionLabels);
     setList("restore-prefetch-labels", payload.prefetchLabels);
     setList("restore-attention", payload.attentionItems);
     setList("restore-conflicts", payload.conflictSummaries);

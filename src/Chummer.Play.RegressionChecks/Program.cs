@@ -138,6 +138,13 @@ static void VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState()
     Assert(plan.OfflineTruthLabels.Any(item => item.Contains("Cached lane:", StringComparison.Ordinal)), "roaming restore must expose a cached-state label for the target device.");
     Assert(plan.OfflineTruthLabels.Any(item => item.Contains("Stale lane:", StringComparison.Ordinal)), "roaming restore must expose a stale-state label for the target device.");
     Assert(plan.OfflineTruthLabels.Any(item => item.Contains("Offline action lane:", StringComparison.Ordinal)), "roaming restore must expose an offline-action label for the target device.");
+    Assert(plan.TravelCompanionSummary.Contains("Cached:", StringComparison.Ordinal), "roaming restore must expose explicit cached-state truth for the travel companion lane.");
+    Assert(plan.TravelCompanionSummary.Contains("Stale:", StringComparison.Ordinal), "roaming restore must expose explicit stale-state truth for the travel companion lane.");
+    Assert(plan.TravelCompanionSummary.Contains("Offline actions:", StringComparison.Ordinal), "roaming restore must expose explicit offline-action boundaries for the travel companion lane.");
+    Assert(plan.TravelCompanionLabels.Any(item => item.Contains("Cached lane:", StringComparison.Ordinal)), "roaming restore must expose a cached-state label for the travel companion lane.");
+    Assert(plan.TravelCompanionLabels.Any(item => item.Contains("Stale lane:", StringComparison.Ordinal)), "roaming restore must expose a stale-state label for the travel companion lane.");
+    Assert(plan.TravelCompanionLabels.Any(item => item.Contains("Offline action lane:", StringComparison.Ordinal)), "roaming restore must expose an offline-action label for the travel companion lane.");
+    Assert(plan.TravelCompanionLabels.Any(item => item.Contains("Travel companion lane:", StringComparison.Ordinal)), "roaming restore must expose the sibling travel companion lane details.");
     Assert(plan.PrefetchLabels.Any(item => item.Contains("Prefetch inventory", StringComparison.Ordinal)), "roaming restore must expose explicit prefetch inventory labels");
     Assert(plan.PrefetchLabels.Any(item => item.Contains("Kestrel (dossier-kestrel)", StringComparison.Ordinal)), "roaming restore must expose the exact dossier set staged for offline restore");
     Assert(plan.PrefetchLabels.Any(item => item.Contains("Redmond Patrol (campaign-redmond)", StringComparison.Ordinal)), "roaming restore must expose the exact campaign set staged for offline restore");
@@ -368,6 +375,8 @@ static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGua
     Assert(plan.PrefetchReadinessSummary.Contains("warning-only", StringComparison.OrdinalIgnoreCase), "roaming restore must downgrade prefetch readiness when conflict review is still required");
     Assert(plan.OfflineTruthSummary.Contains("warning posture", StringComparison.OrdinalIgnoreCase), "roaming restore must mark stale warning posture when conflict review is required.");
     Assert(plan.OfflineTruthLabels.Any(item => item.Contains("warning-only", StringComparison.OrdinalIgnoreCase)), "roaming restore must label stale warning posture when conflict review is required.");
+    Assert(plan.TravelCompanionSummary.Contains("warning posture", StringComparison.OrdinalIgnoreCase), "roaming restore must mark travel-companion stale warning posture when conflict review is required.");
+    Assert(plan.TravelCompanionLabels.Any(item => item.Contains("warning-only", StringComparison.OrdinalIgnoreCase)), "roaming restore must label travel-companion stale warning posture when conflict review is required.");
     Assert(plan.PrefetchLabels.Any(item => item.Contains("Target device", StringComparison.Ordinal)), "roaming restore must expose the targeted prefetch lane");
     Assert(plan.AttentionItems.Count == 3, "roaming restore attention items must include conflict, approval, and install-local guardrails");
     Assert(plan.AttentionItems.Any(item => item.Contains("different channels", StringComparison.Ordinal)), "roaming restore attention items must carry the channel drift conflict");
@@ -513,6 +522,9 @@ static void VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery()
     Assert(plan.LocalCacheBoundarySummary.Contains("install-local", StringComparison.Ordinal), "play restore service must keep install-local cache boundaries explicit");
     Assert(plan.OfflineTruthSummary.Contains("Offline actions:", StringComparison.Ordinal), "play restore service must expose explicit offline-action truth for claimed-device restore.");
     Assert(plan.OfflineTruthLabels.Any(item => item.Contains("Offline action lane:", StringComparison.Ordinal)), "play restore service must expose offline-action labels for claimed-device restore.");
+    Assert(plan.TravelCompanionSummary.Contains("Offline actions:", StringComparison.Ordinal), "play restore service must expose explicit offline-action truth for travel companion continuity.");
+    Assert(plan.TravelCompanionLabels.Any(item => item.Contains("Offline action lane:", StringComparison.Ordinal)), "play restore service must expose travel companion offline-action labels for claimed-device restore.");
+    Assert(plan.TravelCompanionLabels.Any(item => item.Contains("travel_cache", StringComparison.Ordinal)), "play restore service must expose the travel companion lane role inside restore planning.");
     Assert(plan.PrefetchLabels.Any(item => item.Contains("scene-redmond return dossier", StringComparison.Ordinal)), "play restore service must expose the exact dossier staged for offline restore");
     Assert(plan.PrefetchLabels.Any(item => item.Contains("scene-redmond mobile return", StringComparison.Ordinal)), "play restore service must expose the exact campaign staged for offline restore");
     Assert(plan.PrefetchLabels.Any(item => item.Contains("sr6.preview.v1 [approved]", StringComparison.Ordinal)), "play restore service must expose the exact rule posture staged for offline restore");
@@ -1428,6 +1440,8 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"restore-local-boundary\"", StringComparison.Ordinal), "play shell must expose install-local cache boundaries for restore planning");
     Assert(html.Contains("id=\"restore-offline-truth\"", StringComparison.Ordinal), "play shell must expose restore cached/stale/offline-action truth.");
     Assert(html.Contains("id=\"restore-offline-truth-labels\"", StringComparison.Ordinal), "play shell must expose restore cached/stale/offline-action labels.");
+    Assert(html.Contains("id=\"restore-travel-companion\"", StringComparison.Ordinal), "play shell must expose restore travel companion continuity truth.");
+    Assert(html.Contains("id=\"restore-travel-companion-labels\"", StringComparison.Ordinal), "play shell must expose restore travel companion continuity labels.");
     Assert(html.Contains("id=\"restore-prefetch-labels\"", StringComparison.Ordinal), "play shell must expose explicit prefetch labels for alternate claimed-device lanes");
     Assert(html.Contains("id=\"restore-attention\"", StringComparison.Ordinal), "play shell must expose restore attention items");
     Assert(html.Contains("id=\"restore-local-notes\"", StringComparison.Ordinal), "play shell must expose install-local restore notes");
@@ -1477,6 +1491,8 @@ static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
     Assert(html.Contains("document.getElementById(\"restore-support-follow-through-link\").textContent = payload.supportFollowThrough || \"Restore support follow-through\";", StringComparison.Ordinal), "play shell must bind restore support follow-through link text to the restore projection.");
     Assert(html.Contains("document.getElementById(\"restore-offline-truth\").textContent = payload.offlineTruthSummary || \"No restore offline truth summary is available yet.\";", StringComparison.Ordinal), "play shell must bind restore cached/stale/offline-action summary from the restore projection.");
     Assert(html.Contains("setList(\"restore-offline-truth-labels\", payload.offlineTruthLabels);", StringComparison.Ordinal), "play shell must bind restore cached/stale/offline-action labels from the restore projection.");
+    Assert(html.Contains("document.getElementById(\"restore-travel-companion\").textContent = payload.travelCompanionSummary || \"No restore travel companion summary is available yet.\";", StringComparison.Ordinal), "play shell must bind restore travel-companion continuity summary from the restore projection.");
+    Assert(html.Contains("setList(\"restore-travel-companion-labels\", payload.travelCompanionLabels);", StringComparison.Ordinal), "play shell must bind restore travel-companion continuity labels from the restore projection.");
 }
 
 static Task VerifyBootstrapRoleShellEntryPointsAsync()

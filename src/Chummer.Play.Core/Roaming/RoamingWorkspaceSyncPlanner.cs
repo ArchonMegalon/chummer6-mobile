@@ -18,6 +18,8 @@ public sealed record RoamingWorkspaceRestorePlan(
     string LocalCacheBoundarySummary,
     string OfflineTruthSummary,
     IReadOnlyList<string> OfflineTruthLabels,
+    string TravelCompanionSummary,
+    IReadOnlyList<string> TravelCompanionLabels,
     IReadOnlyList<string> PrefetchLabels,
     string? ReturnTargetCampaignName,
     string ResumeFollowThrough,
@@ -83,6 +85,8 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
         var localCacheBoundarySummary = BuildLocalCacheBoundarySummary(localOnlyNotes);
         var offlineTruthSummary = BuildOfflineTruthSummary(restore, targetDevice, conflictSummaries, canResume);
         var offlineTruthLabels = BuildOfflineTruthLabels(restore, targetDevice, conflictSummaries, canResume);
+        var travelCompanionSummary = BuildTravelCompanionSummary(restore, targetDevice, conflictSummaries, canResume);
+        var travelCompanionLabels = BuildTravelCompanionLabels(restore, targetDevice, conflictSummaries, canResume);
         var prefetchLabels = BuildPrefetchLabels(restore, targetDevice);
         var resumeFollowThrough = BuildResumeFollowThrough(targetDevice, primaryCampaign, primaryDossier, conflictSummaries, canResume);
         var resumeFollowThroughHref = BuildResumeFollowThroughHref(targetDevice, primaryCampaign, primaryDossier);
@@ -106,6 +110,8 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
             LocalCacheBoundarySummary: localCacheBoundarySummary,
             OfflineTruthSummary: offlineTruthSummary,
             OfflineTruthLabels: offlineTruthLabels,
+            TravelCompanionSummary: travelCompanionSummary,
+            TravelCompanionLabels: travelCompanionLabels,
             PrefetchLabels: prefetchLabels,
             ReturnTargetCampaignName: primaryCampaign?.Name,
             ResumeFollowThrough: resumeFollowThrough,
@@ -251,6 +257,88 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
                 ? $"Offline action lane: resolve conflict review before mutating campaign continuity."
                 : $"Offline action lane: resume is allowed on {targetDevice.DeviceRole} with bounded local truth.";
         return [cached, stale, action];
+    }
+
+    private static string BuildTravelCompanionSummary(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        ClaimedDeviceRestoreProjection[] companions = restore.ClaimedDevices
+            .Where(item =>
+                !string.Equals(item.InstallationId, targetDevice.InstallationId, StringComparison.OrdinalIgnoreCase)
+                && item.DeviceRole.Contains("travel", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (companions.Length == 0)
+        {
+            return "Travel companion: no sibling travel cache lane is registered for this restore packet.";
+        }
+
+        string companionLabel = string.Join(", ", companions.Select(static item => $"{item.DeviceRole} ({item.InstallationId})"));
+        string cached = canResume
+            ? $"Cached: travel companion lane {companionLabel} mirrors {DescribePrefetchInventory(restore)} for bounded handoff."
+            : $"Cached: travel companion lane {companionLabel} exists, but no bounded restore packet is staged yet.";
+        string stale = conflictSummaries.Count > 0
+            ? $"Stale: travel companion warning posture is active until {conflictSummaries.Count} restore conflict(s) are reviewed."
+            : "Stale: travel companion lane is aligned and no restore conflicts are active.";
+        string action = !canResume
+            ? $"Offline actions: seed continuity on {targetDevice.DeviceRole} before trusting the travel companion lane."
+            : conflictSummaries.Count > 0
+                ? "Offline actions: keep the travel companion lane read-mostly until restore conflict review closes."
+                : $"Offline actions: keep mutations on {targetDevice.DeviceRole}; use the travel companion lane for bounded continuity carry-forward.";
+        return $"{cached} {stale} {action}";
+    }
+
+    private static IReadOnlyList<string> BuildTravelCompanionLabels(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        ClaimedDeviceRestoreProjection[] companions = restore.ClaimedDevices
+            .Where(item =>
+                !string.Equals(item.InstallationId, targetDevice.InstallationId, StringComparison.OrdinalIgnoreCase)
+                && item.DeviceRole.Contains("travel", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (companions.Length == 0)
+        {
+            return
+            [
+                "Cached lane: no travel companion lane is registered yet.",
+                "Stale lane: unknown until a travel companion lane is registered.",
+                "Offline action lane: claim a travel companion lane before relying on travel/offline handoff."
+            ];
+        }
+
+        string cached = canResume
+            ? $"Cached lane: travel companion mirrors {DescribePrefetchInventory(restore)} from {targetDevice.InstallationId}."
+            : "Cached lane: no bounded packet is staged for travel companion follow-through yet.";
+        string stale = conflictSummaries.Count > 0
+            ? $"Stale lane: warning-only until {conflictSummaries.Count} restore conflict(s) are resolved."
+            : "Stale lane: green; travel companion is aligned to the claimed lane.";
+        string action = !canResume
+            ? $"Offline action lane: reconnect {targetDevice.DeviceRole} and seed continuity before travel handoff."
+            : conflictSummaries.Count > 0
+                ? "Offline action lane: keep travel companion read-mostly until conflict review closes."
+                : $"Offline action lane: bounded travel handoff is allowed while {targetDevice.DeviceRole} remains the mutation owner.";
+
+        List<string> labels =
+        [
+            cached,
+            stale,
+            action
+        ];
+
+        labels.AddRange(companions.Select(static companion =>
+            $"Travel companion lane: {companion.InstallationId} · {companion.Platform} · {companion.Channel} · {companion.RestoreSummary}"));
+
+        return labels
+            .Where(static item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static IReadOnlyList<string> BuildPrefetchLabels(
