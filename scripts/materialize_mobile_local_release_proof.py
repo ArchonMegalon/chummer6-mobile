@@ -37,6 +37,8 @@ REQUIRED_MARKERS = {
         'Assert(projection.GmOperationsSummary.Contains("Roster movement:", StringComparison.Ordinal)',
         'Assert(projection.GmOperationsSummary.Contains("Prep library:", StringComparison.Ordinal)',
         'Assert(projection.GmOperationsSummary.Contains("Event controls:", StringComparison.Ordinal)',
+        'Assert(projection.GmOperationsSummary.Contains("audit-visible", StringComparison.Ordinal)',
+        'Assert(projection.GmOperationsSummary.Contains("support-linked", StringComparison.Ordinal)',
         'Assert(projection.GmOperationsLabels.Any(item => item.Contains("Opposition lane:", StringComparison.Ordinal))',
         'Assert(projection.GmOperationsLabels.Any(item => item.Contains("Roster movement lane:", StringComparison.Ordinal))',
         'Assert(projection.GmOperationsLabels.Any(item => item.Contains("Prep library lane:", StringComparison.Ordinal))',
