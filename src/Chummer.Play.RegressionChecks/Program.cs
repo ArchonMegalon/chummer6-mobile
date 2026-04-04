@@ -268,12 +268,14 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.OfflineTruthSummary.Contains("Stale:", StringComparison.Ordinal), "workspace-lite summary must expose explicit stale-state posture for offline continuity.");
     Assert(projection.OfflineTruthSummary.Contains("Offline actions:", StringComparison.Ordinal), "workspace-lite summary must expose explicit offline action posture for bounded local truth.");
     Assert(projection.OfflineTruthSummary.Contains("Can do now:", StringComparison.Ordinal), "workspace-lite summary must expose explicit install-local actions that are currently allowed offline.");
+    Assert(projection.OfflineTruthSummary.Contains("safehouse", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must keep safehouse continuity explicit in offline truth.");
     Assert(projection.OfflineTruthSummary.Contains("Needs online:", StringComparison.Ordinal), "workspace-lite summary must expose explicit actions that still require reconnect or online sync.");
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("Cached lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a cached-state label for offline continuity.");
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("Stale lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a stale-state label for offline continuity.");
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("Offline action lane:", StringComparison.Ordinal)), "workspace-lite summary must expose an offline action label for bounded local truth.");
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("Can-do-now lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a lane label for actions allowed offline right now.");
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("Needs-online lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a lane label for actions that remain online-only.");
+    Assert(projection.OfflineTruthLabels.Any(item => item.Contains("safehouse", StringComparison.OrdinalIgnoreCase)), "workspace-lite summary must keep safehouse continuity explicit in offline-truth lane labels.");
     Assert(projection.DecisionNotice.Contains("Continue scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the active campaign decision notice.");
     Assert(projection.DecisionNoticeHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose a direct decision-notice follow-through href.");
     Assert(projection.RolePosture.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose the role route posture");

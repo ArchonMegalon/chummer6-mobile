@@ -671,13 +671,13 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? "Can do now: recap-safe and replay-safe review only."
             : resume.Role switch
             {
-                PlaySurfaceRole.GameMaster => "Can do now: review opposition packet, queue roster movement notes, and run event-control checklists on this install-local lane.",
-                PlaySurfaceRole.Observer => "Can do now: observer watch, recap review, and prep packet read-through on this install-local lane.",
-                _ => "Can do now: player return cues, downtime notes, diary review, and contacts follow-through on this install-local lane."
+                PlaySurfaceRole.GameMaster => "Can do now: review opposition packet, queue roster movement notes, run event-control checklists, and stage safehouse handoff notes on this install-local lane.",
+                PlaySurfaceRole.Observer => "Can do now: observer watch, recap review, prep packet read-through, and safehouse travel readiness review on this install-local lane.",
+                _ => "Can do now: player return cues, downtime notes, diary review, contacts follow-through, and safehouse return prep on this install-local lane."
             };
         string needsOnline = resume.RuntimeBundle is null || resume.Checkpoint is null
             ? $"Needs online: reconnect {session.SceneId} to ground checkpoint plus bundle proof before continuity mutations."
-            : "Needs online: publish-facing promotion, cross-device fan-out, and final mutation sync confirmation.";
+            : "Needs online: publish-facing promotion, cross-device fan-out, safehouse travel handoff propagation, and final mutation sync confirmation.";
         return $"{cached} {stale} {action} {canDoNow} {needsOnline}";
     }
 
@@ -694,13 +694,13 @@ public static class PlayCampaignWorkspaceLiteProjector
             : "Stale lane: green; no active cache-pressure warning.";
         string action = resume.RuntimeBundle is null || resume.Checkpoint is null
             ? $"Offline action lane: stay read-only until checkpoint and runtime proof are both grounded on this device."
-            : $"Offline action lane: checkpoint {resume.Checkpoint.AppliedThroughSequence} anchors bounded offline follow-through for {roleLabel}.";
+            : $"Offline action lane: checkpoint {resume.Checkpoint.AppliedThroughSequence} anchors bounded offline and safehouse follow-through for {roleLabel}.";
         string canDoNow = resume.RuntimeBundle is null || resume.Checkpoint is null
             ? "Can-do-now lane: recap/replay review only until runtime and checkpoint truth are grounded."
-            : "Can-do-now lane: continuity-safe notes and bounded role actions are allowed install-local.";
+            : "Can-do-now lane: continuity-safe notes, safehouse-ready prep, and bounded role actions are allowed install-local.";
         string needsOnline = resume.RuntimeBundle is null || resume.Checkpoint is null
             ? $"Needs-online lane: reconnect {session.SceneId} for grounded bundle and checkpoint truth."
-            : "Needs-online lane: publish promotion, cross-device propagation, and final mutation sync remain online-only.";
+            : "Needs-online lane: publish promotion, safehouse handoff propagation, cross-device propagation, and final mutation sync remain online-only.";
         return [cached, stale, action, canDoNow, needsOnline];
     }
 

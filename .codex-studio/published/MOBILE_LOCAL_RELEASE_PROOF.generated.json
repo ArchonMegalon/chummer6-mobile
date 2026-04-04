@@ -1,6 +1,6 @@
 {
   "contract_name": "chummer6-mobile.local_release_proof",
-  "generated_at": "2026-04-04T19:18:06Z",
+  "generated_at": "2026-04-04T20:10:40Z",
   "status": "passed",
   "proof_kind": "source_backed_local_regression_contract",
   "source_files": [
@@ -44,10 +44,12 @@
       "Assert(projection.GmOperationsLabels.Any(item => item.Contains(\"Governance lane:\", StringComparison.Ordinal))",
       "Assert(projection.OfflineTruthSummary.Contains(\"Stale:\", StringComparison.Ordinal)",
       "Assert(projection.OfflineTruthSummary.Contains(\"Can do now:\", StringComparison.Ordinal)",
+      "Assert(projection.OfflineTruthSummary.Contains(\"safehouse\", StringComparison.OrdinalIgnoreCase)",
       "Assert(projection.OfflineTruthSummary.Contains(\"Needs online:\", StringComparison.Ordinal)",
       "Assert(projection.OfflineTruthLabels.Any(item => item.Contains(\"Stale lane:\", StringComparison.Ordinal))",
       "Assert(projection.OfflineTruthLabels.Any(item => item.Contains(\"Can-do-now lane:\", StringComparison.Ordinal))",
       "Assert(projection.OfflineTruthLabels.Any(item => item.Contains(\"Needs-online lane:\", StringComparison.Ordinal))",
+      "Assert(projection.OfflineTruthLabels.Any(item => item.Contains(\"safehouse\", StringComparison.OrdinalIgnoreCase))",
       "Assert(plan.TravelCompanionSummary.Contains(\"Cached:\", StringComparison.Ordinal)",
       "Assert(plan.TravelCompanionSummary.Contains(\"Stale:\", StringComparison.Ordinal)",
       "Assert(plan.TravelCompanionSummary.Contains(\"Offline actions:\", StringComparison.Ordinal)",
