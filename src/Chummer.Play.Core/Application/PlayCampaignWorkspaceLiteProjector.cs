@@ -667,7 +667,18 @@ public static class PlayCampaignWorkspaceLiteProjector
                 PlaySurfaceRole.Observer => $"Offline actions: observer watch and recap review are allowed; keep this shell read-mostly until owner confirmation.",
                 _ => $"Offline actions: player return cues and recap review are allowed for {session.SceneId}; sync before queueing new mutations."
             };
-        return $"{cached} {stale} {action}";
+        string canDoNow = resume.RuntimeBundle is null || resume.Checkpoint is null
+            ? "Can do now: recap-safe and replay-safe review only."
+            : resume.Role switch
+            {
+                PlaySurfaceRole.GameMaster => "Can do now: review opposition packet, queue roster movement notes, and run event-control checklists on this install-local lane.",
+                PlaySurfaceRole.Observer => "Can do now: observer watch, recap review, and prep packet read-through on this install-local lane.",
+                _ => "Can do now: player return cues, downtime notes, diary review, and contacts follow-through on this install-local lane."
+            };
+        string needsOnline = resume.RuntimeBundle is null || resume.Checkpoint is null
+            ? $"Needs online: reconnect {session.SceneId} to ground checkpoint plus bundle proof before continuity mutations."
+            : "Needs online: publish-facing promotion, cross-device fan-out, and final mutation sync confirmation.";
+        return $"{cached} {stale} {action} {canDoNow} {needsOnline}";
     }
 
     private static string[] BuildOfflineTruthLabels(
@@ -684,7 +695,13 @@ public static class PlayCampaignWorkspaceLiteProjector
         string action = resume.RuntimeBundle is null || resume.Checkpoint is null
             ? $"Offline action lane: stay read-only until checkpoint and runtime proof are both grounded on this device."
             : $"Offline action lane: checkpoint {resume.Checkpoint.AppliedThroughSequence} anchors bounded offline follow-through for {roleLabel}.";
-        return [cached, stale, action];
+        string canDoNow = resume.RuntimeBundle is null || resume.Checkpoint is null
+            ? "Can-do-now lane: recap/replay review only until runtime and checkpoint truth are grounded."
+            : "Can-do-now lane: continuity-safe notes and bounded role actions are allowed install-local.";
+        string needsOnline = resume.RuntimeBundle is null || resume.Checkpoint is null
+            ? $"Needs-online lane: reconnect {session.SceneId} for grounded bundle and checkpoint truth."
+            : "Needs-online lane: publish promotion, cross-device propagation, and final mutation sync remain online-only.";
+        return [cached, stale, action, canDoNow, needsOnline];
     }
 
     private static string BuildSupportPosture(PlayResumeResponse resume, PlayCampaignWorkspaceServerPlane serverPlane)
