@@ -265,11 +265,7 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
         IReadOnlyList<string> conflictSummaries,
         bool canResume)
     {
-        ClaimedDeviceRestoreProjection[] companions = restore.ClaimedDevices
-            .Where(item =>
-                !string.Equals(item.InstallationId, targetDevice.InstallationId, StringComparison.OrdinalIgnoreCase)
-                && item.DeviceRole.Contains("travel", StringComparison.OrdinalIgnoreCase))
-            .ToArray();
+        ClaimedDeviceRestoreProjection[] companions = ResolveTravelCompanions(restore, targetDevice);
 
         if (companions.Length == 0)
         {
@@ -297,11 +293,7 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
         IReadOnlyList<string> conflictSummaries,
         bool canResume)
     {
-        ClaimedDeviceRestoreProjection[] companions = restore.ClaimedDevices
-            .Where(item =>
-                !string.Equals(item.InstallationId, targetDevice.InstallationId, StringComparison.OrdinalIgnoreCase)
-                && item.DeviceRole.Contains("travel", StringComparison.OrdinalIgnoreCase))
-            .ToArray();
+        ClaimedDeviceRestoreProjection[] companions = ResolveTravelCompanions(restore, targetDevice);
 
         if (companions.Length == 0)
         {
@@ -333,12 +325,25 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
         ];
 
         labels.AddRange(companions.Select(static companion =>
-            $"Travel companion lane: {companion.InstallationId} · {companion.Platform} · {companion.Channel} · {companion.RestoreSummary}"));
+            $"Travel companion lane: {companion.InstallationId} · {companion.DeviceRole} · {companion.Platform} · {companion.Channel} · {companion.RestoreSummary}"));
 
         return labels
             .Where(static item => !string.IsNullOrWhiteSpace(item))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    private static ClaimedDeviceRestoreProjection[] ResolveTravelCompanions(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice)
+    {
+        ClaimedDeviceRestoreProjection[] siblings = restore.ClaimedDevices
+            .Where(item => !string.Equals(item.InstallationId, targetDevice.InstallationId, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        ClaimedDeviceRestoreProjection[] travelSiblings = siblings
+            .Where(item => item.DeviceRole.Contains("travel", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        return travelSiblings.Length > 0 ? travelSiblings : siblings;
     }
 
     private static IReadOnlyList<string> BuildPrefetchLabels(
