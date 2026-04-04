@@ -42,6 +42,8 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string CampaignMemoryReturnSummary,
     string ContinuityRailSummary,
     IReadOnlyList<string> ContinuityRailLabels,
+    string OfflineTruthSummary,
+    IReadOnlyList<string> OfflineTruthLabels,
     string RolePosture,
     string RulePosture,
     string LegalRunnerSummary,
@@ -169,6 +171,8 @@ public static class PlayCampaignWorkspaceLiteProjector
         string campaignMemoryReturnSummary = BuildCampaignMemoryReturnSummary(resume, serverPlane, roleLabel);
         string continuityRailSummary = BuildContinuityRailSummary(resume, session, serverPlane, roleLabel, latestTimeline);
         string[] continuityRailLabels = BuildContinuityRailLabels(resume, session, serverPlane, roleLabel, latestTimeline);
+        string offlineTruthSummary = BuildOfflineTruthSummary(resume, session);
+        string[] offlineTruthLabels = BuildOfflineTruthLabels(resume, session, roleLabel);
         string rolePosture = BuildRolePosture(resume, session);
         string legalRunnerSummary = BuildLegalRunnerSummary(resume, session);
         string understandableReturnSummary = BuildUnderstandableReturnSummary(serverPlane, continuityPosture);
@@ -268,6 +272,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             CampaignMemoryReturnSummary: campaignMemoryReturnSummary,
             ContinuityRailSummary: continuityRailSummary,
             ContinuityRailLabels: continuityRailLabels,
+            OfflineTruthSummary: offlineTruthSummary,
+            OfflineTruthLabels: offlineTruthLabels,
             RolePosture: rolePosture,
             RulePosture: $"{session.RuntimeFingerprint}. {runtimeBundleSummary}",
             LegalRunnerSummary: legalRunnerSummary,
@@ -600,6 +606,44 @@ public static class PlayCampaignWorkspaceLiteProjector
         string aftermath = $"Aftermath lane: {BuildAftermathCoverageSummary(serverPlane)}.";
         string ret = $"Return lane: {serverPlane.Workspace.ReturnSummary}";
         return [downtime, diary, contacts, heat, aftermath, ret];
+    }
+
+    private static string BuildOfflineTruthSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session)
+    {
+        string cached = resume.RuntimeBundle is null
+            ? $"Cached: bundle proof for {session.SceneId} is not stored locally yet."
+            : $"Cached: bundle {resume.RuntimeBundle.BundleTag} is validated and install-local on this shell.";
+        string stale = resume.CachePressure.BackpressureActive
+            ? $"Stale: warning posture is active because cache pressure already touched {resume.CachePressure.EvictedEntryCount} session(s)."
+            : "Stale: no active cache-pressure warning is published.";
+        string action = resume.RuntimeBundle is null || resume.Checkpoint is null
+            ? $"Offline actions: read-only review is safe; reconnect {session.SceneId} before mutating continuity-critical state."
+            : resume.Role switch
+            {
+                PlaySurfaceRole.GameMaster => $"Offline actions: GM tactical continuity is allowed for {session.SceneId}; keep runboard mutations stale-protected.",
+                PlaySurfaceRole.Observer => $"Offline actions: observer watch and recap review are allowed; keep this shell read-mostly until owner confirmation.",
+                _ => $"Offline actions: player return cues and recap review are allowed for {session.SceneId}; sync before queueing new mutations."
+            };
+        return $"{cached} {stale} {action}";
+    }
+
+    private static string[] BuildOfflineTruthLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel)
+    {
+        string cached = resume.RuntimeBundle is null
+            ? $"Cached lane: runtime proof missing for {session.SceneId}; reconnect once to seed local bundle truth."
+            : $"Cached lane: {resume.RuntimeBundle.BundleTag} is validated and pinned install-local for {roleLabel}.";
+        string stale = resume.CachePressure.BackpressureActive
+            ? $"Stale lane: warning-only because cache pressure is active ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota})."
+            : "Stale lane: green; no active cache-pressure warning.";
+        string action = resume.RuntimeBundle is null || resume.Checkpoint is null
+            ? $"Offline action lane: stay read-only until checkpoint and runtime proof are both grounded on this device."
+            : $"Offline action lane: checkpoint {resume.Checkpoint.AppliedThroughSequence} anchors bounded offline follow-through for {roleLabel}.";
+        return [cached, stale, action];
     }
 
     private static string BuildSupportPosture(PlayResumeResponse resume, PlayCampaignWorkspaceServerPlane serverPlane)

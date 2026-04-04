@@ -77,6 +77,8 @@
       <p id="workspace-memory-return" class="hint"></p>
       <p id="workspace-continuity-rail" class="hint"></p>
       <ul id="workspace-continuity-rail-list"></ul>
+      <p id="workspace-offline-truth" class="hint"></p>
+      <ul id="workspace-offline-truth-list"></ul>
       <p id="workspace-decision-notice" class="hint"></p>
       <p><a id="workspace-decision-notice-link" class="hint" href="/">Decision notice follow-through</a></p>
     </div>
@@ -206,6 +208,8 @@
     document.getElementById("workspace-memory-return").textContent = payload.campaignMemoryReturnSummary || "No campaign-memory return cue is available yet.";
     document.getElementById("workspace-continuity-rail").textContent = payload.continuityRailSummary || "No continuity rail summary is available yet.";
     setList("workspace-continuity-rail-list", payload.continuityRailLabels);
+    document.getElementById("workspace-offline-truth").textContent = payload.offlineTruthSummary || "No offline truth summary is available yet.";
+    setList("workspace-offline-truth-list", payload.offlineTruthLabels);
     document.getElementById("workspace-decision-notice").textContent = payload.decisionNotice || "No campaign decision notice is available yet.";
     document.getElementById("workspace-decision-notice-link").href = payload.decisionNoticeHref || "/";
     document.getElementById("workspace-decision-notice-link").textContent = payload.decisionNotice || "Decision notice follow-through";
