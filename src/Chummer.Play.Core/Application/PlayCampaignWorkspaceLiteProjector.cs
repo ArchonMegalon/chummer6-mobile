@@ -40,6 +40,8 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     IReadOnlyList<PlayArtifactShelfViewLink> ArtifactShelfViews,
     string CampaignMemorySummary,
     string CampaignMemoryReturnSummary,
+    string ContinuityRailSummary,
+    IReadOnlyList<string> ContinuityRailLabels,
     string RolePosture,
     string RulePosture,
     string LegalRunnerSummary,
@@ -165,6 +167,8 @@ public static class PlayCampaignWorkspaceLiteProjector
         PlayArtifactShelfViewLink[] artifactShelfViews = BuildArtifactShelfViews(recapEntry, selectedArtifactView);
         string campaignMemorySummary = BuildCampaignMemorySummary(resume, serverPlane, roleLabel, latestTimeline);
         string campaignMemoryReturnSummary = BuildCampaignMemoryReturnSummary(resume, serverPlane, roleLabel);
+        string continuityRailSummary = BuildContinuityRailSummary(resume, session, serverPlane, roleLabel, latestTimeline);
+        string[] continuityRailLabels = BuildContinuityRailLabels(resume, session, serverPlane, roleLabel, latestTimeline);
         string rolePosture = BuildRolePosture(resume, session);
         string legalRunnerSummary = BuildLegalRunnerSummary(resume, session);
         string understandableReturnSummary = BuildUnderstandableReturnSummary(serverPlane, continuityPosture);
@@ -262,6 +266,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             ArtifactShelfViews: artifactShelfViews,
             CampaignMemorySummary: campaignMemorySummary,
             CampaignMemoryReturnSummary: campaignMemoryReturnSummary,
+            ContinuityRailSummary: continuityRailSummary,
+            ContinuityRailLabels: continuityRailLabels,
             RolePosture: rolePosture,
             RulePosture: $"{session.RuntimeFingerprint}. {runtimeBundleSummary}",
             LegalRunnerSummary: legalRunnerSummary,
@@ -554,6 +560,46 @@ public static class PlayCampaignWorkspaceLiteProjector
         string returnSummary = serverPlane.Workspace.ReturnSummary;
         string nextSafeAction = serverPlane.NextSafeAction.Summary;
         return $"Memory return: {returnSummary} Next: {nextSafeAction} Keep the {roleLabel} on the same install-local continuity lane.";
+    }
+
+    private static string BuildContinuityRailSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel,
+        string latestTimeline)
+    {
+        string downtime = resume.RuntimeBundle is null
+            ? $"Downtime: reconnect {session.SceneId} once before you trust offline training or acquisition carry-forward."
+            : $"Downtime: checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"} plus bundle {resume.RuntimeBundle.BundleTag} keep training/acquisition carry-forward grounded.";
+        string diary = $"Diary: '{latestTimeline}' stays on the same governed campaign memory lane.";
+        string contacts = $"Contacts: support follow-through stays on one account-linked lane for the {roleLabel} via {serverPlane.SupportClosures.FirstOrDefault()?.StageLabel ?? "workspace support posture"}.";
+        string heat = resume.CachePressure.BackpressureActive
+            ? $"Heat: warning posture is active because cache pressure already touched {resume.CachePressure.EvictedEntryCount} session(s)."
+            : "Heat: no continuity warning is active for this lane right now.";
+        string aftermath = $"Aftermath: {BuildAftermathCoverageSummary(serverPlane)}.";
+        string ret = $"Return: {serverPlane.Workspace.ReturnSummary}";
+        return $"{downtime} {diary} {contacts} {heat} {aftermath} {ret}";
+    }
+
+    private static string[] BuildContinuityRailLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel,
+        string latestTimeline)
+    {
+        string downtime = resume.RuntimeBundle is null
+            ? $"Downtime lane: reconnect {session.SceneId} once before you trust offline carry-forward."
+            : $"Downtime lane: checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"} and bundle {resume.RuntimeBundle.BundleTag} keep post-run carry-forward grounded.";
+        string diary = $"Diary lane: '{latestTimeline}' remains the newest governed event signal.";
+        string contacts = $"Contacts lane: keep support/contact follow-through tied to this {roleLabel} and the same claimed-device continuity packet.";
+        string heat = resume.CachePressure.BackpressureActive
+            ? $"Heat lane: warning-only while cache pressure is active ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota})."
+            : "Heat lane: calm continuity posture; no active cache-pressure warning.";
+        string aftermath = $"Aftermath lane: {BuildAftermathCoverageSummary(serverPlane)}.";
+        string ret = $"Return lane: {serverPlane.Workspace.ReturnSummary}";
+        return [downtime, diary, contacts, heat, aftermath, ret];
     }
 
     private static string BuildSupportPosture(PlayResumeResponse resume, PlayCampaignWorkspaceServerPlane serverPlane)
