@@ -516,7 +516,7 @@ public static class PlayCampaignWorkspaceLiteProjector
 
         if (resume.CachePressure.BackpressureActive)
         {
-            return $"Travel posture: bundle {resume.RuntimeBundle.BundleTag} is grounded, but cache pressure already touched {resume.CachePressure.EvictedEntryCount} session(s), so bounded offline prefetch can still drift before the next travel handoff.";
+            return $"Travel posture: bundle {resume.RuntimeBundle.BundleTag} is grounded, but cache pressure already touched {resume.CachePressure.EvictedEntryCount} session(s), so bounded offline prefetch is degraded and can still drift before the next travel handoff.";
         }
 
         if (resume.Checkpoint is null)
@@ -581,7 +581,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         string diary = $"Diary: '{latestTimeline}' stays on the same governed campaign memory lane.";
         string contacts = $"Contacts: support follow-through stays on one account-linked lane for the {roleLabel} via {serverPlane.SupportClosures.FirstOrDefault()?.StageLabel ?? "workspace support posture"}.";
         string heat = resume.CachePressure.BackpressureActive
-            ? $"Heat: warning posture is active because cache pressure already touched {resume.CachePressure.EvictedEntryCount} session(s)."
+            ? $"Heat: degraded warning posture is active because cache pressure already touched {resume.CachePressure.EvictedEntryCount} session(s)."
             : "Heat: no continuity warning is active for this lane right now.";
         string aftermath = $"Aftermath: {BuildAftermathCoverageSummary(serverPlane)}.";
         string ret = $"Return: {serverPlane.Workspace.ReturnSummary}";
@@ -601,7 +601,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         string diary = $"Diary lane: '{latestTimeline}' remains the newest governed event signal.";
         string contacts = $"Contacts lane: keep support/contact follow-through tied to this {roleLabel} and the same claimed-device continuity packet.";
         string heat = resume.CachePressure.BackpressureActive
-            ? $"Heat lane: warning-only while cache pressure is active ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota})."
+            ? $"Heat lane: degraded warning-only while cache pressure is active ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota})."
             : "Heat lane: calm continuity posture; no active cache-pressure warning.";
         string aftermath = $"Aftermath lane: {BuildAftermathCoverageSummary(serverPlane)}.";
         string ret = $"Return lane: {serverPlane.Workspace.ReturnSummary}";
@@ -616,7 +616,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? $"Cached: bundle proof for {session.SceneId} is not stored locally yet."
             : $"Cached: bundle {resume.RuntimeBundle.BundleTag} is validated and install-local on this shell.";
         string stale = resume.CachePressure.BackpressureActive
-            ? $"Stale: warning posture is active because cache pressure already touched {resume.CachePressure.EvictedEntryCount} session(s)."
+            ? $"Stale: degraded warning posture is active because cache pressure already touched {resume.CachePressure.EvictedEntryCount} session(s)."
             : "Stale: no active cache-pressure warning is published.";
         string action = resume.RuntimeBundle is null || resume.Checkpoint is null
             ? $"Offline actions: read-only review is safe; reconnect {session.SceneId} before mutating continuity-critical state."
@@ -638,7 +638,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? $"Cached lane: runtime proof missing for {session.SceneId}; reconnect once to seed local bundle truth."
             : $"Cached lane: {resume.RuntimeBundle.BundleTag} is validated and pinned install-local for {roleLabel}.";
         string stale = resume.CachePressure.BackpressureActive
-            ? $"Stale lane: warning-only because cache pressure is active ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota})."
+            ? $"Stale lane: degraded warning-only because cache pressure is active ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota})."
             : "Stale lane: green; no active cache-pressure warning.";
         string action = resume.RuntimeBundle is null || resume.Checkpoint is null
             ? $"Offline action lane: stay read-only until checkpoint and runtime proof are both grounded on this device."

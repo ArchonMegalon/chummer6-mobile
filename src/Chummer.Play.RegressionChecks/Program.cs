@@ -350,6 +350,11 @@ static void VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy()
     Assert(projection.DecisionNotice.Contains("Use the current bundle proof for scene-redmond", StringComparison.Ordinal), "cache-pressure decision notices must reuse the live support next-safe action instead of a generic support-follow-through label.");
     Assert(!projection.DecisionNotice.Contains("Open support follow-through", StringComparison.Ordinal), "cache-pressure decision notices must not fall back to the old generic support-follow-through label.");
     Assert(projection.DecisionNoticeHref.Contains("/contact", StringComparison.Ordinal), "cache-pressure decision notices must keep the direct support follow-through href.");
+    Assert(projection.TravelPosture.Contains("degraded", StringComparison.OrdinalIgnoreCase), "cache-pressure workspace-lite projection must mark travel posture as degraded when stale pressure is active.");
+    Assert(projection.ContinuityRailSummary.Contains("degraded", StringComparison.OrdinalIgnoreCase), "cache-pressure workspace-lite projection must keep degraded continuity wording visible on the heat rail.");
+    Assert(projection.ContinuityRailLabels.Any(item => item.Contains("degraded", StringComparison.OrdinalIgnoreCase)), "cache-pressure workspace-lite projection must keep degraded continuity labels on the heat rail.");
+    Assert(projection.OfflineTruthSummary.Contains("degraded", StringComparison.OrdinalIgnoreCase), "cache-pressure workspace-lite projection must mark stale offline truth as degraded.");
+    Assert(projection.OfflineTruthLabels.Any(item => item.Contains("degraded", StringComparison.OrdinalIgnoreCase)), "cache-pressure workspace-lite projection must keep degraded stale labels for offline truth.");
     Assert(projection.CurrentCautionSummary.Contains("Clear cache pressure", StringComparison.Ordinal), "cache-pressure workspace-lite projection must elevate the cache-pressure caution lane explicitly.");
 }
 
