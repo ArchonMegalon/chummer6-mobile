@@ -16,6 +16,8 @@ public sealed record RoamingWorkspaceRestorePlan(
     string RuleEnvironmentSummary,
     string PrefetchReadinessSummary,
     string LocalCacheBoundarySummary,
+    string OfflineTruthSummary,
+    IReadOnlyList<string> OfflineTruthLabels,
     IReadOnlyList<string> PrefetchLabels,
     string? ReturnTargetCampaignName,
     string ResumeFollowThrough,
@@ -79,6 +81,8 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
             conflictSummaries,
             canResume);
         var localCacheBoundarySummary = BuildLocalCacheBoundarySummary(localOnlyNotes);
+        var offlineTruthSummary = BuildOfflineTruthSummary(restore, targetDevice, conflictSummaries, canResume);
+        var offlineTruthLabels = BuildOfflineTruthLabels(restore, targetDevice, conflictSummaries, canResume);
         var prefetchLabels = BuildPrefetchLabels(restore, targetDevice);
         var resumeFollowThrough = BuildResumeFollowThrough(targetDevice, primaryCampaign, primaryDossier, conflictSummaries, canResume);
         var resumeFollowThroughHref = BuildResumeFollowThroughHref(targetDevice, primaryCampaign, primaryDossier);
@@ -100,6 +104,8 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
             RuleEnvironmentSummary: ruleEnvironmentSummary,
             PrefetchReadinessSummary: prefetchReadinessSummary,
             LocalCacheBoundarySummary: localCacheBoundarySummary,
+            OfflineTruthSummary: offlineTruthSummary,
+            OfflineTruthLabels: offlineTruthLabels,
             PrefetchLabels: prefetchLabels,
             ReturnTargetCampaignName: primaryCampaign?.Name,
             ResumeFollowThrough: resumeFollowThrough,
@@ -205,6 +211,46 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
         string localNote = localOnlyNotes.FirstOrDefault(static item => !string.IsNullOrWhiteSpace(item))
             ?? "install-local caches remain device-bound.";
         return $"Install-local boundary: {localNote}";
+    }
+
+    private static string BuildOfflineTruthSummary(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        string cached = canResume
+            ? $"Cached: {DescribePrefetchInventory(restore)} are staged for {targetDevice.DeviceRole}."
+            : $"Cached: no bounded restore packet is staged for {targetDevice.DeviceRole} yet.";
+        string stale = conflictSummaries.Count > 0
+            ? $"Stale: warning posture is active because {conflictSummaries.Count} restore conflict(s) still need review."
+            : "Stale: no restore conflicts are active for this target device.";
+        string action = !canResume
+            ? $"Offline actions: claim or reconnect {targetDevice.DeviceRole} before trusting offline continuation."
+            : conflictSummaries.Count > 0
+                ? $"Offline actions: review conflicts first; keep this lane read-mostly until continuity review closes."
+                : $"Offline actions: bounded resume is allowed on {targetDevice.DeviceRole}; keep continuity changes on the claimed lane.";
+        return $"{cached} {stale} {action}";
+    }
+
+    private static string[] BuildOfflineTruthLabels(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        string cached = canResume
+            ? $"Cached lane: {DescribePrefetchInventory(restore)} are attached to {targetDevice.InstallationId}."
+            : $"Cached lane: no inventory is attached to {targetDevice.InstallationId} yet.";
+        string stale = conflictSummaries.Count > 0
+            ? $"Stale lane: warning-only until {conflictSummaries.Count} conflict(s) are reviewed."
+            : "Stale lane: green; no restore conflicts are active.";
+        string action = !canResume
+            ? $"Offline action lane: reconnect and seed a restore packet before offline follow-through."
+            : conflictSummaries.Count > 0
+                ? $"Offline action lane: resolve conflict review before mutating campaign continuity."
+                : $"Offline action lane: resume is allowed on {targetDevice.DeviceRole} with bounded local truth.";
+        return [cached, stale, action];
     }
 
     private static IReadOnlyList<string> BuildPrefetchLabels(
