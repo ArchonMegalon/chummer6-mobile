@@ -628,7 +628,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? "Prep library: warning-only while cache pressure is active; keep prep packets review-first."
             : "Prep library: governed prep packets stay aligned to the current runboard lane.";
         string events = $"Event controls: {serverPlane.NextSafeAction.Summary}";
-        return $"{opposition} {roster} {prep} {events} Keep GM and organizer actions on the same account-backed {roleLabel} lane.";
+        return $"{opposition} {roster} {prep} {events} Keep GM and organizer actions on the same account-backed, audit-visible, support-linked {roleLabel} lane.";
     }
 
     private static string[] BuildGmOperationsLabels(
@@ -645,7 +645,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? $"Prep library lane: degraded while cache pressure is active ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota})."
             : "Prep library lane: governed and aligned to the current runboard objective.";
         string events = $"Event controls lane: {serverPlane.NextSafeAction.Summary}";
-        string governance = $"Governance lane: keep GM and organizer actions on the same account-backed {roleLabel} rail.";
+        string governance = $"Governance lane: keep GM and organizer actions on the same account-backed, audit-visible, support-linked {roleLabel} rail.";
         return [opposition, roster, prep, events, governance];
     }
 

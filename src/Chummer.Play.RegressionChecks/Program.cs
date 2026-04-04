@@ -259,11 +259,15 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.GmOperationsSummary.Contains("Roster movement:", StringComparison.Ordinal), "workspace-lite summary must expose roster movement posture on the same campaign lane.");
     Assert(projection.GmOperationsSummary.Contains("Prep library:", StringComparison.Ordinal), "workspace-lite summary must expose prep library posture on the same campaign lane.");
     Assert(projection.GmOperationsSummary.Contains("Event controls:", StringComparison.Ordinal), "workspace-lite summary must expose event-control posture on the same campaign lane.");
+    Assert(projection.GmOperationsSummary.Contains("audit-visible", StringComparison.Ordinal), "workspace-lite summary must keep GM and organizer operations explicitly audit-visible.");
+    Assert(projection.GmOperationsSummary.Contains("support-linked", StringComparison.Ordinal), "workspace-lite summary must keep GM and organizer operations explicitly support-linked.");
     Assert(projection.GmOperationsLabels.Any(item => item.Contains("Opposition lane:", StringComparison.Ordinal)), "workspace-lite summary must expose an opposition lane label for GM operations.");
     Assert(projection.GmOperationsLabels.Any(item => item.Contains("Roster movement lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a roster movement lane label for GM operations.");
     Assert(projection.GmOperationsLabels.Any(item => item.Contains("Prep library lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a prep library lane label for GM operations.");
     Assert(projection.GmOperationsLabels.Any(item => item.Contains("Event controls lane:", StringComparison.Ordinal)), "workspace-lite summary must expose an event-controls lane label for GM operations.");
     Assert(projection.GmOperationsLabels.Any(item => item.Contains("Governance lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a governance lane label for GM operations.");
+    Assert(projection.GmOperationsLabels.Any(item => item.Contains("audit-visible", StringComparison.Ordinal)), "workspace-lite summary must keep governance lane text explicitly audit-visible.");
+    Assert(projection.GmOperationsLabels.Any(item => item.Contains("support-linked", StringComparison.Ordinal)), "workspace-lite summary must keep governance lane text explicitly support-linked.");
     Assert(projection.OfflineTruthSummary.Contains("Cached:", StringComparison.Ordinal), "workspace-lite summary must expose explicit cached-state posture for offline continuity.");
     Assert(projection.OfflineTruthSummary.Contains("Stale:", StringComparison.Ordinal), "workspace-lite summary must expose explicit stale-state posture for offline continuity.");
     Assert(projection.OfflineTruthSummary.Contains("Offline actions:", StringComparison.Ordinal), "workspace-lite summary must expose explicit offline action posture for bounded local truth.");
