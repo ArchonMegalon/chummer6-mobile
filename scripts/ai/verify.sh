@@ -312,6 +312,14 @@ python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
 test -f .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json
 rg -n '"contract_name": "chummer6-mobile.local_release_proof"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"status": "passed"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"journeys_passed": \[' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"install_claim_restore_continue"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"campaign_session_recover_recap"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"recover_from_sync_conflict"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"required_markers": \{' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 
 if [[ -n "${published_feed_sources}" ]]; then
   echo "running published-feed compatibility restore/build checks"
