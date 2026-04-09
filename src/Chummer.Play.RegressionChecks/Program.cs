@@ -292,6 +292,14 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.CampaignReadySummary.Contains("Session readiness is green", StringComparison.Ordinal), "workspace-lite summary must surface explicit campaign-ready proof for the grounded shell.");
     Assert(projection.CampaignReadySummary.Contains("Roster readiness", StringComparison.Ordinal), "workspace-lite summary must keep roster posture attached to the campaign-ready proof.");
     Assert(projection.SafeNextAction.Contains("Sync before taking the next quick action", StringComparison.Ordinal), "workspace-lite summary must point the player lane at the next safe action");
+    Assert(projection.RejoinCommand.Contains("Rejoin scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated rejoin command for the current scene.");
+    Assert(projection.RejoinCommandHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose a direct rejoin command href.");
+    Assert(projection.ContinueCommand.Contains("Sync before taking the next quick action", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated continue command tied to next-safe-action guidance.");
+    Assert(projection.ContinueCommandHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose a direct continue command href.");
+    Assert(projection.SupportCommand.Contains("bundle proof", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated support command tied to grounded fix verification.");
+    Assert(projection.SupportCommandHref.Contains("/contact", StringComparison.Ordinal), "workspace-lite summary must expose a direct support command href.");
+    Assert(projection.LowNoiseGuidance.Count == 3, "workspace-lite summary must expose low-noise guidance for rejoin, continue, and support routes.");
+    Assert(projection.LowNoiseGuidance.All(item => item.Contains("route:", StringComparison.OrdinalIgnoreCase)), "workspace-lite summary low-noise guidance must stay route-oriented and concise.");
     Assert(projection.ContinuityPosture.Contains("Checkpoint 12", StringComparison.Ordinal), "workspace-lite summary must expose the aligned continuity checkpoint");
     Assert(projection.CachePosture.Contains("2/8", StringComparison.Ordinal), "workspace-lite summary must expose cache posture");
     Assert(projection.TravelPosture.Contains("bounded offline use", StringComparison.Ordinal), "workspace-lite summary must make travel readiness deliberate on the claimed device");
@@ -440,6 +448,8 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(observerProjection.AttentionItems.Any(item => item.Contains("No quick actions", StringComparison.Ordinal)), "observer workspace-lite projection must explain the review-only posture when quick actions are unavailable");
     Assert(observerProjection.AttentionItems.Any(item => item.Contains("read-mostly", StringComparison.OrdinalIgnoreCase)), "observer workspace-lite projection must keep the read-mostly attention item visible");
     Assert(observerProjection.DecisionNoticeHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer lane decision follow-through route");
+    Assert(observerProjection.RejoinCommandHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer rejoin command on the observer route.");
+    Assert(observerProjection.ContinueCommandHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer continue command on the observer route.");
     Assert(observerProjection.RoleFollowThrough.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep observer-specific role follow-through text");
     Assert(observerProjection.RoleFollowThrough.Contains("read-mostly", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the read-mostly follow-through posture");
     Assert(observerProjection.RoleFollowThroughHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer role follow-through href");
@@ -489,6 +499,8 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(gmProjection.SafeNextAction.Contains("Open the GM shell, confirm scene scene-rigel", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm-specific next safe action");
     Assert(gmProjection.RosterSummary.Contains("GM runboard is clear to continue scene-rigel", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm roster lane unblocked when continuity is aligned");
     Assert(gmProjection.DecisionNoticeHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm decision follow-through route");
+    Assert(gmProjection.RejoinCommandHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm rejoin command on the gm route.");
+    Assert(gmProjection.ContinueCommandHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm continue command on the gm route.");
     Assert(gmProjection.RoleFollowThrough.Contains("GM changes anchored on scene-rigel", StringComparison.Ordinal), "gm workspace-lite projection must keep gm changes anchored on the current scene");
     Assert(gmProjection.RoleFollowThroughHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm role follow-through href");
     Assert(gmProjection.CampaignReadySummary.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep gm posture explicit inside campaign-ready proof");
@@ -1407,6 +1419,13 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("<h1>Chummer Play</h1>", StringComparison.Ordinal), "play shell must expose a top-level heading");
     Assert(html.Contains("id=\"output\" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"", StringComparison.Ordinal), "play shell resume status region must expose polite live updates");
     Assert(html.Contains("id=\"workspace-summary\"", StringComparison.Ordinal), "play shell must expose a workspace-lite summary region");
+    Assert(html.Contains("id=\"critical-rejoin\"", StringComparison.Ordinal), "play shell must expose a dedicated rejoin command surface.");
+    Assert(html.Contains("id=\"critical-rejoin-link\"", StringComparison.Ordinal), "play shell must expose a direct rejoin command link.");
+    Assert(html.Contains("id=\"critical-continue\"", StringComparison.Ordinal), "play shell must expose a dedicated continue command surface.");
+    Assert(html.Contains("id=\"critical-continue-link\"", StringComparison.Ordinal), "play shell must expose a direct continue command link.");
+    Assert(html.Contains("id=\"critical-support\"", StringComparison.Ordinal), "play shell must expose a dedicated support command surface.");
+    Assert(html.Contains("id=\"critical-support-link\"", StringComparison.Ordinal), "play shell must expose a direct support command link.");
+    Assert(html.Contains("id=\"critical-low-noise-guidance\"", StringComparison.Ordinal), "play shell must expose low-noise guidance for critical command routes.");
     Assert(html.Contains("id=\"workspace-role\"", StringComparison.Ordinal), "play shell must expose role posture alongside current state");
     Assert(html.Contains("id=\"change-packet-summary\"", StringComparison.Ordinal), "play shell must expose a change-packet summary alongside current state");
     Assert(html.Contains("id=\"workspace-legal-runner\"", StringComparison.Ordinal), "play shell must expose legal-runner proof alongside current state");
@@ -1481,6 +1500,13 @@ static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
     var html = await File.ReadAllTextAsync(indexHtmlPath);
 
     Assert(html.Contains("document.getElementById(\"workspace-decision-notice-link\").textContent = payload.decisionNotice || \"Decision notice follow-through\";", StringComparison.Ordinal), "play shell must bind decision-notice link text to the workspace projection instead of hiding it behind generic copy.");
+    Assert(html.Contains("document.getElementById(\"critical-rejoin\").textContent = payload.rejoinCommand || \"No rejoin command is available yet.\";", StringComparison.Ordinal), "play shell must bind the dedicated rejoin command label from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"critical-rejoin-link\").href = payload.rejoinCommandHref || \"/play\";", StringComparison.Ordinal), "play shell must bind the dedicated rejoin command href from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"critical-continue\").textContent = payload.continueCommand || \"No continue command is available yet.\";", StringComparison.Ordinal), "play shell must bind the dedicated continue command label from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"critical-continue-link\").href = payload.continueCommandHref || \"/play\";", StringComparison.Ordinal), "play shell must bind the dedicated continue command href from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"critical-support\").textContent = payload.supportCommand || \"No support command is available yet.\";", StringComparison.Ordinal), "play shell must bind the dedicated support command label from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"critical-support-link\").href = payload.supportCommandHref || \"/contact\";", StringComparison.Ordinal), "play shell must bind the dedicated support command href from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"critical-low-noise-guidance\", payload.lowNoiseGuidance);", StringComparison.Ordinal), "play shell must bind low-noise guidance from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-audience\").textContent = payload.recapAudienceSummary || \"No artifact audience summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact audience posture from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-ownership\").textContent = payload.recapOwnershipSummary || \"No artifact ownership summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact ownership posture from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-publication\").textContent = payload.recapPublicationSummary || \"No artifact publication summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact publication posture from the workspace-lite projection.");

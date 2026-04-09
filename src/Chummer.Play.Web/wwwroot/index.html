@@ -30,6 +30,16 @@
       <p id="workspace-safe-action" class="hint"></p>
     </div>
     <div class="card">
+      <div class="eyebrow">Critical actions</div>
+      <p id="critical-rejoin" class="hint"></p>
+      <p><a id="critical-rejoin-link" class="hint" href="/play">Rejoin</a></p>
+      <p id="critical-continue" class="hint"></p>
+      <p><a id="critical-continue-link" class="hint" href="/play">Continue</a></p>
+      <p id="critical-support" class="hint"></p>
+      <p><a id="critical-support-link" class="hint" href="/contact">Support</a></p>
+      <ul id="critical-low-noise-guidance"></ul>
+    </div>
+    <div class="card">
       <div class="eyebrow">Current state</div>
       <p id="workspace-scene"></p>
       <p id="change-packet-summary" class="hint"></p>
@@ -170,6 +180,16 @@
   function renderWorkspace(payload) {
     document.getElementById("workspace-summary").textContent = payload.summary || "No campaign workspace summary is available yet.";
     document.getElementById("workspace-safe-action").textContent = payload.safeNextAction || "No safe next action is available yet.";
+    document.getElementById("critical-rejoin").textContent = payload.rejoinCommand || "No rejoin command is available yet.";
+    document.getElementById("critical-rejoin-link").href = payload.rejoinCommandHref || "/play";
+    document.getElementById("critical-rejoin-link").textContent = payload.rejoinCommand || "Rejoin";
+    document.getElementById("critical-continue").textContent = payload.continueCommand || "No continue command is available yet.";
+    document.getElementById("critical-continue-link").href = payload.continueCommandHref || "/play";
+    document.getElementById("critical-continue-link").textContent = payload.continueCommand || "Continue";
+    document.getElementById("critical-support").textContent = payload.supportCommand || "No support command is available yet.";
+    document.getElementById("critical-support-link").href = payload.supportCommandHref || "/contact";
+    document.getElementById("critical-support-link").textContent = payload.supportCommand || "Support";
+    setList("critical-low-noise-guidance", payload.lowNoiseGuidance);
     document.getElementById("workspace-scene").textContent = payload.currentSceneSummary || "No current scene summary is available yet.";
     document.getElementById("change-packet-summary").textContent = payload.changePacketSummary || "No change packet is available yet.";
     document.getElementById("workspace-role").textContent = payload.rolePosture || "No role posture is available yet.";

@@ -68,6 +68,13 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string SupportFollowThroughHref,
     string RoleFollowThrough,
     string RoleFollowThroughHref,
+    string RejoinCommand,
+    string RejoinCommandHref,
+    string ContinueCommand,
+    string ContinueCommandHref,
+    string SupportCommand,
+    string SupportCommandHref,
+    IReadOnlyList<string> LowNoiseGuidance,
     IReadOnlyList<string> AttentionItems,
     IReadOnlyList<string> ChangePacketLabels,
     IReadOnlyList<string> QuickActionLabels,
@@ -194,6 +201,18 @@ public static class PlayCampaignWorkspaceLiteProjector
         string supportFollowThroughHref = BuildSupportFollowThroughHref(resume, session);
         string roleFollowThrough = BuildRoleFollowThrough(resume, session);
         string roleFollowThroughHref = BuildRoleFollowThroughHref(resume, session);
+        string rejoinCommand = $"Rejoin {session.SceneId} on the {roleLabel}.";
+        string rejoinCommandHref = resume.DeepLinkOwnerRoute;
+        string continueCommand = safeNextAction;
+        string continueCommandHref = decisionNoticeHref;
+        string supportCommand = supportFollowThrough;
+        string supportCommandHref = supportFollowThroughHref;
+        string[] lowNoiseGuidance =
+        [
+            $"Rejoin route: {resume.DeepLinkOwnerRoute}",
+            $"Continue route: {decisionNoticeHref}",
+            $"Support route: {supportFollowThroughHref}"
+        ];
         string[] changePacketLabels = BuildChangePacketLabels(resume, session, latestTimeline, serverPlane);
         string[] followThroughLabels = BuildFollowThroughLabels(
             resume,
@@ -302,6 +321,13 @@ public static class PlayCampaignWorkspaceLiteProjector
             SupportFollowThroughHref: supportFollowThroughHref,
             RoleFollowThrough: roleFollowThrough,
             RoleFollowThroughHref: roleFollowThroughHref,
+            RejoinCommand: rejoinCommand,
+            RejoinCommandHref: rejoinCommandHref,
+            ContinueCommand: continueCommand,
+            ContinueCommandHref: continueCommandHref,
+            SupportCommand: supportCommand,
+            SupportCommandHref: supportCommandHref,
+            LowNoiseGuidance: lowNoiseGuidance,
             AttentionItems: attentionItems.Count == 0
                 ? ["No blocking continuity issues are active on this device."]
                 : attentionItems,
