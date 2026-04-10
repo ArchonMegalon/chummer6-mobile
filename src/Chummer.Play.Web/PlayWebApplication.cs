@@ -259,6 +259,31 @@ public static class PlayWebApplication
             }
         );
         app.MapGet(
+            "/api/play/onboarding-recovery/{sessionId}",
+            async (
+                string sessionId,
+                PlaySurfaceRole role,
+                string? deviceId,
+                IPlayEventLogStore eventLogStore,
+                IPlayOfflineCacheService offlineCacheService,
+                IPlayRoamingRestoreService restoreService,
+                CancellationToken cancellationToken
+            ) =>
+            {
+                PlayResumeResponse response = await BuildResumeResponseAsync(
+                    sessionId,
+                    role,
+                    eventLogStore,
+                    offlineCacheService,
+                    playerShell,
+                    gmShell,
+                    cancellationToken
+                );
+                var restorePlan = restoreService.CreatePlan(response, deviceId);
+                return Results.Json(PlayEntryRecoveryProjector.Create(response, restorePlan));
+            }
+        );
+        app.MapGet(
             PlayApiRoutes.CachePressure,
             async (string sessionId, IPlayOfflineCacheService offlineCacheService, CancellationToken cancellationToken) =>
             {

@@ -99,8 +99,8 @@ if rg -n 'namespace Chummer\.Contracts\.Session;|public (sealed )?record (Effect
   exit 1
 fi
 
-if rg -n '\\b(class|record)\\s+(TokenCanon|ThemeCompiler|ShellChrome|AccessibilityState|Banner|StaleStateBadge|ApprovalChip|OfflineBanner|DenseTableHeader|DenseRowMetadata|ExplainChip|SpiderStatusCard|ArtifactStatusCard)\\b|\\b(static\\s+)?UiAdapterPayload\\s+Adapt(ShellChrome|AccessibilityState|Banner|StaleStateBadge|ApprovalChip|OfflineBanner|DenseTableHeader|DenseRowMetadata|ExplainChip|SpiderStatusCard|ArtifactStatusCard)\\s*\\(' src -g '*.cs' >/dev/null 2>&1; then
-  echo "source-copied ui-kit token/theme/shell/accessibility primitives are not allowed in chummer6-mobile" >&2
+if rg -n '\\b(class|record)\\s+(TokenCanon|ThemeCompiler|ShellChrome|AccessibilityState|Banner|StaleStateBadge|ApprovalChip|OfflineBanner|DenseTableHeader|DenseRowMetadata|ExplainChip|SpiderStatusCard|ArtifactStatusCard|GuidanceState|LongRunningActionControls)\\b|\\b(static\\s+)?UiAdapterPayload\\s+Adapt(ShellChrome|AccessibilityState|Banner|StaleStateBadge|ApprovalChip|OfflineBanner|DenseTableHeader|DenseRowMetadata|ExplainChip|SpiderStatusCard|ArtifactStatusCard|GuidanceState|LongRunningActionControls)\\s*\\(' src -g '*.cs' >/dev/null 2>&1; then
+  echo "source-copied ui-kit token/theme/shell/accessibility/guidance/action-control primitives are not allowed in chummer6-mobile" >&2
   exit 1
 fi
 

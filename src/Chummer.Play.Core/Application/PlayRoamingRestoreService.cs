@@ -35,6 +35,9 @@ public sealed class PlayRoamingRestoreService : IPlayRoamingRestoreService
         DateTimeOffset generatedAtUtc = resume.RuntimeBundle?.CachedAtUtc
             ?? resume.Checkpoint?.CapturedAtUtc
             ?? resume.Bootstrap.Projection.GeneratedAtUtc;
+        bool bootstrapEmptyState = resume.Checkpoint is null
+            && resume.RuntimeBundle is null
+            && resume.Bootstrap.Projection.Cursor.AppliedThroughSequence == 0;
         RuleEnvironmentRef environment = BuildRuleEnvironment(resume, session);
         ContinuitySnapshotRef continuity = new(
             SnapshotId: $"snapshot:{resume.SessionId}",
@@ -180,23 +183,22 @@ public sealed class PlayRoamingRestoreService : IPlayRoamingRestoreService
             localOnlyNotes.Add("Reconnect once while online so this device can validate and cache the current runtime bundle.");
         }
 
+        List<RunnerDossierProjection> dossiers = bootstrapEmptyState ? [] : [dossier];
+        List<CampaignProjection> campaigns = bootstrapEmptyState ? [] : [campaign];
+        List<RuleEnvironmentRef> environments = bootstrapEmptyState ? [] : [environment];
+        List<RestoreArtifactProjection> effectiveArtifacts = bootstrapEmptyState ? [] : artifacts;
+        List<RestoreEntitlementProjection> effectiveEntitlements = bootstrapEmptyState
+            ? []
+            : entitlements;
+
         return new WorkspaceRestoreProjection(
             RestoreId: $"restore:{resume.SessionId}",
             UserId: "play-shell",
-            RecentDossiers:
-            [
-                dossier
-            ],
-            RecentCampaigns:
-            [
-                campaign
-            ],
-            RecentRuleEnvironments:
-            [
-                environment
-            ],
-            RecentArtifacts: artifacts,
-            Entitlements: entitlements,
+            RecentDossiers: dossiers,
+            RecentCampaigns: campaigns,
+            RecentRuleEnvironments: environments,
+            RecentArtifacts: effectiveArtifacts,
+            Entitlements: effectiveEntitlements,
             ClaimedDevices: devices,
             ConflictSummaries: conflictSummaries,
             LocalOnlyNotes: localOnlyNotes,

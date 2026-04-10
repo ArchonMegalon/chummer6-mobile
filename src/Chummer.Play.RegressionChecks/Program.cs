@@ -73,6 +73,7 @@ await RunCheckAsync(nameof(VerifyRuntimeBundleSessionLockReleasesOnCanceledAcqui
 RunCheck(nameof(VerifyCheckpointLineageAlignment), VerifyCheckpointLineageAlignment);
 RunCheck(nameof(VerifyStoredLineageAlignment), VerifyStoredLineageAlignment);
 RunCheck(nameof(VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary), VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary);
+RunCheck(nameof(VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure), VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure);
 RunCheck(nameof(VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy), VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy);
 RunCheck(nameof(VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth), VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth);
 RunCheck(nameof(VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState), VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState);
@@ -383,6 +384,167 @@ static void VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy()
     Assert(projection.OfflineTruthSummary.Contains("degraded", StringComparison.OrdinalIgnoreCase), "cache-pressure workspace-lite projection must mark stale offline truth as degraded.");
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("degraded", StringComparison.OrdinalIgnoreCase)), "cache-pressure workspace-lite projection must keep degraded stale labels for offline truth.");
     Assert(projection.CurrentCautionSummary.Contains("Clear cache pressure", StringComparison.Ordinal), "cache-pressure workspace-lite projection must elevate the cache-pressure caution lane explicitly.");
+}
+
+static void VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure()
+{
+    var noSessionResume = CreateWorkspaceLiteProjectionResponse(
+            sessionId: "session-empty",
+            sceneId: "scene-main",
+            sceneRevision: "scene-r0",
+            runtimeFingerprint: "runtime-local",
+            role: PlaySurfaceRole.Player,
+            route: "/play/session-empty",
+            timeline: ["No timeline events are cached yet."],
+            capabilities: ["play.session.sync"],
+            coachHints:
+            [
+                new PlayCoachHint("coach-player-sync", "Sync before submitting quick actions after reconnect.")
+            ],
+            quickActions:
+            [
+                new PlayQuickAction("player-mark-ready", "Mark Ready", "play.session.sync", true)
+            ],
+            bundleTag: "bundle-local",
+            sequence: 0) with
+    {
+        Checkpoint = null,
+        RuntimeBundle = null
+    };
+    var noSessionRestore = new RoamingWorkspaceRestorePlan(
+        RestoreId: "restore-empty",
+        TargetDeviceId: "install-empty",
+        DeviceRole: "play_tablet",
+        ResumeSummary: "No claimed-device packet is cached yet.",
+        SafeNextAction: "Start role-safe session bootstrap",
+        ResumeFollowThrough: "Start role-safe session bootstrap",
+        ResumeFollowThroughHref: "/play/session-empty",
+        SupportFollowThrough: "Open support",
+        SupportFollowThroughHref: "/contact",
+        RuleEnvironmentSummary: "None",
+        PrefetchReadinessSummary: "None",
+        LocalCacheBoundarySummary: "install-local",
+        OfflineTruthSummary: "None",
+        OfflineTruthLabels: [],
+        TravelCompanionSummary: "None",
+        TravelCompanionLabels: [],
+        PrefetchLabels: [],
+        ReturnTargetCampaignName: null,
+        AttentionItems: [],
+        ConflictSummaries: [],
+        LocalOnlyNotes: [],
+        CanResume: false,
+        RequiresConflictReview: false,
+        Dossiers: [],
+        Campaigns: [],
+        RuleEnvironments: [],
+        Artifacts: [],
+        Entitlements: []);
+    var noSessionProjection = PlayEntryRecoveryProjector.Create(noSessionResume, noSessionRestore);
+    Assert(noSessionProjection.EntryState == "no_session", "entry recovery must classify empty cache state as no_session");
+    Assert(noSessionProjection.RecommendedActionLabel.Contains("bootstrap", StringComparison.OrdinalIgnoreCase), "entry recovery no_session state must recommend one-tap bootstrap");
+
+    var noCampaignResume = CreateWorkspaceLiteProjectionResponse(
+        sessionId: "session-no-campaign",
+        sceneId: "scene-no-campaign",
+        sceneRevision: "scene-r2",
+        runtimeFingerprint: "runtime-no-campaign",
+        role: PlaySurfaceRole.Player,
+        route: "/play/session-no-campaign",
+        timeline: ["Reconnect complete"],
+        capabilities: ["play.session.sync"],
+        coachHints: [new PlayCoachHint("coach-player-sync", "Sync before submitting quick actions after reconnect.")],
+        quickActions: [new PlayQuickAction("player-mark-ready", "Mark Ready", "play.session.sync", true)],
+        bundleTag: "bundle-no-campaign",
+        sequence: 4);
+    var noCampaignRestore = new RoamingWorkspaceRestorePlan(
+        RestoreId: "restore-no-campaign",
+        TargetDeviceId: "install-no-campaign",
+        DeviceRole: "play_tablet",
+        ResumeSummary: "No campaign is attached yet.",
+        SafeNextAction: "Create campaign return target",
+        ResumeFollowThrough: "Create campaign return target",
+        ResumeFollowThroughHref: "/campaigns/new?source=mobile-play",
+        SupportFollowThrough: "Open support",
+        SupportFollowThroughHref: "/contact",
+        RuleEnvironmentSummary: "None",
+        PrefetchReadinessSummary: "None",
+        LocalCacheBoundarySummary: "install-local",
+        OfflineTruthSummary: "None",
+        OfflineTruthLabels: [],
+        TravelCompanionSummary: "None",
+        TravelCompanionLabels: [],
+        PrefetchLabels: [],
+        ReturnTargetCampaignName: null,
+        AttentionItems: [],
+        ConflictSummaries: [],
+        LocalOnlyNotes: [],
+        CanResume: false,
+        RequiresConflictReview: false,
+        Dossiers: [],
+        Campaigns: [],
+        RuleEnvironments: [],
+        Artifacts: [],
+        Entitlements: []);
+    var noCampaignProjection = PlayEntryRecoveryProjector.Create(noCampaignResume, noCampaignRestore);
+    Assert(noCampaignProjection.EntryState == "no_campaign", "entry recovery must classify missing campaign target as no_campaign");
+    Assert(noCampaignProjection.RecommendedActionHref.Contains("/campaigns/new", StringComparison.Ordinal), "entry recovery no_campaign state must recommend one-tap campaign onboarding");
+
+    var postFailureResume = CreateWorkspaceLiteProjectionResponse(
+            sessionId: "session-post-failure",
+            sceneId: "scene-post-failure",
+            sceneRevision: "scene-r4",
+            runtimeFingerprint: "runtime-post-failure",
+            role: PlaySurfaceRole.Player,
+            route: "/play/session-post-failure",
+            timeline: ["Reconnect complete"],
+            capabilities: ["play.session.sync"],
+            coachHints: [new PlayCoachHint("coach-player-sync", "Sync before submitting quick actions after reconnect.")],
+            quickActions: [new PlayQuickAction("player-mark-ready", "Mark Ready", "play.session.sync", true)],
+            bundleTag: "bundle-post-failure",
+            sequence: 6) with
+    {
+        CachePressure = new PlayCachePressureSnapshot(8, 8, true, 2, [], DateTimeOffset.UtcNow),
+        SupportNotice = new PlaySupportClosureNotice(
+            StatusLabel: "Runtime proof missing",
+            KnownIssueSummary: "Runtime proof missing",
+            FixAvailabilitySummary: "Fix unavailable",
+            NextSafeAction: "Reconnect",
+            FollowThroughHref: "/contact")
+    };
+    var postFailureRestore = new RoamingWorkspaceRestorePlan(
+        RestoreId: "restore-post-failure",
+        TargetDeviceId: "install-post-failure",
+        DeviceRole: "play_tablet",
+        ResumeSummary: "Conflict review required",
+        SafeNextAction: "Review restore conflicts on play_tablet before resume",
+        ResumeFollowThrough: "Open restore review",
+        ResumeFollowThroughHref: "/play/session-post-failure?restoreReview=1",
+        SupportFollowThrough: "Open support",
+        SupportFollowThroughHref: "/contact",
+        RuleEnvironmentSummary: "sr6.preview.v1 · candidate · campaign",
+        PrefetchReadinessSummary: "warning-only",
+        LocalCacheBoundarySummary: "install-local",
+        OfflineTruthSummary: "warning posture",
+        OfflineTruthLabels: ["Stale lane: warning-only"],
+        TravelCompanionSummary: "warning posture",
+        TravelCompanionLabels: ["Stale lane: warning-only"],
+        PrefetchLabels: [],
+        ReturnTargetCampaignName: "Redmond Patrol",
+        AttentionItems: [],
+        ConflictSummaries: ["conflict"],
+        LocalOnlyNotes: [],
+        CanResume: true,
+        RequiresConflictReview: true,
+        Dossiers: [],
+        Campaigns: [],
+        RuleEnvironments: [],
+        Artifacts: [],
+        Entitlements: []);
+    var postFailureProjection = PlayEntryRecoveryProjector.Create(postFailureResume, postFailureRestore);
+    Assert(postFailureProjection.EntryState == "post_failure", "entry recovery must classify conflict/cache/runtime proof failures as post_failure");
+    Assert(postFailureProjection.RecommendedActionLabel.Contains("Review", StringComparison.OrdinalIgnoreCase), "entry recovery post_failure state must recommend one-tap restore review");
+    Assert(postFailureProjection.RecoveryActions.Count == 3, "entry recovery must expose retry/cancel/restore guidance labels for every entry state");
 }
 
 static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails()
@@ -1419,6 +1581,12 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("<h1>Chummer Play</h1>", StringComparison.Ordinal), "play shell must expose a top-level heading");
     Assert(html.Contains("id=\"output\" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"", StringComparison.Ordinal), "play shell resume status region must expose polite live updates");
     Assert(html.Contains("id=\"workspace-summary\"", StringComparison.Ordinal), "play shell must expose a workspace-lite summary region");
+    Assert(html.Contains("id=\"entry-state-summary\"", StringComparison.Ordinal), "play shell must expose an onboarding/recovery entry-state summary.");
+    Assert(html.Contains("id=\"entry-recommended-link\"", StringComparison.Ordinal), "play shell must expose a one-tap recommended onboarding/recovery action.");
+    Assert(html.Contains("id=\"entry-retry-link\"", StringComparison.Ordinal), "play shell must expose a retry action for onboarding/recovery.");
+    Assert(html.Contains("id=\"entry-cancel-link\"", StringComparison.Ordinal), "play shell must expose a cancel action for onboarding/recovery.");
+    Assert(html.Contains("id=\"entry-restore-link\"", StringComparison.Ordinal), "play shell must expose a restore action for onboarding/recovery.");
+    Assert(html.Contains("id=\"entry-recovery-actions\"", StringComparison.Ordinal), "play shell must expose onboarding/recovery guidance labels.");
     Assert(html.Contains("id=\"critical-rejoin\"", StringComparison.Ordinal), "play shell must expose a dedicated rejoin command surface.");
     Assert(html.Contains("id=\"critical-rejoin-link\"", StringComparison.Ordinal), "play shell must expose a direct rejoin command link.");
     Assert(html.Contains("id=\"critical-continue\"", StringComparison.Ordinal), "play shell must expose a dedicated continue command surface.");
@@ -1492,6 +1660,7 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"restore-local-notes\"", StringComparison.Ordinal), "play shell must expose install-local restore notes");
     Assert(html.Contains("/api/play/workspace-lite/", StringComparison.Ordinal), "play shell must fetch the workspace-lite projection instead of dumping only the raw resume payload");
     Assert(html.Contains("/api/play/restore-plan/", StringComparison.Ordinal), "play shell must fetch the claimed-device restore projection alongside the workspace-lite payload");
+    Assert(html.Contains("/api/play/onboarding-recovery/", StringComparison.Ordinal), "play shell must fetch onboarding/recovery entry projection alongside workspace and restore payloads");
 }
 
 static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
@@ -1500,6 +1669,13 @@ static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
     var html = await File.ReadAllTextAsync(indexHtmlPath);
 
     Assert(html.Contains("document.getElementById(\"workspace-decision-notice-link\").textContent = payload.decisionNotice || \"Decision notice follow-through\";", StringComparison.Ordinal), "play shell must bind decision-notice link text to the workspace projection instead of hiding it behind generic copy.");
+    Assert(html.Contains("document.getElementById(\"entry-state-summary\").textContent = payload.entryStateSummary || \"Entry onboarding and recovery state is not available yet.\";", StringComparison.Ordinal), "play shell must bind onboarding/recovery entry state summary.");
+    Assert(html.Contains("document.getElementById(\"entry-recommended-link\").href = payload.recommendedActionHref || \"/play\";", StringComparison.Ordinal), "play shell must bind one-tap recommended onboarding/recovery href.");
+    Assert(html.Contains("document.getElementById(\"entry-recommended-link\").textContent = payload.recommendedActionLabel || \"Recommended next step\";", StringComparison.Ordinal), "play shell must bind one-tap recommended onboarding/recovery label.");
+    Assert(html.Contains("document.getElementById(\"entry-retry-link\").textContent = payload.retryActionLabel || \"Retry recovery\";", StringComparison.Ordinal), "play shell must bind retry label from onboarding/recovery projection.");
+    Assert(html.Contains("document.getElementById(\"entry-cancel-link\").textContent = payload.cancelActionLabel || \"Cancel and stay read-only\";", StringComparison.Ordinal), "play shell must bind cancel label from onboarding/recovery projection.");
+    Assert(html.Contains("document.getElementById(\"entry-restore-link\").textContent = payload.restoreActionLabel || \"Restore claimed-device plan\";", StringComparison.Ordinal), "play shell must bind restore label from onboarding/recovery projection.");
+    Assert(html.Contains("setList(\"entry-recovery-actions\", payload.recoveryActions);", StringComparison.Ordinal), "play shell must bind onboarding/recovery retry-cancel-restore guidance labels.");
     Assert(html.Contains("document.getElementById(\"critical-rejoin\").textContent = payload.rejoinCommand || \"No rejoin command is available yet.\";", StringComparison.Ordinal), "play shell must bind the dedicated rejoin command label from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"critical-rejoin-link\").href = payload.rejoinCommandHref || \"/play\";", StringComparison.Ordinal), "play shell must bind the dedicated rejoin command href from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"critical-continue\").textContent = payload.continueCommand || \"No continue command is available yet.\";", StringComparison.Ordinal), "play shell must bind the dedicated continue command label from the workspace-lite projection.");
