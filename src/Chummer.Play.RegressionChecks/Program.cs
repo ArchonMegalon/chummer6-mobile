@@ -1880,6 +1880,13 @@ static async Task VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync()
 
         foreach (PlaySurfaceRole role in Enum.GetValues<PlaySurfaceRole>())
         {
+            string expectedDeviceId = role switch
+            {
+                PlaySurfaceRole.GameMaster => "install-workstation",
+                PlaySurfaceRole.Observer => "install-observer_screen",
+                _ => "install-play_tablet"
+            };
+
             var resume = await ExecuteRouteRequestAsync<PlayResumeResponse>(
                 app,
                 HttpMethod.Get,
@@ -1907,6 +1914,59 @@ static async Task VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync()
             Assert(workspace.RoleFollowThroughHref == expectedRoute, $"workspace-lite role follow-through route must stay role-concrete for {role}");
             Assert(workspace.LowNoiseGuidance.Any(item => item.Contains(expectedRoute, StringComparison.Ordinal)), $"workspace-lite guidance must include the concrete role route for {role}");
             Assert(!workspace.DisconnectRecoveryCopy.Contains("{sessionId}", StringComparison.Ordinal), $"workspace-lite disconnect copy must not expose templated placeholders for {role}");
+
+            var restorePlan = await ExecuteRouteRequestAsync<RoamingWorkspaceRestorePlan>(
+                app,
+                HttpMethod.Get,
+                "/api/play/restore-plan/{sessionId}",
+                $"?role={Uri.EscapeDataString(role.ToString())}",
+                routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId },
+                expectedStatusCode: StatusCodes.Status200OK
+            );
+
+            Assert(restorePlan.TargetDeviceId == expectedDeviceId, $"restore-plan must default to the trusted claimed device for {role}");
+            Assert(restorePlan.ResumeFollowThroughHref.Contains($"/play/{Uri.EscapeDataString(sessionId)}", StringComparison.Ordinal), $"restore-plan must return a concrete owner route for {role}");
+            Assert(!restorePlan.ResumeFollowThroughHref.Contains("{sessionId}", StringComparison.Ordinal), $"restore-plan href must never expose templated placeholders for {role}");
+
+            var onboardingRecovery = await ExecuteRouteRequestAsync<PlayEntryRecoveryProjection>(
+                app,
+                HttpMethod.Get,
+                "/api/play/onboarding-recovery/{sessionId}",
+                $"?role={Uri.EscapeDataString(role.ToString())}",
+                routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId },
+                expectedStatusCode: StatusCodes.Status200OK
+            );
+
+            Assert(onboardingRecovery.RestoreActionHref.Contains($"/play/{Uri.EscapeDataString(sessionId)}", StringComparison.Ordinal), $"onboarding-recovery must keep restore href role-concrete for {role}");
+            Assert(!onboardingRecovery.RestoreActionHref.Contains("{sessionId}", StringComparison.Ordinal), $"onboarding-recovery restore href must never expose templated placeholders for {role}");
+
+            JsonElement restoreBadRequest = await ExecuteRouteRequestAsync<JsonElement>(
+                app,
+                HttpMethod.Get,
+                "/api/play/restore-plan/{sessionId}",
+                $"?role={Uri.EscapeDataString(role.ToString())}&deviceId={Uri.EscapeDataString("install-attacker")}",
+                routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId },
+                expectedStatusCode: StatusCodes.Status400BadRequest
+            );
+
+            Assert(restoreBadRequest.TryGetProperty("error", out var restoreError) && string.Equals(restoreError.GetString(), "invalid_device_id", StringComparison.Ordinal), $"restore-plan must reject untrusted device ids for {role}");
+            Assert(restoreBadRequest.TryGetProperty("allowedDeviceIds", out var restoreAllowed), $"restore-plan must return allowed trusted device ids for {role}");
+            Assert(restoreAllowed.ValueKind == JsonValueKind.Array, $"restore-plan allowed trusted device ids must be serialized as an array for {role}");
+            Assert(restoreAllowed.EnumerateArray().Any(item => string.Equals(item.GetString(), expectedDeviceId, StringComparison.OrdinalIgnoreCase)), $"restore-plan allowed trusted device ids must include the role primary target for {role}");
+
+            JsonElement onboardingBadRequest = await ExecuteRouteRequestAsync<JsonElement>(
+                app,
+                HttpMethod.Get,
+                "/api/play/onboarding-recovery/{sessionId}",
+                $"?role={Uri.EscapeDataString(role.ToString())}&deviceId={Uri.EscapeDataString("install-attacker")}",
+                routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId },
+                expectedStatusCode: StatusCodes.Status400BadRequest
+            );
+
+            Assert(onboardingBadRequest.TryGetProperty("error", out var onboardingError) && string.Equals(onboardingError.GetString(), "invalid_device_id", StringComparison.Ordinal), $"onboarding-recovery must reject untrusted device ids for {role}");
+            Assert(onboardingBadRequest.TryGetProperty("allowedDeviceIds", out var onboardingAllowed), $"onboarding-recovery must return allowed trusted device ids for {role}");
+            Assert(onboardingAllowed.ValueKind == JsonValueKind.Array, $"onboarding-recovery allowed trusted device ids must be serialized as an array for {role}");
+            Assert(onboardingAllowed.EnumerateArray().Any(item => string.Equals(item.GetString(), expectedDeviceId, StringComparison.OrdinalIgnoreCase)), $"onboarding-recovery allowed trusted device ids must include the role primary target for {role}");
         }
     }
     finally

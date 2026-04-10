@@ -6,7 +6,7 @@
   "scorecard_source": "products/chummer/PRODUCT_HEALTH_SCORECARD.yaml",
   "progress_report_source": "products/chummer/PROGRESS_REPORT.generated.json",
   "progress_history_source": "products/chummer/PROGRESS_HISTORY.generated.json",
-  "summary": "Next 12 Biggest Wins remains the active wave; journey proof is blocked; overall progress is 100% in 'Public-fit polish'; the longest pole remains Core Engine; support closure still needs follow-through.",
+  "summary": "Next 12 Biggest Wins remains the active wave; journey proof is blocked by local release-truth gaps; overall progress is 100% in 'Public-fit polish'; the longest pole remains Core Engine; support closure still needs follow-through.",
   "active_wave": "Next 12 Biggest Wins",
   "active_wave_status": "active",
   "release_health": {
@@ -28,7 +28,7 @@
   },
   "journey_gate_health": {
     "state": "blocked",
-    "reason": "Only external host-proof gaps remain: run the missing macos, windows proof lane for 4 desktop tuple(s), ingest receipts, and then republish release truth.",
+    "reason": "Local release-truth gaps still block journey proof: close the remaining flagship blocker lanes, ingest the missing receipts, and then republish release truth.",
     "blocked_count": 2,
     "warning_count": 0
   },
@@ -109,7 +109,7 @@
     },
     "journey_gate_health": {
       "state": "blocked",
-      "reason": "Only external host-proof gaps remain: run the missing macos, windows proof lane for 4 desktop tuple(s), ingest receipts, and then republish release truth.",
+      "reason": "Local release-truth gaps still block journey proof: close the remaining flagship blocker lanes, ingest the missing receipts, and then republish release truth.",
       "blocked_count": 2,
       "warning_count": 0
     },

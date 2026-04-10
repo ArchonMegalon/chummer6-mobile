@@ -245,7 +245,7 @@ public static class PlayWebApplication
                 IPlayRoamingRestoreService restoreService,
                 CancellationToken cancellationToken
             ) =>
-            {
+                {
                 PlayResumeResponse response = await BuildResumeResponseAsync(
                     sessionId,
                     role,
@@ -255,7 +255,18 @@ public static class PlayWebApplication
                     gmShell,
                     cancellationToken
                 );
-                return Results.Json(restoreService.CreatePlan(response, deviceId));
+                if (!TryResolveTrustedRestoreDeviceId(role, deviceId, out string? trustedDeviceId, out string[] allowedDeviceIds))
+                {
+                    return Results.Json(
+                        new PlayRouteValidationError(
+                            Error: "invalid_device_id",
+                            Message: "The requested deviceId is not a trusted claimed-device target for this role.",
+                            ProvidedDeviceId: deviceId ?? string.Empty,
+                            AllowedDeviceIds: allowedDeviceIds),
+                        statusCode: StatusCodes.Status400BadRequest);
+                }
+
+                return Results.Json(restoreService.CreatePlan(response, trustedDeviceId));
             }
         );
         app.MapGet(
@@ -269,7 +280,7 @@ public static class PlayWebApplication
                 IPlayRoamingRestoreService restoreService,
                 CancellationToken cancellationToken
             ) =>
-            {
+                {
                 PlayResumeResponse response = await BuildResumeResponseAsync(
                     sessionId,
                     role,
@@ -279,7 +290,18 @@ public static class PlayWebApplication
                     gmShell,
                     cancellationToken
                 );
-                var restorePlan = restoreService.CreatePlan(response, deviceId);
+                if (!TryResolveTrustedRestoreDeviceId(role, deviceId, out string? trustedDeviceId, out string[] allowedDeviceIds))
+                {
+                    return Results.Json(
+                        new PlayRouteValidationError(
+                            Error: "invalid_device_id",
+                            Message: "The requested deviceId is not a trusted claimed-device target for this role.",
+                            ProvidedDeviceId: deviceId ?? string.Empty,
+                            AllowedDeviceIds: allowedDeviceIds),
+                        statusCode: StatusCodes.Status400BadRequest);
+                }
+
+                var restorePlan = restoreService.CreatePlan(response, trustedDeviceId);
                 return Results.Json(PlayEntryRecoveryProjector.Create(response, restorePlan));
             }
         );
@@ -426,6 +448,40 @@ public static class PlayWebApplication
             FollowThroughHref: followThroughHref);
     }
 
+    private static bool TryResolveTrustedRestoreDeviceId(
+        PlaySurfaceRole role,
+        string? requestedDeviceId,
+        out string? trustedDeviceId,
+        out string[] allowedDeviceIds)
+    {
+        string primary = BuildPrimaryRestoreDeviceId(role);
+        allowedDeviceIds = [primary, $"{primary}:travel"];
+
+        if (string.IsNullOrWhiteSpace(requestedDeviceId))
+        {
+            trustedDeviceId = null;
+            return true;
+        }
+
+        string normalized = requestedDeviceId.Trim();
+        if (allowedDeviceIds.Any(allowed => string.Equals(allowed, normalized, StringComparison.OrdinalIgnoreCase)))
+        {
+            trustedDeviceId = normalized;
+            return true;
+        }
+
+        trustedDeviceId = null;
+        return false;
+    }
+
+    private static string BuildPrimaryRestoreDeviceId(PlaySurfaceRole role)
+        => role switch
+        {
+            PlaySurfaceRole.GameMaster => "install-workstation",
+            PlaySurfaceRole.Observer => "install-observer_screen",
+            _ => "install-play_tablet"
+        };
+
     private static PlayShellSnapshot SelectShell(
         PlaySurfaceRole role,
         Chummer.Play.Components.Shell.PlayShellDescriptor playerShell,
@@ -485,6 +541,12 @@ public static class PlayWebApplication
                 new PlayCoachHint("coach-player-focus", "Use mobile quick actions to keep turns concise.")
             ]
         };
+
+    private sealed record PlayRouteValidationError(
+        string Error,
+        string Message,
+        string ProvidedDeviceId,
+        IReadOnlyList<string> AllowedDeviceIds);
 
     public static async Task<(EngineSessionEnvelope Session, OfflineLedgerEnvelope Ledger)> ResolveProjectionSessionAsync(
         string sessionId,
