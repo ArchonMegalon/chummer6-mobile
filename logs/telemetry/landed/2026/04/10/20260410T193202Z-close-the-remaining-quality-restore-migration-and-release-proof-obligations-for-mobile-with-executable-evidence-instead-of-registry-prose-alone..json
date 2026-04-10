@@ -1,0 +1,101 @@
+{
+  "accepted_on_round": "1",
+  "allow_credit_burn": false,
+  "allow_paid_fast_lane": false,
+  "blocking_issue_counts": [
+    3
+  ],
+  "core_rescue_reason": null,
+  "diff_added": 64,
+  "diff_removed": 40,
+  "files_touched": 10,
+  "groundwork_workers_used": [
+    "acct-ea-fleet"
+  ],
+  "implementation_workers_used": [
+    "acct-ui-a",
+    "acct-ea-fleet"
+  ],
+  "issue_fingerprints": [
+    "review-blocked-sandbox-bwrap-namespace",
+    "review-shell-unavailable-bwrap-namespace",
+    "tests-continuity-claim-route-roundtrip-missing",
+    "mobile-recovery-links-use-template-literal-route",
+    "no-session-no-campaign-paths-are-synthesized-not-empty-state",
+    "post-failure-path-collapses-when-second-fetch-fails",
+    "state-template-route-forks-lineage",
+    "wl030-decision-receipts-not-implemented",
+    "design-mirror-still-stale-key-files",
+    "state-role-link-drops-to-player",
+    "state-runtime-validation-timestamp-masked",
+    "state-role-recovery-copy-not-role-safe-in-live-response",
+    "tests-missing-disconnect-no-checkpoint-branch-coverage",
+    "tests-missing-live-workspace-lite-route-and-null-checkpoint-recovery-coverage",
+    "state-restore-plan-deviceid-not-validated",
+    "tests-missing-live-restore-and-onboarding-route-coverage",
+    "restore-followthrough-gm-role-mapped-to-player",
+    "missing-assertion-for-restore-followthrough-role-query",
+    "restore-travel-device-lineage-duplication",
+    "missing-travel-target-route-regression-test",
+    "mobile-control-contract-consumer-drift"
+  ],
+  "jury_verdicts": [
+    "manual_hold",
+    "manual_hold",
+    "accept",
+    "accept",
+    "accept",
+    "rework",
+    "rework",
+    "rework",
+    "accept",
+    "rework",
+    "rework",
+    "rework",
+    "rework",
+    "rework",
+    "rework",
+    "rework",
+    "rework",
+    "rework",
+    "rework",
+    "rework",
+    "accept"
+  ],
+  "landed_at": "2026-04-10T19:32:02Z",
+  "landed_sha": "",
+  "landing_commit_ref": "self",
+  "landing_lane": "core",
+  "lane_sequence": [
+    "core",
+    "easy",
+    "core",
+    "easy",
+    "core"
+  ],
+  "needs_core_rescue": false,
+  "project_id": "mobile",
+  "repeat_issue_count": 2,
+  "review_rounds_used": 1,
+  "schema_version": 1,
+  "shadow_phase": [],
+  "shadow_worker_used": false,
+  "slice_id": "close-the-remaining-quality-restore-migration-and-release-proof-obligations-for-mobile-with-executable-evidence-instead-of-registry-prose-alone.",
+  "timing_ms": {
+    "core_total": 0,
+    "groundwork_total": 0,
+    "jury_total": 4318000,
+    "lead_time_total": 22067471,
+    "queue_wait_total": 17749471,
+    "shadow_groundwork_total": 0
+  },
+  "title": "Close the remaining quality, restore, migration, and release-proof obligations for `mobile` with executable evidence instead of registry prose alone.",
+  "usage_estimates": {
+    "core_runs": 9,
+    "groundwork_runs": 7,
+    "jury_reviews": 0
+  },
+  "verify_passed": true,
+  "worker_topology": {},
+  "workflow_kind": "default"
+}
