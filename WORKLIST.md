@@ -49,7 +49,7 @@ Purpose: keep the live mobile queue readable. Historical queue churn and audit r
 
 ## Current repo truth
 
-- Repo-local live queue: none (all currently materialized worklist rows are done; `M12` remains in progress for additive depth evidence beyond this closure slice)
+- Repo-local live queue: none (all currently materialized worklist rows are done, including `M12` completion-depth closure and truth-gate evidence)
 - The player and GM shells are materially release-complete on the current replay/reconnect/observe/offline/installable-PWA axis, the observer lane now has explicit read-mostly bootstrap/resume proof, workspace-lite continuity now has explicit observer/GM regression coverage, follow-through anchors now render projection-backed action text instead of generic link labels, cache-pressure decision notices now reuse the live support next-step instead of a generic support CTA, empty-state onboarding/recovery now exposes one-tap no-session/no-campaign/post-failure actions with retry/cancel/restore lanes, and restore-plan/onboarding routes now enforce trusted claimed-device targeting with live spoofed-device rejection coverage.
 - Historical feedback references still mention `chummer-play`; those are retained as audit history, not current repo identity
 
