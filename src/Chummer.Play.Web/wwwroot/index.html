@@ -51,6 +51,12 @@
       <ul id="critical-low-noise-guidance"></ul>
     </div>
     <div class="card">
+      <div class="eyebrow">Reconnect and recover</div>
+      <p id="recover-disconnect" class="hint"></p>
+      <p id="recover-role-change" class="hint"></p>
+      <p id="recover-observer-transition" class="hint"></p>
+    </div>
+    <div class="card">
       <div class="eyebrow">Current state</div>
       <p id="workspace-scene"></p>
       <p id="change-packet-summary" class="hint"></p>
@@ -203,6 +209,9 @@
     document.getElementById("critical-decision-receipt-summary").textContent = payload.longRunningDecisionReceiptSummary || "Decision receipts are not available yet.";
     setList("critical-decision-receipts", payload.longRunningDecisionReceipts);
     setList("critical-low-noise-guidance", payload.lowNoiseGuidance);
+    document.getElementById("recover-disconnect").textContent = payload.disconnectRecoveryCopy || "Disconnect recovery copy is not available yet.";
+    document.getElementById("recover-role-change").textContent = payload.roleChangeRecoveryCopy || "Role-change recovery copy is not available yet.";
+    document.getElementById("recover-observer-transition").textContent = payload.observerTransitionRecoveryCopy || "Observer-transition recovery copy is not available yet.";
     document.getElementById("workspace-scene").textContent = payload.currentSceneSummary || "No current scene summary is available yet.";
     document.getElementById("change-packet-summary").textContent = payload.changePacketSummary || "No change packet is available yet.";
     document.getElementById("workspace-role").textContent = payload.rolePosture || "No role posture is available yet.";

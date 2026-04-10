@@ -295,6 +295,12 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.SafeNextAction.Contains("Sync before taking the next quick action", StringComparison.Ordinal), "workspace-lite summary must point the player lane at the next safe action");
     Assert(projection.RejoinCommand.Contains("Rejoin scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated rejoin command for the current scene.");
     Assert(projection.RejoinCommandHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose a direct rejoin command href.");
+    Assert(projection.DisconnectRecoveryCopy.Contains("Disconnect recovery:", StringComparison.Ordinal), "workspace-lite summary must expose explicit disconnect recovery copy.");
+    Assert(projection.DisconnectRecoveryCopy.Contains("no-loss", StringComparison.OrdinalIgnoreCase), "workspace-lite summary disconnect copy must keep no-loss reconnect intent explicit.");
+    Assert(projection.RoleChangeRecoveryCopy.Contains("Role-change recovery:", StringComparison.Ordinal), "workspace-lite summary must expose explicit role-change recovery copy.");
+    Assert(projection.RoleChangeRecoveryCopy.Contains("session-redmond/scene-redmond", StringComparison.Ordinal), "workspace-lite summary role-change copy must keep session and scene continuity explicit.");
+    Assert(projection.ObserverTransitionRecoveryCopy.Contains("Observer transition recovery:", StringComparison.Ordinal), "workspace-lite summary must expose explicit observer-transition recovery copy.");
+    Assert(projection.ObserverTransitionRecoveryCopy.Contains("observe mode", StringComparison.OrdinalIgnoreCase), "workspace-lite summary observer-transition copy must explain switching into observer posture.");
     Assert(projection.ContinueCommand.Contains("Sync before taking the next quick action", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated continue command tied to next-safe-action guidance.");
     Assert(projection.ContinueCommandHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose a direct continue command href.");
     Assert(projection.SupportCommand.Contains("bundle proof", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated support command tied to grounded fix verification.");
@@ -618,6 +624,9 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(observerProjection.DecisionNoticeHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer lane decision follow-through route");
     Assert(observerProjection.RejoinCommandHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer rejoin command on the observer route.");
     Assert(observerProjection.ContinueCommandHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer continue command on the observer route.");
+    Assert(observerProjection.DisconnectRecoveryCopy.Contains("Disconnect recovery:", StringComparison.Ordinal), "observer workspace-lite projection must expose explicit disconnect recovery copy.");
+    Assert(observerProjection.RoleChangeRecoveryCopy.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep role-change recovery copy aligned to observer posture.");
+    Assert(observerProjection.ObserverTransitionRecoveryCopy.Contains("remain read-mostly", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep observer transition recovery copy read-mostly.");
     Assert(observerProjection.RoleFollowThrough.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep observer-specific role follow-through text");
     Assert(observerProjection.RoleFollowThrough.Contains("read-mostly", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the read-mostly follow-through posture");
     Assert(observerProjection.RoleFollowThroughHref.Contains("/observe/session-observer-lite", StringComparison.Ordinal), "observer workspace-lite projection must keep the observer role follow-through href");
@@ -669,6 +678,9 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(gmProjection.DecisionNoticeHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm decision follow-through route");
     Assert(gmProjection.RejoinCommandHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm rejoin command on the gm route.");
     Assert(gmProjection.ContinueCommandHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm continue command on the gm route.");
+    Assert(gmProjection.DisconnectRecoveryCopy.Contains("Disconnect recovery:", StringComparison.Ordinal), "gm workspace-lite projection must expose explicit disconnect recovery copy.");
+    Assert(gmProjection.RoleChangeRecoveryCopy.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep role-change recovery copy aligned to gm posture.");
+    Assert(gmProjection.ObserverTransitionRecoveryCopy.Contains("switching into observe mode", StringComparison.OrdinalIgnoreCase), "gm workspace-lite projection must preserve observer transition handoff guidance.");
     Assert(gmProjection.RoleFollowThrough.Contains("GM changes anchored on scene-rigel", StringComparison.Ordinal), "gm workspace-lite projection must keep gm changes anchored on the current scene");
     Assert(gmProjection.RoleFollowThroughHref.Contains("/gm/session-gm-lite", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm role follow-through href");
     Assert(gmProjection.CampaignReadySummary.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep gm posture explicit inside campaign-ready proof");
@@ -1602,6 +1614,9 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"critical-decision-receipt-summary\"", StringComparison.Ordinal), "play shell must expose a dedicated decision-receipt summary region for long-running shell actions.");
     Assert(html.Contains("id=\"critical-decision-receipts\"", StringComparison.Ordinal), "play shell must expose dedicated decision receipts for rejoin, quick actions, and resume.");
     Assert(html.Contains("id=\"critical-low-noise-guidance\"", StringComparison.Ordinal), "play shell must expose low-noise guidance for critical command routes.");
+    Assert(html.Contains("id=\"recover-disconnect\"", StringComparison.Ordinal), "play shell must expose explicit disconnect recovery copy.");
+    Assert(html.Contains("id=\"recover-role-change\"", StringComparison.Ordinal), "play shell must expose explicit role-change recovery copy.");
+    Assert(html.Contains("id=\"recover-observer-transition\"", StringComparison.Ordinal), "play shell must expose explicit observer-transition recovery copy.");
     Assert(html.Contains("id=\"workspace-role\"", StringComparison.Ordinal), "play shell must expose role posture alongside current state");
     Assert(html.Contains("id=\"change-packet-summary\"", StringComparison.Ordinal), "play shell must expose a change-packet summary alongside current state");
     Assert(html.Contains("id=\"workspace-legal-runner\"", StringComparison.Ordinal), "play shell must expose legal-runner proof alongside current state");
@@ -1693,6 +1708,9 @@ static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
     Assert(html.Contains("document.getElementById(\"critical-decision-receipt-summary\").textContent = payload.longRunningDecisionReceiptSummary || \"Decision receipts are not available yet.\";", StringComparison.Ordinal), "play shell must bind decision-receipt summary copy from the workspace-lite projection.");
     Assert(html.Contains("setList(\"critical-decision-receipts\", payload.longRunningDecisionReceipts);", StringComparison.Ordinal), "play shell must bind decision receipts for rejoin, quick actions, and resume from the workspace-lite projection.");
     Assert(html.Contains("setList(\"critical-low-noise-guidance\", payload.lowNoiseGuidance);", StringComparison.Ordinal), "play shell must bind low-noise guidance from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"recover-disconnect\").textContent = payload.disconnectRecoveryCopy || \"Disconnect recovery copy is not available yet.\";", StringComparison.Ordinal), "play shell must bind explicit disconnect recovery copy from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"recover-role-change\").textContent = payload.roleChangeRecoveryCopy || \"Role-change recovery copy is not available yet.\";", StringComparison.Ordinal), "play shell must bind explicit role-change recovery copy from the workspace-lite projection.");
+    Assert(html.Contains("document.getElementById(\"recover-observer-transition\").textContent = payload.observerTransitionRecoveryCopy || \"Observer-transition recovery copy is not available yet.\";", StringComparison.Ordinal), "play shell must bind explicit observer-transition recovery copy from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-audience\").textContent = payload.recapAudienceSummary || \"No artifact audience summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact audience posture from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-ownership\").textContent = payload.recapOwnershipSummary || \"No artifact ownership summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact ownership posture from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-publication\").textContent = payload.recapPublicationSummary || \"No artifact publication summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact publication posture from the workspace-lite projection.");

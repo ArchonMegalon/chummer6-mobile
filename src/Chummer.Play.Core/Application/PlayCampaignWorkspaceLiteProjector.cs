@@ -74,6 +74,9 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string ContinueCommandHref,
     string SupportCommand,
     string SupportCommandHref,
+    string DisconnectRecoveryCopy,
+    string RoleChangeRecoveryCopy,
+    string ObserverTransitionRecoveryCopy,
     string LongRunningDecisionReceiptSummary,
     IReadOnlyList<string> LongRunningDecisionReceipts,
     IReadOnlyList<string> LowNoiseGuidance,
@@ -209,6 +212,9 @@ public static class PlayCampaignWorkspaceLiteProjector
         string continueCommandHref = decisionNoticeHref;
         string supportCommand = supportFollowThrough;
         string supportCommandHref = supportFollowThroughHref;
+        string disconnectRecoveryCopy = BuildDisconnectRecoveryCopy(resume, session, roleLabel);
+        string roleChangeRecoveryCopy = BuildRoleChangeRecoveryCopy(resume, session, roleLabel);
+        string observerTransitionRecoveryCopy = BuildObserverTransitionRecoveryCopy(resume, session);
         string[] longRunningDecisionReceipts = BuildLongRunningDecisionReceipts(
             resume,
             session,
@@ -337,6 +343,9 @@ public static class PlayCampaignWorkspaceLiteProjector
             ContinueCommandHref: continueCommandHref,
             SupportCommand: supportCommand,
             SupportCommandHref: supportCommandHref,
+            DisconnectRecoveryCopy: disconnectRecoveryCopy,
+            RoleChangeRecoveryCopy: roleChangeRecoveryCopy,
+            ObserverTransitionRecoveryCopy: observerTransitionRecoveryCopy,
             LongRunningDecisionReceiptSummary: longRunningDecisionReceiptSummary,
             LongRunningDecisionReceipts: longRunningDecisionReceipts,
             LowNoiseGuidance: lowNoiseGuidance,
@@ -968,6 +977,42 @@ public static class PlayCampaignWorkspaceLiteProjector
 
         return [rejoinReceipt, quickActionReceipt, resumeReceipt];
     }
+
+    private static string BuildDisconnectRecoveryCopy(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel)
+    {
+        string route = string.IsNullOrWhiteSpace(resume.DeepLinkOwnerRoute)
+            ? $"/play/{Uri.EscapeDataString(resume.SessionId)}"
+            : resume.DeepLinkOwnerRoute!;
+
+        return resume.Checkpoint is null
+            ? $"Disconnect recovery: this shell lost transport but preserved replay state; reconnect {session.SceneId} on {route} to seed a fresh checkpoint before mutating continuity-critical state on the {roleLabel}."
+            : $"Disconnect recovery: this shell resumed from checkpoint {resume.Checkpoint.AppliedThroughSequence}; replay state stayed intact and {route} remains the no-loss rejoin path for the {roleLabel}.";
+    }
+
+    private static string BuildRoleChangeRecoveryCopy(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel)
+    {
+        string targetRole = resume.Role switch
+        {
+            PlaySurfaceRole.GameMaster => "GM runboard",
+            PlaySurfaceRole.Observer => "observer lane",
+            _ => "player lane"
+        };
+
+        return $"Role-change recovery: continue this session on the {targetRole}; if role posture changed mid-reconnect, reuse the same session ({resume.SessionId}/{session.SceneId}) and follow the role-safe route without clearing stored replay context on the {roleLabel}.";
+    }
+
+    private static string BuildObserverTransitionRecoveryCopy(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session)
+        => resume.Role == PlaySurfaceRole.Observer
+            ? $"Observer transition recovery: remain read-mostly on {session.SceneId}, keep owner confirmation as the next gate, and preserve stored replay context before mirroring tactical changes."
+            : $"Observer transition recovery: when switching into observe mode for {session.SceneId}, keep the observer lane read-mostly and carry forward the same stored replay context instead of booting a fresh session.";
 
     private static string BuildAftermathCoverageSummary(PlayCampaignWorkspaceServerPlane serverPlane)
     {
