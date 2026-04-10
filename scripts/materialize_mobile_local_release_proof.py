@@ -10,6 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REGRESSION_SOURCE = ROOT / "src" / "Chummer.Play.RegressionChecks" / "Program.cs"
 WEB_SOURCE = ROOT / "src" / "Chummer.Play.Web" / "wwwroot" / "index.html"
+MIGRATION_MAP = ROOT / "docs" / "migration-map.md"
+PLAY_SIGNOFF = ROOT / "docs" / "PLAY_RELEASE_SIGNOFF.md"
 OUT = ROOT / ".codex-studio" / "published" / "MOBILE_LOCAL_RELEASE_PROOF.generated.json"
 
 REQUIRED_MARKERS = {
@@ -99,6 +101,24 @@ REQUIRED_MARKERS = {
         'Assert(plan.AttentionItems.Any(item => item.Contains("different channels"',
         'id="restore-support-follow-through"',
     ],
+    "quality_release_hardening": [
+        "VerifyIndexShellAccessibilityContractAsync",
+        "VerifyCachePressureBudgetContractAsync",
+        "VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync",
+        '<html lang="en">',
+        'role="status" aria-live="polite" aria-atomic="true"',
+        "navigator.serviceWorker.register",
+        "Post-closure completion criteria (M12)",
+        "Release-proof cadence criteria:",
+    ],
+    "migration_boundary_evidence": [
+        "`Chummer.Session.Web/Program.cs` -> `src/Chummer.Play.Web/Program.cs`",
+        "`Chummer.Session.Web/BrowserSessionApiClient.cs` -> `src/Chummer.Play.Web/BrowserSessionApiClient.cs`",
+        "`Chummer.Session.Web` bootstrap/sync/session DTOs -> `Chummer.Play.Contracts` package-owned play transport surface",
+        "replace old `Chummer.Presentation` project references with package-only dependencies",
+        "preserve local-first event log, runtime bundle, and offline cache ownership here",
+        "keep DTO canon in shared packages instead of introducing repo-local copies",
+    ],
 }
 
 
@@ -113,10 +133,18 @@ def main() -> int:
     if not WEB_SOURCE.is_file():
         print(f"missing web source: {WEB_SOURCE}", file=sys.stderr)
         return 1
+    if not MIGRATION_MAP.is_file():
+        print(f"missing migration map: {MIGRATION_MAP}", file=sys.stderr)
+        return 1
+    if not PLAY_SIGNOFF.is_file():
+        print(f"missing play signoff: {PLAY_SIGNOFF}", file=sys.stderr)
+        return 1
 
     regression_text = REGRESSION_SOURCE.read_text(encoding="utf-8")
     web_text = WEB_SOURCE.read_text(encoding="utf-8")
-    combined_text = f"{regression_text}\n{web_text}"
+    migration_map_text = MIGRATION_MAP.read_text(encoding="utf-8")
+    play_signoff_text = PLAY_SIGNOFF.read_text(encoding="utf-8")
+    combined_text = "\n".join([regression_text, web_text, migration_map_text, play_signoff_text])
 
     missing: list[str] = []
     journeys_passed: list[str] = []
@@ -141,6 +169,8 @@ def main() -> int:
         "source_files": [
             str(REGRESSION_SOURCE.relative_to(ROOT)),
             str(WEB_SOURCE.relative_to(ROOT)),
+            str(MIGRATION_MAP.relative_to(ROOT)),
+            str(PLAY_SIGNOFF.relative_to(ROOT)),
         ],
         "journeys_passed": journeys_passed,
         "required_markers": REQUIRED_MARKERS,

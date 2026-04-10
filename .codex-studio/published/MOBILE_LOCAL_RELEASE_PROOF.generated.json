@@ -1,16 +1,20 @@
 {
   "contract_name": "chummer6-mobile.local_release_proof",
-  "generated_at": "2026-04-10T14:19:25Z",
+  "generated_at": "2026-04-10T14:36:48Z",
   "status": "passed",
   "proof_kind": "source_backed_local_regression_contract",
   "source_files": [
     "src/Chummer.Play.RegressionChecks/Program.cs",
-    "src/Chummer.Play.Web/wwwroot/index.html"
+    "src/Chummer.Play.Web/wwwroot/index.html",
+    "docs/migration-map.md",
+    "docs/PLAY_RELEASE_SIGNOFF.md"
   ],
   "journeys_passed": [
     "install_claim_restore_continue",
     "campaign_session_recover_recap",
-    "recover_from_sync_conflict"
+    "recover_from_sync_conflict",
+    "quality_release_hardening",
+    "migration_boundary_evidence"
   ],
   "required_markers": {
     "install_claim_restore_continue": [
@@ -98,6 +102,24 @@
       "Assert(plan.SupportFollowThroughHref.Contains(\"different%20channels\"",
       "Assert(plan.AttentionItems.Any(item => item.Contains(\"different channels\"",
       "id=\"restore-support-follow-through\""
+    ],
+    "quality_release_hardening": [
+      "VerifyIndexShellAccessibilityContractAsync",
+      "VerifyCachePressureBudgetContractAsync",
+      "VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync",
+      "<html lang=\"en\">",
+      "role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"",
+      "navigator.serviceWorker.register",
+      "Post-closure completion criteria (M12)",
+      "Release-proof cadence criteria:"
+    ],
+    "migration_boundary_evidence": [
+      "`Chummer.Session.Web/Program.cs` -> `src/Chummer.Play.Web/Program.cs`",
+      "`Chummer.Session.Web/BrowserSessionApiClient.cs` -> `src/Chummer.Play.Web/BrowserSessionApiClient.cs`",
+      "`Chummer.Session.Web` bootstrap/sync/session DTOs -> `Chummer.Play.Contracts` package-owned play transport surface",
+      "replace old `Chummer.Presentation` project references with package-only dependencies",
+      "preserve local-first event log, runtime bundle, and offline cache ownership here",
+      "keep DTO canon in shared packages instead of introducing repo-local copies"
     ]
   }
 }
