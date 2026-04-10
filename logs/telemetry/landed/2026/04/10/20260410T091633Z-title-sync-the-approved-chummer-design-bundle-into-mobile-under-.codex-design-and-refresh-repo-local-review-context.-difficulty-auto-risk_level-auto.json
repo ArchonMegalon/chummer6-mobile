@@ -1,0 +1,70 @@
+{
+  "accepted_on_round": "1",
+  "allow_credit_burn": false,
+  "allow_paid_fast_lane": false,
+  "blocking_issue_counts": [
+    3
+  ],
+  "core_rescue_reason": null,
+  "diff_added": 19,
+  "diff_removed": 5,
+  "files_touched": 7,
+  "groundwork_workers_used": [],
+  "implementation_workers_used": [
+    "acct-ui-a"
+  ],
+  "issue_fingerprints": [
+    "review-blocked-sandbox-bwrap-namespace",
+    "review-shell-unavailable-bwrap-namespace",
+    "tests-continuity-claim-route-roundtrip-missing",
+    "mobile-recovery-links-use-template-literal-route",
+    "no-session-no-campaign-paths-are-synthesized-not-empty-state",
+    "post-failure-path-collapses-when-second-fetch-fails",
+    "state-template-route-forks-lineage",
+    "wl030-decision-receipts-not-implemented",
+    "design-mirror-still-stale-key-files"
+  ],
+  "jury_verdicts": [
+    "manual_hold",
+    "manual_hold",
+    "accept",
+    "accept",
+    "accept",
+    "rework",
+    "rework",
+    "rework",
+    "accept"
+  ],
+  "landed_at": "2026-04-10T09:16:33Z",
+  "landed_sha": "",
+  "landing_commit_ref": "self",
+  "landing_lane": "core",
+  "lane_sequence": [
+    "core"
+  ],
+  "needs_core_rescue": false,
+  "project_id": "mobile",
+  "repeat_issue_count": 0,
+  "review_rounds_used": 1,
+  "schema_version": 1,
+  "shadow_phase": [],
+  "shadow_worker_used": false,
+  "slice_id": "title-sync-the-approved-chummer-design-bundle-into-mobile-under-.codex-design-and-refresh-repo-local-review-context.-difficulty-auto-risk_level-auto",
+  "timing_ms": {
+    "core_total": 0,
+    "groundwork_total": 0,
+    "jury_total": 1509000,
+    "lead_time_total": 2569162,
+    "queue_wait_total": 1060162,
+    "shadow_groundwork_total": 0
+  },
+  "title": "title: Sync the approved Chummer design bundle into `mobile` under `.codex-design/` and refresh repo-local review context. | difficulty: auto | risk_level: auto",
+  "usage_estimates": {
+    "core_runs": 1,
+    "groundwork_runs": 0,
+    "jury_reviews": 0
+  },
+  "verify_passed": true,
+  "worker_topology": {},
+  "workflow_kind": "default"
+}
