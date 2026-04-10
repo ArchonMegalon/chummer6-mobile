@@ -215,7 +215,12 @@ rg -n '/api/play/workspace-lite/\{sessionId\}' src/Chummer.Play.Web/PlayWebAppli
 rg -n 'AddSingleton<IRoamingWorkspaceSyncPlanner, RoamingWorkspaceSyncPlanner>' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'RoamingWorkspaceRestorePlan|CreatePlan\(WorkspaceRestoreProjection restore, string targetDeviceId\)|ResumeSummary|SafeNextAction|RuleEnvironmentSummary|ReturnTargetCampaignName|AttentionItems' src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs >/dev/null
 rg -n 'ResumeSummary|SafeNextAction|RuleEnvironmentSummary|ReturnTargetCampaignName|AttentionItems' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
-rg -n '"/play/\{sessionId\}"' src/Chummer.Play.Web >/dev/null
+rg -n 'BuildOwnerRoute\(sessionId, role\)' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
+rg -n 'BuildOwnerRoute\(requestSession\.SessionId, request\.Role\)|BuildOwnerRoute\(effectiveSession\.SessionId, request\.Role\)' src/Chummer.Play.Web/PlayRouteHandlers.cs >/dev/null
+if rg -n 'DeepLinkOwnerRoute:\s*"/play/\{sessionId\}"|PlayContinuityClaimResponse\([^)]*"/play/\{sessionId\}"' src/Chummer.Play.Web/PlayWebApplication.cs src/Chummer.Play.Web/PlayRouteHandlers.cs >/dev/null 2>&1; then
+  echo "templated owner routes are not allowed in live resume/workspace responses" >&2
+  exit 1
+fi
 rg -n 'SelectShell\(bootstrapRequest\.Role, playerShell, gmShell\)' src/Chummer.Play.Web >/dev/null
 rg -n '\[activeShell\]' src/Chummer.Play.Web >/dev/null
 rg -n 'BuildQuickActions\(bootstrapRequest\.Role, roleCapabilities\)|BuildQuickActions\(request\.Role, roleCapabilities\)' src/Chummer.Play.Web >/dev/null

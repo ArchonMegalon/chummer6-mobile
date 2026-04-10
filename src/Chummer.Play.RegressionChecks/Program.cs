@@ -47,6 +47,7 @@ await RunCheckAsync(nameof(VerifyRoleBoundarySurvivesCapabilityLeakageAsync), Ve
 await RunCheckAsync(nameof(VerifyQuickActionRejectsCrossRoleAuthorizationAsync), VerifyQuickActionRejectsCrossRoleAuthorizationAsync);
 await RunCheckAsync(nameof(VerifyDeniedQuickActionsPreserveStoredReplayStateAsync), VerifyDeniedQuickActionsPreserveStoredReplayStateAsync);
 await RunCheckAsync(nameof(VerifyObserverBootstrapAndResumeStayReadMostlyAsync), VerifyObserverBootstrapAndResumeStayReadMostlyAsync);
+await RunCheckAsync(nameof(VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync), VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync);
 await RunCheckAsync(nameof(VerifyCachePressureBudgetContractAsync), VerifyCachePressureBudgetContractAsync);
 await RunCheckAsync(nameof(VerifyEventLogDropsMalformedStoredLedgerAsync), VerifyEventLogDropsMalformedStoredLedgerAsync);
 await RunCheckAsync(nameof(VerifyEventLogDropsUnparseableStoredLedgerKeysAsync), VerifyEventLogDropsUnparseableStoredLedgerKeysAsync);
@@ -73,6 +74,7 @@ await RunCheckAsync(nameof(VerifyRuntimeBundleSessionLockReleasesOnCanceledAcqui
 RunCheck(nameof(VerifyCheckpointLineageAlignment), VerifyCheckpointLineageAlignment);
 RunCheck(nameof(VerifyStoredLineageAlignment), VerifyStoredLineageAlignment);
 RunCheck(nameof(VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary), VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary);
+RunCheck(nameof(VerifyDisconnectRecoveryCopyUsesConcreteRouteWithoutCheckpoint), VerifyDisconnectRecoveryCopyUsesConcreteRouteWithoutCheckpoint);
 RunCheck(nameof(VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure), VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure);
 RunCheck(nameof(VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy), VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy);
 RunCheck(nameof(VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth), VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth);
@@ -164,7 +166,7 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     var response = new PlayResumeResponse(
         SessionId: "session-redmond",
         Role: PlaySurfaceRole.Player,
-        DeepLinkOwnerRoute: "/play/{sessionId}",
+        DeepLinkOwnerRoute: "/play/session-redmond?role=Player",
         Bootstrap: new PlayBootstrapResponse(
             "chummer6-mobile",
             new PlaySessionProjection(
@@ -282,8 +284,8 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("Needs-online lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a lane label for actions that remain online-only.");
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("safehouse", StringComparison.OrdinalIgnoreCase)), "workspace-lite summary must keep safehouse continuity explicit in offline-truth lane labels.");
     Assert(projection.DecisionNotice.Contains("Continue scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the active campaign decision notice.");
-    Assert(projection.DecisionNoticeHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose a direct decision-notice follow-through href.");
-    Assert(projection.RolePosture.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose the role route posture");
+    Assert(projection.DecisionNoticeHref.Contains("/play/session-redmond?role=Player", StringComparison.Ordinal), "workspace-lite summary must expose a direct decision-notice follow-through href.");
+    Assert(projection.RolePosture.Contains("/play/session-redmond?role=Player", StringComparison.Ordinal), "workspace-lite summary must expose the role route posture");
     Assert(projection.RolePosture.Contains("player lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must expose the current device role posture");
     Assert(projection.RulePosture.Contains("sr6.preview.v1", StringComparison.Ordinal), "workspace-lite summary must surface the runtime fingerprint");
     Assert(projection.LegalRunnerSummary.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must surface explicit legal-runner proof for the grounded bundle.");
@@ -294,7 +296,7 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.CampaignReadySummary.Contains("Roster readiness", StringComparison.Ordinal), "workspace-lite summary must keep roster posture attached to the campaign-ready proof.");
     Assert(projection.SafeNextAction.Contains("Sync before taking the next quick action", StringComparison.Ordinal), "workspace-lite summary must point the player lane at the next safe action");
     Assert(projection.RejoinCommand.Contains("Rejoin scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated rejoin command for the current scene.");
-    Assert(projection.RejoinCommandHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose a direct rejoin command href.");
+    Assert(projection.RejoinCommandHref.Contains("/play/session-redmond?role=Player", StringComparison.Ordinal), "workspace-lite summary must expose a direct rejoin command href.");
     Assert(projection.DisconnectRecoveryCopy.Contains("Disconnect recovery:", StringComparison.Ordinal), "workspace-lite summary must expose explicit disconnect recovery copy.");
     Assert(projection.DisconnectRecoveryCopy.Contains("no-loss", StringComparison.OrdinalIgnoreCase), "workspace-lite summary disconnect copy must keep no-loss reconnect intent explicit.");
     Assert(projection.RoleChangeRecoveryCopy.Contains("Role-change recovery:", StringComparison.Ordinal), "workspace-lite summary must expose explicit role-change recovery copy.");
@@ -302,7 +304,7 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.ObserverTransitionRecoveryCopy.Contains("Observer transition recovery:", StringComparison.Ordinal), "workspace-lite summary must expose explicit observer-transition recovery copy.");
     Assert(projection.ObserverTransitionRecoveryCopy.Contains("observe mode", StringComparison.OrdinalIgnoreCase), "workspace-lite summary observer-transition copy must explain switching into observer posture.");
     Assert(projection.ContinueCommand.Contains("Sync before taking the next quick action", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated continue command tied to next-safe-action guidance.");
-    Assert(projection.ContinueCommandHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must expose a direct continue command href.");
+    Assert(projection.ContinueCommandHref.Contains("/play/session-redmond?role=Player", StringComparison.Ordinal), "workspace-lite summary must expose a direct continue command href.");
     Assert(projection.SupportCommand.Contains("bundle proof", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated support command tied to grounded fix verification.");
     Assert(projection.SupportCommandHref.Contains("/contact", StringComparison.Ordinal), "workspace-lite summary must expose a direct support command href.");
     Assert(projection.LongRunningDecisionReceiptSummary.Contains("Decision receipts are active", StringComparison.Ordinal), "workspace-lite summary must expose a decision-receipt summary for long-running shell actions.");
@@ -340,7 +342,7 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.SupportFollowThroughHref.Contains("sceneId=scene-redmond", StringComparison.Ordinal), "workspace-lite summary must keep the scene id in the support follow-through href.");
     Assert(projection.SupportFollowThroughHref.Contains("bundle=bundle-redmond", StringComparison.Ordinal), "workspace-lite summary must keep the grounded runtime bundle in the support follow-through href.");
     Assert(projection.RoleFollowThrough.Contains("player lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must surface an explicit role follow-through route for the current device posture.");
-    Assert(projection.RoleFollowThroughHref.Contains("/play/{sessionId}", StringComparison.Ordinal), "workspace-lite summary must provide a direct role follow-through href.");
+    Assert(projection.RoleFollowThroughHref.Contains("/play/session-redmond?role=Player", StringComparison.Ordinal), "workspace-lite summary must provide a direct role follow-through href.");
     Assert(projection.QuickActionLabels.SequenceEqual(["Mark Ready"]), "workspace-lite summary must surface quick action labels");
     Assert(projection.FollowThroughLabels.Count >= 3, "workspace-lite summary must surface explicit follow-through labels for update, support, and role posture.");
     Assert(projection.FollowThroughLabels.Any(item => item.Contains("Review Pending", StringComparison.Ordinal)), "workspace-lite summary must carry artifact publication trust ranking into follow-through labels.");
@@ -396,6 +398,37 @@ static void VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy()
     Assert(projection.OfflineTruthSummary.Contains("degraded", StringComparison.OrdinalIgnoreCase), "cache-pressure workspace-lite projection must mark stale offline truth as degraded.");
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("degraded", StringComparison.OrdinalIgnoreCase)), "cache-pressure workspace-lite projection must keep degraded stale labels for offline truth.");
     Assert(projection.CurrentCautionSummary.Contains("Clear cache pressure", StringComparison.Ordinal), "cache-pressure workspace-lite projection must elevate the cache-pressure caution lane explicitly.");
+}
+
+static void VerifyDisconnectRecoveryCopyUsesConcreteRouteWithoutCheckpoint()
+{
+    var response = new PlayResumeResponse(
+        SessionId: "session-disconnect-null",
+        Role: PlaySurfaceRole.Observer,
+        DeepLinkOwnerRoute: PlayRouteHandlers.BuildOwnerRoute("session-disconnect-null", PlaySurfaceRole.Observer),
+        Bootstrap: new PlayBootstrapResponse(
+            "chummer6-mobile",
+            new PlaySessionProjection(
+                new EngineSessionCursor(
+                    new EngineSessionEnvelope("session-disconnect-null", "scene-null", "scene-r1", "runtime-null"),
+                    0),
+                Timeline: ["Reconnect pending"],
+                GeneratedAtUtc: DateTimeOffset.Parse("2026-04-10T08:00:00+00:00")),
+            new PlayShellSnapshot(PlaySurfaceRole.Observer, "Observer Shell", "Read-mostly shell.", ["play.session.read"]),
+            [new PlayShellSnapshot(PlaySurfaceRole.Observer, "Observer Shell", "Read-mostly shell.", ["play.session.read"])],
+            new BrowserSessionShellProbe(true, false, true),
+            ["play.session.read"],
+            [],
+            [new PlayCoachHint("coach-observer-continuity", "Stay read-mostly until owner confirmation arrives.")],
+            []),
+        Checkpoint: null,
+        RuntimeBundle: null,
+        CachePressure: new PlayCachePressureSnapshot(0, 8, false, 0, [], DateTimeOffset.Parse("2026-04-10T08:00:00+00:00")));
+
+    var projection = PlayCampaignWorkspaceLiteProjector.Create(response);
+    string expectedRoute = PlayRouteHandlers.BuildOwnerRoute("session-disconnect-null", PlaySurfaceRole.Observer);
+    Assert(projection.DisconnectRecoveryCopy.Contains(expectedRoute, StringComparison.Ordinal), "disconnect recovery copy must use a concrete role-safe route when checkpoint state is missing.");
+    Assert(projection.DisconnectRecoveryCopy.Contains("seed a fresh checkpoint", StringComparison.OrdinalIgnoreCase), "disconnect recovery copy must keep the null-checkpoint recovery branch explicit.");
 }
 
 static void VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure()
@@ -1822,6 +1855,59 @@ static async Task VerifyObserverBootstrapAndResumeStayReadMostlyAsync()
         Assert(resume.Bootstrap.QuickActions.Count == 0, "observer resume must not surface player or gm quick actions");
         Assert(resume.Bootstrap.CoachHints.Select(hint => hint.HintId).SequenceEqual(["coach-observer-continuity", "coach-observer-readonly"]), "observer resume must keep observer-specific coach hints");
         Assert(resume.Bootstrap.Projection.Timeline.Contains("pending:evt-observer", StringComparer.Ordinal), "observer resume must preserve pending replay state");
+        Assert(resume.DeepLinkOwnerRoute == PlayRouteHandlers.BuildOwnerRoute(sessionId, PlaySurfaceRole.Observer), "observer resume must return a concrete observer owner route");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync()
+{
+    const string sessionId = "session-role-routes";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var store = app.Services.GetRequiredService<BrowserSessionEventLogStore>();
+        var cache = app.Services.GetRequiredService<BrowserSessionOfflineCacheService>();
+        await store.AppendPendingEventsAsync(sessionId, "scene-routes", "scene-r4", "runtime-routes", ["evt-routes"], 4);
+        await cache.SetCheckpointAsync(
+            new SyncCheckpoint(sessionId, "scene-routes", "scene-r4", "runtime-routes", 4, DateTimeOffset.UtcNow)
+        );
+        await cache.CacheRuntimeBundleAsync(sessionId, "runtime-routes", "scene-r4", "bundle:scene-routes:runtime-routes");
+
+        foreach (PlaySurfaceRole role in Enum.GetValues<PlaySurfaceRole>())
+        {
+            var resume = await ExecuteRouteRequestAsync<PlayResumeResponse>(
+                app,
+                HttpMethod.Get,
+                PlayApiRoutes.Resume,
+                $"?role={Uri.EscapeDataString(role.ToString())}",
+                routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId },
+                expectedStatusCode: StatusCodes.Status200OK
+            );
+
+            string expectedRoute = PlayRouteHandlers.BuildOwnerRoute(sessionId, role);
+            Assert(resume.DeepLinkOwnerRoute == expectedRoute, $"resume route must stay role-concrete for {role}");
+            Assert(!resume.DeepLinkOwnerRoute.Contains("{sessionId}", StringComparison.Ordinal), $"resume route must never expose templated placeholders for {role}");
+
+            var workspace = await ExecuteRouteRequestAsync<PlayCampaignWorkspaceLiteProjection>(
+                app,
+                HttpMethod.Get,
+                "/api/play/workspace-lite/{sessionId}",
+                $"?role={Uri.EscapeDataString(role.ToString())}",
+                routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId },
+                expectedStatusCode: StatusCodes.Status200OK
+            );
+
+            Assert(workspace.RejoinCommandHref == expectedRoute, $"workspace-lite rejoin route must stay role-concrete for {role}");
+            Assert(workspace.ContinueCommandHref == expectedRoute, $"workspace-lite continue route must stay role-concrete for {role}");
+            Assert(workspace.RoleFollowThroughHref == expectedRoute, $"workspace-lite role follow-through route must stay role-concrete for {role}");
+            Assert(workspace.LowNoiseGuidance.Any(item => item.Contains(expectedRoute, StringComparison.Ordinal)), $"workspace-lite guidance must include the concrete role route for {role}");
+            Assert(!workspace.DisconnectRecoveryCopy.Contains("{sessionId}", StringComparison.Ordinal), $"workspace-lite disconnect copy must not expose templated placeholders for {role}");
+        }
     }
     finally
     {

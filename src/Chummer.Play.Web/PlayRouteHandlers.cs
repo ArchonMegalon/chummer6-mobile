@@ -9,6 +9,12 @@ namespace Chummer.Play.Web;
 
 public static class PlayRouteHandlers
 {
+    public static string BuildOwnerRoute(string sessionId, PlaySurfaceRole role)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        return $"/play/{Uri.EscapeDataString(sessionId)}?role={Uri.EscapeDataString(role.ToString())}";
+    }
+
     public static async Task<IResult> HandleReconnectAsync(
         PlayReconnectRequest request,
         IPlayEventLogStore eventLogStore,
@@ -119,7 +125,7 @@ public static class PlayRouteHandlers
                     emptyProjection,
                     CreateAlignedCheckpoint(requestSession, request.Cursor.AppliedThroughSequence, checkpoint),
                     continuity,
-                    "/play/{sessionId}"
+                    BuildOwnerRoute(requestSession.SessionId, request.Role)
                 )
             );
         }
@@ -143,7 +149,7 @@ public static class PlayRouteHandlers
                     staleProjection,
                     staleCheckpoint,
                     staleContinuity,
-                    "/play/{sessionId}"
+                    BuildOwnerRoute(requestSession.SessionId, request.Role)
                 )
             );
         }
@@ -203,7 +209,7 @@ public static class PlayRouteHandlers
                     continuityEntry.ObservedAtUtc,
                     continuityEntry.ContinuityToken
                 ),
-                "/play/{sessionId}"
+                BuildOwnerRoute(effectiveSession.SessionId, request.Role)
             )
         );
     }

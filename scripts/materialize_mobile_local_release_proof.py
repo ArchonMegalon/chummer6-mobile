@@ -62,7 +62,7 @@ REQUIRED_MARKERS = {
         'Assert(projection.ChangePacketSummary.Contains("Return anchor stays on checkpoint 12"',
         'Assert(projection.ChangePacketLabels.Any(item => item.Contains("Scene packet: scene-redmond"',
         'Assert(projection.RolePosture.Contains("player lane"',
-        'Assert(projection.RoleFollowThroughHref.Contains("/play/{sessionId}"',
+        'Assert(projection.RoleFollowThroughHref.Contains("/play/session-redmond?role=Player"',
         'Assert(projection.DecisionNotice.Contains("Use the current bundle proof for scene-redmond"',
         'document.getElementById("workspace-decision-notice-link").textContent = payload.decisionNotice || "Decision notice follow-through";',
         'document.getElementById("follow-through-update-link").textContent = payload.updateFollowThrough || "Update follow-through";',

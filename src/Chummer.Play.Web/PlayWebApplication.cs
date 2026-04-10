@@ -378,7 +378,7 @@ public static class PlayWebApplication
         return new PlayResumeResponse(
             sessionId,
             role,
-            "/play/{sessionId}",
+            PlayRouteHandlers.BuildOwnerRoute(sessionId, role),
             bootstrap,
             resumeState.Checkpoint,
             resumeState.RuntimeBundle,
