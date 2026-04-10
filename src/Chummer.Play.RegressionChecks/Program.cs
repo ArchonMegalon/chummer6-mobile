@@ -1880,6 +1880,7 @@ static async Task VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync()
 
         foreach (PlaySurfaceRole role in Enum.GetValues<PlaySurfaceRole>())
         {
+            string expectedRoleQuery = $"role={Uri.EscapeDataString(role.ToString())}";
             string expectedDeviceId = role switch
             {
                 PlaySurfaceRole.GameMaster => "install-workstation",
@@ -1926,6 +1927,7 @@ static async Task VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync()
 
             Assert(restorePlan.TargetDeviceId == expectedDeviceId, $"restore-plan must default to the trusted claimed device for {role}");
             Assert(restorePlan.ResumeFollowThroughHref.Contains($"/play/{Uri.EscapeDataString(sessionId)}", StringComparison.Ordinal), $"restore-plan must return a concrete owner route for {role}");
+            Assert(restorePlan.ResumeFollowThroughHref.Contains(expectedRoleQuery, StringComparison.Ordinal), $"restore-plan resume href must preserve the explicit role query for {role}");
             Assert(!restorePlan.ResumeFollowThroughHref.Contains("{sessionId}", StringComparison.Ordinal), $"restore-plan href must never expose templated placeholders for {role}");
 
             var onboardingRecovery = await ExecuteRouteRequestAsync<PlayEntryRecoveryProjection>(
@@ -1938,6 +1940,7 @@ static async Task VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync()
             );
 
             Assert(onboardingRecovery.RestoreActionHref.Contains($"/play/{Uri.EscapeDataString(sessionId)}", StringComparison.Ordinal), $"onboarding-recovery must keep restore href role-concrete for {role}");
+            Assert(onboardingRecovery.RestoreActionHref.Contains(expectedRoleQuery, StringComparison.Ordinal), $"onboarding-recovery restore href must preserve the explicit role query for {role}");
             Assert(!onboardingRecovery.RestoreActionHref.Contains("{sessionId}", StringComparison.Ordinal), $"onboarding-recovery restore href must never expose templated placeholders for {role}");
 
             JsonElement restoreBadRequest = await ExecuteRouteRequestAsync<JsonElement>(

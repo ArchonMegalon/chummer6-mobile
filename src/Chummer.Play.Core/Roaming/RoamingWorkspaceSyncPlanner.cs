@@ -529,7 +529,8 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
             return "Observer";
         }
 
-        if (deviceRole.Contains("gm", StringComparison.OrdinalIgnoreCase))
+        if (deviceRole.Contains("gm", StringComparison.OrdinalIgnoreCase)
+            || deviceRole.Contains("workstation", StringComparison.OrdinalIgnoreCase))
         {
             return "GameMaster";
         }
