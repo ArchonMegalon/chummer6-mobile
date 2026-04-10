@@ -74,6 +74,8 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string ContinueCommandHref,
     string SupportCommand,
     string SupportCommandHref,
+    string LongRunningDecisionReceiptSummary,
+    IReadOnlyList<string> LongRunningDecisionReceipts,
     IReadOnlyList<string> LowNoiseGuidance,
     IReadOnlyList<string> AttentionItems,
     IReadOnlyList<string> ChangePacketLabels,
@@ -207,6 +209,14 @@ public static class PlayCampaignWorkspaceLiteProjector
         string continueCommandHref = decisionNoticeHref;
         string supportCommand = supportFollowThrough;
         string supportCommandHref = supportFollowThroughHref;
+        string[] longRunningDecisionReceipts = BuildLongRunningDecisionReceipts(
+            resume,
+            session,
+            roleLabel,
+            decisionNoticeHref,
+            supportFollowThroughHref);
+        string longRunningDecisionReceiptSummary =
+            $"Decision receipts are active for rejoin, quick actions, and resume on {session.SceneId}. Canonical support escalation: {supportFollowThroughHref}.";
         string[] lowNoiseGuidance =
         [
             $"Rejoin route: {resume.DeepLinkOwnerRoute}",
@@ -327,6 +337,8 @@ public static class PlayCampaignWorkspaceLiteProjector
             ContinueCommandHref: continueCommandHref,
             SupportCommand: supportCommand,
             SupportCommandHref: supportCommandHref,
+            LongRunningDecisionReceiptSummary: longRunningDecisionReceiptSummary,
+            LongRunningDecisionReceipts: longRunningDecisionReceipts,
             LowNoiseGuidance: lowNoiseGuidance,
             AttentionItems: attentionItems.Count == 0
                 ? ["No blocking continuity issues are active on this device."]
@@ -931,6 +943,30 @@ public static class PlayCampaignWorkspaceLiteProjector
         }
 
         return labels.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static string[] BuildLongRunningDecisionReceipts(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string continueCommandHref,
+        string supportFollowThroughHref)
+    {
+        string rejoinReceipt = resume.Checkpoint is null
+            ? $"Rejoin receipt: deferred until this device captures a local checkpoint for {session.SceneId}; no replay state was lost and the route remains {resume.DeepLinkOwnerRoute}."
+            : $"Rejoin receipt: resumed on checkpoint {resume.Checkpoint.AppliedThroughSequence} for the {roleLabel}; retries were skipped because stored lineage already matched.";
+
+        string quickActionReceipt = resume.Bootstrap.QuickActions.Count == 0
+            ? $"Quick-action receipt: skipped because {resume.Role} currently has no permitted quick actions on this shell; continue on {continueCommandHref} or escalate via {supportFollowThroughHref}."
+            : $"Quick-action receipt: {resume.Bootstrap.QuickActions.Count} action(s) are ready after reconnect; stale retries are deferred to preserve no-loss lineage and support escalation stays {supportFollowThroughHref}.";
+
+        string resumeReceipt = resume.RuntimeBundle is null
+            ? $"Resume receipt: deferred because runtime bundle proof is not cached locally; reconnect {session.SceneId} once, then resume without discarding queued replay events."
+            : resume.CachePressure.BackpressureActive
+                ? $"Resume receipt: resumed with warning because cache pressure is active ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota}); retries stay bounded and deferred work remains replay-safe."
+                : $"Resume receipt: resumed with grounded bundle {resume.RuntimeBundle.BundleTag}; retried or skipped steps are not required and this shell remains continuity-safe.";
+
+        return [rejoinReceipt, quickActionReceipt, resumeReceipt];
     }
 
     private static string BuildAftermathCoverageSummary(PlayCampaignWorkspaceServerPlane serverPlane)
