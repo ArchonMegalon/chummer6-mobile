@@ -1,5 +1,5 @@
 product: chummer
-last_reviewed: 2026-03-28
+last_reviewed: 2026-04-11
 release_track: vnext-foundation
 repo_boundary_purity:
 - repo: chummer6-design
@@ -858,3 +858,13 @@ executable_queue:
   status: done
   backlog: WORKLIST.md
   notes: "Closed 2026-03-19: EA runtime evolution is now canonized as bounded cognitive-loop work on the existing substrate: proactive horizon scans, human-edit reflection, bounded replanning, and interruption-budget throttling."
+- id: WL-D048
+  milestone: E1
+  status: done
+  backlog: WORKLIST.md
+  notes: "Closed 2026-04-11 from `feedback/2026-03-21-204028-audit-task-2650.md`: mobile uncovered-scope depth is now materialized as executable post-closure hardening (`M13`) with queue traceability in `WL-031`, truth-gate registry `TG-M13-*`, signoff criteria in `docs/PLAY_RELEASE_SIGNOFF.md`, and verifier enforcement in `scripts/ai/verify.sh`."
+- id: WL-D049
+  milestone: E1
+  status: done
+  backlog: WORKLIST.md
+  notes: "Closed 2026-04-11 from `feedback/2026-03-21-204028-audit-task-2653.md`: mobile milestone coverage is now complete for deeper player-vs-GM completion depth (`M14`) with queue traceability in `WL-032`, truth-gate registry `TG-M14-*`, signoff criteria in `docs/PLAY_RELEASE_SIGNOFF.md`, and verifier enforcement in `scripts/ai/verify.sh`."
