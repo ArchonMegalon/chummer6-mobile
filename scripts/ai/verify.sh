@@ -192,6 +192,16 @@ require_worklist_or_audit_pattern 'TG-M12-OB .* done '
 require_worklist_or_audit_pattern 'TG-M12-OB .*VerifyObserverBootstrapAndResumeStayReadMostlyAsync.*VerifyRoleBoundarySurvivesCapabilityLeakageAsync.*VerifyDeniedQuickActionsPreserveStoredReplayStateAsync'
 require_worklist_or_audit_pattern 'TG-M12-RP .* done '
 require_worklist_or_audit_pattern 'TG-M12-RP .*docs/PLAY_RELEASE_SIGNOFF.md.*scripts/ai/verify.sh'
+require_worklist_or_audit_pattern 'WL-031 .* done .*post-M12 local-first sync/installable hardening depth'
+require_worklist_or_audit_pattern 'M13 .*done .*TG-M13-.*gates.*scripts/ai/verify.sh'
+require_worklist_or_audit_pattern 'TG-M13-OQ .* done '
+require_worklist_or_audit_pattern 'TG-M13-OQ .*VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync.*VerifyOfflineQueueRejectsStaleLineageAsync.*VerifySyncPrefixAcknowledgementAsync'
+require_worklist_or_audit_pattern 'TG-M13-IP .* done '
+require_worklist_or_audit_pattern 'TG-M13-IP .*VerifyCachePressureBudgetContractAsync.*VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy.*VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary.*VerifyIndexShellBindsContextualActionLabelsAsync'
+require_worklist_or_audit_pattern 'TG-M13-RF .* done '
+require_worklist_or_audit_pattern 'TG-M13-RF .*VerifyResumePreservesLedgerWhenRuntimeBundleDriftsAsync.*VerifyResumeNormalizesCheckpointToLedgerLineageAsync.*VerifyReconnectLineageTransitionContinuityAsync.*VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync'
+require_worklist_or_audit_pattern 'TG-M13-RP .* done '
+require_worklist_or_audit_pattern 'TG-M13-RP .*docs/PLAY_RELEASE_SIGNOFF.md.*scripts/ai/verify.sh.*scripts/materialize_mobile_local_release_proof.py'
 require_worklist_or_audit_pattern '2026-03-23: closed `WL-026`.*feedback/2026-03-21-204029-audit-task-2652.md.*feedback/2026-03-21-204029-audit-task-48734.md'
 require_worklist_or_audit_pattern 'WL-009 .* done .*bootstrap'
 require_worklist_or_audit_pattern 'WL-010 .* done .*BrowserSessionApiClient'
@@ -263,6 +273,11 @@ rg -n 'Player shell criteria: browser transport \+ event-log \+ offline resume s
 rg -n 'GM shell criteria: GM-only action and Spider-card capability gates remain enforced.*preserve stored replay context' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Observer shell criteria: bootstrap and resume keep the lane read-mostly.*denied quick-action attempts replay-safe' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Release-proof cadence criteria: each closure slice must keep these criteria represented in `WORKLIST.md` \(`TG-M12-PL`, `TG-M12-GM`, `TG-M12-OB`, `TG-M12-RP`\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Post-closure hardening criteria \(M13\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Offline queue recovery criteria: stale-lineage and malformed-envelope recovery paths reject unsafe mutations.*VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync.*VerifyOfflineQueueRejectsStaleLineageAsync.*VerifySyncPrefixAcknowledgementAsync' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Installable cache-pressure clarity criteria: cache-pressure budget, caution copy, and shell follow-through bindings remain explicit.*VerifyCachePressureBudgetContractAsync.*VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy.*VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary.*VerifyIndexShellBindsContextualActionLabelsAsync' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Replay-safe resume fallback criteria: resume/reconnect fallback behavior preserves stored lineage and role-concrete continuity routes.*VerifyResumePreservesLedgerWhenRuntimeBundleDriftsAsync.*VerifyResumeNormalizesCheckpointToLedgerLineageAsync.*VerifyReconnectLineageTransitionContinuityAsync.*VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Release-proof cadence criteria: each hardening slice must keep these criteria represented in `WORKLIST.md` \(`TG-M13-OQ`, `TG-M13-IP`, `TG-M13-RF`, `TG-M13-RP`\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Math\.Max\(ledgerBeforeAppend\.LastKnownSequence, cursor\.AppliedThroughSequence\) \+ 1' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'EnsureStoredLineageAlignedAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'Session id is required\.|Scene id is required\.|Scene revision is required\.|Runtime fingerprint is required\.' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
@@ -331,7 +346,14 @@ rg -n 'VerifyIndexShellAccessibilityContractAsync' .codex-studio/published/MOBIL
 rg -n 'VerifyCachePressureBudgetContractAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'Post-closure completion criteria \(M12\)' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'Post-closure hardening criteria \(M13\)' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'Release-proof cadence criteria:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyOfflineQueueRejectsStaleLineageAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyResumePreservesLedgerWhenRuntimeBundleDriftsAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyResumeNormalizesCheckpointToLedgerLineageAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyReconnectLineageTransitionContinuityAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'replace old `Chummer.Presentation` project references with package-only dependencies' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'preserve local-first event log, runtime bundle, and offline cache ownership here' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 
