@@ -1,3 +1,26 @@
-mode: append
-items: []
+mode: prepend
+items:
+- title: Materialize uncovered scope: local-first sync/installable hardening plus deeper player-vs-GM product completion.
+  task: Materialize uncovered scope by executing WL-031 and WL-032 so local-first sync/installable hardening depth and player-vs-GM completion depth are milestone-mapped with executable closure evidence.
+  package_id: audit-task-2650
+  source_ref: feedback/2026-03-21-204028-audit-task-2650.md
+  audit_finding_key: project.uncovered_scope
+  audit_scope_id: mobile
+  allowed_paths:
+  - WORKLIST.md
+  - .codex-studio/published/QUEUE.generated.yaml
+  owned_surfaces:
+  - worklist:mobile
+  - milestone_registry:mobile
+- title: Complete project milestone registry coverage for mobile.
+  task: Finish milestone coverage modeling for the remaining post-M12 mobile scope with ETA/completion truth by tracking M13/M14 and WL-031/WL-032 until closure evidence is verify-backed.
+  package_id: audit-task-2653
+  source_ref: feedback/2026-03-21-204028-audit-task-2653.md
+  audit_finding_key: project.milestone_coverage_incomplete
+  audit_scope_id: mobile
+  allowed_paths:
+  - WORKLIST.md
+  - .codex-studio/published/QUEUE.generated.yaml
+  owned_surfaces:
+  - milestone_registry:mobile
 source_queue_fingerprint: 97d170e1550eee4afc0af065b78cda302a97674c
