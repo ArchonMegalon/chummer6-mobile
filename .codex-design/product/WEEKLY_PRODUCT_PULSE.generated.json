@@ -1,7 +1,7 @@
 {
   "contract_name": "chummer.weekly_product_pulse",
   "contract_version": 3,
-  "generated_at": "2026-04-11T09:32:01Z",
+  "generated_at": "2026-04-11T20:43:55Z",
   "as_of": "2026-04-11",
   "scorecard_source": "products/chummer/PRODUCT_HEALTH_SCORECARD.yaml",
   "progress_report_source": "products/chummer/PROGRESS_REPORT.generated.json",
@@ -29,17 +29,12 @@
   "journey_gate_health": {
     "state": "blocked",
     "reason": "Resolve the blocking golden-journey gaps before widening publish claims.",
-    "blocked_count": 3,
+    "blocked_count": 6,
     "warning_count": 0,
-    "blocked_external_only_count": 2,
-    "blocked_with_local_count": 1,
-    "blocked_external_only_hosts": [
-      "windows"
-    ],
-    "blocked_external_only_tuples": [
-      "avalonia:win-x64:windows",
-      "blazor-desktop:win-x64:windows"
-    ]
+    "blocked_external_only_count": 0,
+    "blocked_with_local_count": 6,
+    "blocked_external_only_hosts": [],
+    "blocked_external_only_tuples": []
   },
   "top_support_or_feedback_clusters": [
     {
@@ -87,10 +82,10 @@
     {
       "decision_id": "2026-04-11-launch-governance",
       "action": "freeze_launch",
-      "reason": "Freeze launch expansion while 3 golden journey(s) remain blocked and journey health is blocked.",
+      "reason": "Freeze launch expansion while 6 golden journey(s) remain blocked and journey health is blocked.",
       "cited_signals": [
         "journey_gate_state=blocked",
-        "journey_gate_blocked_count=3",
+        "journey_gate_blocked_count=6",
         "local_release_proof_status=unknown",
         "provider_canary_status=Canary green on all active lanes",
         "closure_health_state=watch"
@@ -119,17 +114,12 @@
     "journey_gate_health": {
       "state": "blocked",
       "reason": "Resolve the blocking golden-journey gaps before widening publish claims.",
-      "blocked_count": 3,
+      "blocked_count": 6,
       "warning_count": 0,
-      "blocked_external_only_count": 2,
-      "blocked_with_local_count": 1,
-      "blocked_external_only_hosts": [
-        "windows"
-      ],
-      "blocked_external_only_tuples": [
-        "avalonia:win-x64:windows",
-        "blazor-desktop:win-x64:windows"
-      ]
+      "blocked_external_only_count": 0,
+      "blocked_with_local_count": 6,
+      "blocked_external_only_hosts": [],
+      "blocked_external_only_tuples": []
     },
     "top_support_or_feedback_clusters": [
       {
@@ -177,10 +167,10 @@
       {
         "decision_id": "2026-04-11-launch-governance",
         "action": "freeze_launch",
-        "reason": "Freeze launch expansion while 3 golden journey(s) remain blocked and journey health is blocked.",
+        "reason": "Freeze launch expansion while 6 golden journey(s) remain blocked and journey health is blocked.",
         "cited_signals": [
           "journey_gate_state=blocked",
-          "journey_gate_blocked_count=3",
+          "journey_gate_blocked_count=6",
           "local_release_proof_status=unknown",
           "provider_canary_status=Canary green on all active lanes",
           "closure_health_state=watch"
@@ -195,7 +185,7 @@
     "phase_label": "Public-fit polish",
     "history_snapshot_count": 12,
     "longest_pole": "Core Engine",
-    "launch_readiness": "Hold launch expansion pending route-canary validation. 3 golden journey(s) remain blocked.",
+    "launch_readiness": "Hold launch expansion pending route-canary validation. 6 golden journey(s) remain blocked.",
     "provider_route_stewardship": {
       "default_status": "Pilot defaults are governed",
       "canary_status": "Canary green on all active lanes",
@@ -250,11 +240,11 @@
       "state": "watch",
       "open_case_count": 0,
       "waiting_closure_count": 0,
-      "pending_human_response_count": 12,
+      "pending_human_response_count": 24,
       "reported_case_count": 0,
-      "materialized_packet_count": 2,
+      "materialized_packet_count": 4,
       "design_impact_count": 0,
-      "summary": "0 waiting closure / 12 pending human response. 0 open support packets still need closure follow-through."
+      "summary": "0 waiting closure / 24 pending human response. 0 open support packets still need closure follow-through."
     },
     "adoption_health": {
       "state": "early",
