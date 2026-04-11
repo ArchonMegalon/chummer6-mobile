@@ -118,6 +118,7 @@ REQUIRED_MARKERS = {
         "navigator.serviceWorker.register",
         "Post-closure completion criteria (M12)",
         "Post-closure hardening criteria (M13)",
+        "Post-closure role-depth criteria (M14)",
         "Release-proof cadence criteria:",
     ],
     "migration_boundary_evidence": [

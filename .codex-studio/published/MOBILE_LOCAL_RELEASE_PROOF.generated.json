@@ -1,6 +1,6 @@
 {
   "contract_name": "chummer6-mobile.local_release_proof",
-  "generated_at": "2026-04-11T22:11:21Z",
+  "generated_at": "2026-04-11T22:34:20Z",
   "status": "passed",
   "proof_kind": "source_backed_local_regression_contract",
   "source_files": [
@@ -120,6 +120,7 @@
       "navigator.serviceWorker.register",
       "Post-closure completion criteria (M12)",
       "Post-closure hardening criteria (M13)",
+      "Post-closure role-depth criteria (M14)",
       "Release-proof cadence criteria:"
     ],
     "migration_boundary_evidence": [

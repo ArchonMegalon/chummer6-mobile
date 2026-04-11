@@ -202,6 +202,16 @@ require_worklist_or_audit_pattern 'TG-M13-RF .* done '
 require_worklist_or_audit_pattern 'TG-M13-RF .*VerifyResumePreservesLedgerWhenRuntimeBundleDriftsAsync.*VerifyResumeNormalizesCheckpointToLedgerLineageAsync.*VerifyReconnectLineageTransitionContinuityAsync.*VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync'
 require_worklist_or_audit_pattern 'TG-M13-RP .* done '
 require_worklist_or_audit_pattern 'TG-M13-RP .*docs/PLAY_RELEASE_SIGNOFF.md.*scripts/ai/verify.sh.*scripts/materialize_mobile_local_release_proof.py'
+require_worklist_or_audit_pattern 'WL-032 .* done .*deeper player-vs-GM product completion'
+require_worklist_or_audit_pattern 'M14 .*done .*TG-M14-.*gates.*scripts/ai/verify.sh'
+require_worklist_or_audit_pattern 'TG-M14-PL .* done '
+require_worklist_or_audit_pattern 'TG-M14-PL .*VerifyRoleBoundarySurvivesCapabilityLeakageAsync.*VerifyQuickActionRejectsCrossRoleAuthorizationAsync.*VerifyDeniedQuickActionsPreserveStoredReplayStateAsync.*VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary'
+require_worklist_or_audit_pattern 'TG-M14-GM .* done '
+require_worklist_or_audit_pattern 'TG-M14-GM .*VerifyBootstrapRoleShellEntryPointsAsync.*VerifyRoleBoundarySurvivesCapabilityLeakageAsync.*VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync.*VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth'
+require_worklist_or_audit_pattern 'TG-M14-OB .* done '
+require_worklist_or_audit_pattern 'TG-M14-OB .*VerifyObserverBootstrapAndResumeStayReadMostlyAsync.*VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync.*VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth.*VerifyIndexShellBindsContextualActionLabelsAsync'
+require_worklist_or_audit_pattern 'TG-M14-RP .* done '
+require_worklist_or_audit_pattern 'TG-M14-RP .*docs/PLAY_RELEASE_SIGNOFF.md.*scripts/ai/verify.sh.*WL-032'
 require_worklist_or_audit_pattern '2026-03-23: closed `WL-026`.*feedback/2026-03-21-204029-audit-task-2652.md.*feedback/2026-03-21-204029-audit-task-48734.md'
 require_worklist_or_audit_pattern 'WL-009 .* done .*bootstrap'
 require_worklist_or_audit_pattern 'WL-010 .* done .*BrowserSessionApiClient'
@@ -278,6 +288,11 @@ rg -n 'Offline queue recovery criteria: stale-lineage and malformed-envelope rec
 rg -n 'Installable cache-pressure clarity criteria: cache-pressure budget, caution copy, and shell follow-through bindings remain explicit.*VerifyCachePressureBudgetContractAsync.*VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy.*VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary.*VerifyIndexShellBindsContextualActionLabelsAsync' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Replay-safe resume fallback criteria: resume/reconnect fallback behavior preserves stored lineage and role-concrete continuity routes.*VerifyResumePreservesLedgerWhenRuntimeBundleDriftsAsync.*VerifyResumeNormalizesCheckpointToLedgerLineageAsync.*VerifyReconnectLineageTransitionContinuityAsync.*VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Release-proof cadence criteria: each hardening slice must keep these criteria represented in `WORKLIST.md` \(`TG-M13-OQ`, `TG-M13-IP`, `TG-M13-RF`, `TG-M13-RP`\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Post-closure role-depth criteria \(M14\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Player lane criteria: player guidance and action posture remain role-specific.*VerifyRoleBoundarySurvivesCapabilityLeakageAsync.*VerifyQuickActionRejectsCrossRoleAuthorizationAsync.*VerifyDeniedQuickActionsPreserveStoredReplayStateAsync.*VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'GM lane criteria: GM guidance and operations posture remain separated from player quick-action posture.*VerifyBootstrapRoleShellEntryPointsAsync.*VerifyRoleBoundarySurvivesCapabilityLeakageAsync.*VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync.*VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Observer handoff criteria: observer bootstrap/resume remain read-mostly.*VerifyObserverBootstrapAndResumeStayReadMostlyAsync.*VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync.*VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth.*VerifyIndexShellBindsContextualActionLabelsAsync' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Release-proof cadence criteria: each role-depth slice must keep these criteria represented in `WORKLIST.md` \(`TG-M14-PL`, `TG-M14-GM`, `TG-M14-OB`, `TG-M14-RP`\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Math\.Max\(ledgerBeforeAppend\.LastKnownSequence, cursor\.AppliedThroughSequence\) \+ 1' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'EnsureStoredLineageAlignedAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
 rg -n 'Session id is required\.|Scene id is required\.|Scene revision is required\.|Runtime fingerprint is required\.' src/Chummer.Play.Web/BrowserSessionOfflineQueueService.cs >/dev/null
@@ -347,6 +362,7 @@ rg -n 'VerifyCachePressureBudgetContractAsync' .codex-studio/published/MOBILE_LO
 rg -n 'VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'Post-closure completion criteria \(M12\)' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'Post-closure hardening criteria \(M13\)' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'Post-closure role-depth criteria \(M14\)' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'Release-proof cadence criteria:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'VerifyOfflineQueueRejectsStaleLineageAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
