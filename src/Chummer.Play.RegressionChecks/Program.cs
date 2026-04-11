@@ -1943,6 +1943,34 @@ static async Task VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync()
             Assert(onboardingRecovery.RestoreActionHref.Contains(expectedRoleQuery, StringComparison.Ordinal), $"onboarding-recovery restore href must preserve the explicit role query for {role}");
             Assert(!onboardingRecovery.RestoreActionHref.Contains("{sessionId}", StringComparison.Ordinal), $"onboarding-recovery restore href must never expose templated placeholders for {role}");
 
+            string trustedTravelDeviceId = $"{expectedDeviceId}:travel";
+            var restorePlanTravel = await ExecuteRouteRequestAsync<RoamingWorkspaceRestorePlan>(
+                app,
+                HttpMethod.Get,
+                "/api/play/restore-plan/{sessionId}",
+                $"?role={Uri.EscapeDataString(role.ToString())}&deviceId={Uri.EscapeDataString(trustedTravelDeviceId)}",
+                routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId },
+                expectedStatusCode: StatusCodes.Status200OK
+            );
+
+            Assert(restorePlanTravel.TargetDeviceId == expectedDeviceId, $"restore-plan must normalize trusted travel device ids to the role primary target for {role}");
+            Assert(restorePlanTravel.TargetDeviceId.Contains(":travel:travel", StringComparison.Ordinal) is false, $"restore-plan target device id must never expand travel lineage for {role}");
+            Assert(restorePlanTravel.TravelCompanionLabels.Any(item => item.Contains(trustedTravelDeviceId, StringComparison.OrdinalIgnoreCase)), $"restore-plan must preserve a travel sibling claimed device for {role}");
+            Assert(restorePlanTravel.TravelCompanionLabels.All(item => !item.Contains(":travel:travel", StringComparison.Ordinal)), $"restore-plan claimed devices must never expand travel lineage for {role}");
+            Assert(restorePlanTravel.ResumeFollowThroughHref.Contains(expectedRoleQuery, StringComparison.Ordinal), $"restore-plan trusted travel route must preserve the explicit role query for {role}");
+
+            var onboardingRecoveryTravel = await ExecuteRouteRequestAsync<PlayEntryRecoveryProjection>(
+                app,
+                HttpMethod.Get,
+                "/api/play/onboarding-recovery/{sessionId}",
+                $"?role={Uri.EscapeDataString(role.ToString())}&deviceId={Uri.EscapeDataString(trustedTravelDeviceId)}",
+                routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId },
+                expectedStatusCode: StatusCodes.Status200OK
+            );
+
+            Assert(onboardingRecoveryTravel.RestoreActionHref.Contains(expectedRoleQuery, StringComparison.Ordinal), $"onboarding-recovery trusted travel route must preserve the explicit role query for {role}");
+            Assert(!onboardingRecoveryTravel.RestoreActionHref.Contains("{sessionId}", StringComparison.Ordinal), $"onboarding-recovery trusted travel route must never expose templated placeholders for {role}");
+
             JsonElement restoreBadRequest = await ExecuteRouteRequestAsync<JsonElement>(
                 app,
                 HttpMethod.Get,

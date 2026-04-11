@@ -466,7 +466,7 @@ public static class PlayWebApplication
         string normalized = requestedDeviceId.Trim();
         if (allowedDeviceIds.Any(allowed => string.Equals(allowed, normalized, StringComparison.OrdinalIgnoreCase)))
         {
-            trustedDeviceId = normalized;
+            trustedDeviceId = primary;
             return true;
         }
 
