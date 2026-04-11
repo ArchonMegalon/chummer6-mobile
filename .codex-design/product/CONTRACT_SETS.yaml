@@ -68,7 +68,6 @@ packages:
     deprecation_policy: Deprecations must be staged in design and hub, dual-served for at least one promoted release cycle, and keep reporter-facing status semantics stable until replacement is live.
     consumers:
       - chummer6-ui
-      - chummer6-mobile
       - fleet
       - executive-assistant
       - internal service clients
