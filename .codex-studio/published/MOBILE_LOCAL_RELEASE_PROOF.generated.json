@@ -1,6 +1,6 @@
 {
   "contract_name": "chummer6-mobile.local_release_proof",
-  "generated_at": "2026-04-12T02:04:45Z",
+  "generated_at": "2026-04-12T02:15:52Z",
   "status": "passed",
   "proof_kind": "source_backed_local_regression_contract",
   "source_files": [
