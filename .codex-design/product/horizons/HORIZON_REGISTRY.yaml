@@ -1,0 +1,182 @@
+version: 1
+last_reviewed: 2026-04-01
+source_registry: products/chummer/HORIZON_REGISTRY.yaml
+purpose: Derived machine-readable registry for public-guide routing and future-capability lanes. The root HORIZON_REGISTRY.yaml is the canonical source of truth.
+
+foundation_capabilities:
+  - id: expert_speed_substrate
+    summary: Explicit latency budgets, keyboard seams, batch-safe edits, undo, and dense-state performance.
+  - id: edition_expression_substrate
+    summary: Ruleset-specific terminology, composition seams, inspectors, and theming without flattening SR4, SR5, and SR6.
+  - id: guided_mastery_substrate
+    summary: Explain, legality, sample-build, and recommendation seams that can support coaching without inventing truth.
+  - id: gm_operations_substrate
+    summary: Campaign, roster, recap, device-role, and prep/run state strong enough for real table operations.
+  - id: continuity_and_degraded_state_substrate
+    summary: Offline, reconnect, receipt, replay, and conflict-resolution posture that remains trustworthy under stress.
+  - id: publication_and_prestige_substrate
+    summary: Preview-first publication, manifests, provenance, theming, and premium artifact rendering.
+  - id: evaluation_substrate
+    summary: Import oracles, user-facing acceptance gates, and machine-readable proof surfaces.
+
+horizons:
+  - id: nexus-pan
+    file: nexus-pan.md
+    family: session continuity
+    state: horizon
+    public_guide_allowed: true
+    likely_owners:
+      - chummer6-core
+      - chummer6-mobile
+      - chummer6-hub
+    foundation_dependencies:
+      - continuity_and_degraded_state_substrate
+      - gm_operations_substrate
+    why_horizon: Reconnect and offline trust still need stronger present-tense proof before a richer PAN layer is safe.
+
+  - id: alice
+    file: alice.md
+    family: build and simulation
+    state: horizon
+    public_guide_allowed: true
+    likely_owners:
+      - chummer6-core
+      - chummer6-ui
+      - chummer6-hub
+    foundation_dependencies:
+      - expert_speed_substrate
+      - guided_mastery_substrate
+      - evaluation_substrate
+    why_horizon: Comparative advice only works when explain and comparison surfaces are already reliable.
+
+  - id: karma-forge
+    file: karma-forge.md
+    family: governed rules evolution
+    state: horizon
+    public_guide_allowed: true
+    likely_owners:
+      - chummer6-core
+      - chummer6-hub-registry
+      - chummer6-hub
+    foundation_dependencies:
+      - edition_expression_substrate
+      - evaluation_substrate
+    why_horizon: Alternate-ruleset evolution needs governance and falsifiable parity proof before it should widen the live product.
+
+  - id: knowledge-fabric
+    file: knowledge-fabric.md
+    family: knowledge fabric and explainability
+    state: horizon
+    public_guide_allowed: false
+    likely_owners:
+      - chummer6-core
+      - chummer6-hub
+    foundation_dependencies:
+      - guided_mastery_substrate
+      - evaluation_substrate
+    why_horizon: Projected knowledge is only safe once the core explain trail is already trusted.
+
+  - id: jackpoint
+    file: jackpoint.md
+    family: artifact studio
+    state: horizon
+    public_guide_allowed: true
+    likely_owners:
+      - chummer6-hub
+      - chummer6-hub-registry
+      - chummer6-media-factory
+    foundation_dependencies:
+      - gm_operations_substrate
+      - publication_and_prestige_substrate
+      - continuity_and_degraded_state_substrate
+    why_horizon: Premium short-form publication only matters if the source trail and publish pipeline remain intact end to end.
+
+  - id: black-ledger
+    file: black-ledger.md
+    family: campaign world-state
+    state: horizon
+    public_guide_allowed: false
+    likely_owners:
+      - chummer6-hub
+      - chummer6-core
+      - chummer6-ui
+      - chummer6-mobile
+      - chummer6-media-factory
+      - chummer6-hub-registry
+      - executive-assistant
+    foundation_dependencies:
+      - publication_and_prestige_substrate
+      - guided_mastery_substrate
+      - evaluation_substrate
+      - continuity_and_degraded_state_substrate
+    why_horizon: World-state and mission-market effects remain adjacent to campaign truth until GM-only pilot and approval seams are proven.
+
+  - id: runsite
+    file: runsite.md
+    family: spatial exploration
+    state: horizon
+    public_guide_allowed: true
+    likely_owners:
+      - chummer6-hub
+      - chummer6-media-factory
+    foundation_dependencies:
+      - gm_operations_substrate
+      - publication_and_prestige_substrate
+    why_horizon: Explorable location packs need stable campaign, asset, and publication foundations first.
+
+  - id: runbook-press
+    file: runbook-press.md
+    family: creator press
+    state: horizon
+    public_guide_allowed: true
+    likely_owners:
+      - chummer6-hub
+      - chummer6-hub-registry
+      - chummer6-media-factory
+    foundation_dependencies:
+      - publication_and_prestige_substrate
+      - evaluation_substrate
+    why_horizon: Long-form outputs only matter if edit trail, manifests, and publication truth stay intact.
+
+  - id: ghostwire
+    file: ghostwire.md
+    family: replay and forensics
+    state: horizon
+    public_guide_allowed: false
+    likely_owners:
+      - chummer6-core
+      - chummer6-mobile
+      - chummer6-hub
+      - chummer6-media-factory
+    foundation_dependencies:
+      - continuity_and_degraded_state_substrate
+      - evaluation_substrate
+      - publication_and_prestige_substrate
+    why_horizon: Replay is only safe when the receipt trail remains append-only and reconstruction stays grounded.
+
+  - id: table-pulse
+    file: table-pulse.md
+    family: table coaching and social dynamics
+    state: horizon
+    public_guide_allowed: false
+    likely_owners:
+      - chummer6-hub
+      - chummer6-media-factory
+    foundation_dependencies:
+      - gm_operations_substrate
+      - publication_and_prestige_substrate
+    why_horizon: Coaching analysis only works when consent, privacy, and non-truth boundaries remain provable.
+
+  - id: local-co-processor
+    file: local-co-processor.md
+    family: optional local acceleration
+    state: horizon
+    public_guide_allowed: false
+    likely_owners:
+      - fleet
+      - executive-assistant
+      - chummer6-ui
+    foundation_dependencies:
+      - expert_speed_substrate
+      - evaluation_substrate
+    why_horizon: Local acceleration is additive only after the canonical online product is already trustworthy.
