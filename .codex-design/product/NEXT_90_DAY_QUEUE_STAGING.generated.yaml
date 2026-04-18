@@ -286,6 +286,7 @@ items:
       - /docker/chummercomplete/chummer6-ui-finish commit a7ff93b4 pins the M101 release train proof floor to the current closed-package guard.
       - /docker/chummercomplete/chummer6-ui-finish commit fb8ad231 resolves the M101 release train proof citation to the current generated receipt and verifier guard.
       - /docker/chummercomplete/chummer6-ui-finish commit 46eb74e2 tightens the M101 release train proof citation.
+      - /docker/chummercomplete/chummer6-ui-finish commit 35433ce3 tightens M101 proof floor authority guard.
       - bash scripts/ai/milestones/next90-m101-ui-release-train-check.sh
       - source assertion check for M101 guard tokens and primaryProofIndependentFromFallback=true
     allowed_paths:
@@ -416,6 +417,8 @@ items:
       - /docker/chummercomplete/chummer-core-engine commit ecbb466c pins the current b8000b80 OODA proof guard in the generated proof pack, unit tests, proof-pack documentation, and checked-in receipt.
       - /docker/chummercomplete/chummer-core-engine commit aeeeaf6e tightens M104 package-commit citation proof so registry, Fleet queue, and design queue package-local commit evidence must resolve locally.
       - /docker/chummercomplete/chummer-core-engine commit c84b251f pins the M104 package-commit citation guard as an explicit local proof floor.
+      - /docker/chummercomplete/chummer-core-engine commit 29b17c68 tightens the M104 engine proof pack release summaries so suite and budget metadata stay release-bound and explainable.
+      - /docker/chummercomplete/chummer-core-engine commit 262030df tightens the M104 proof-pack closure guards so queue closure instructions and import aggregate coverage fail closed.
     allowed_paths:
       - src
       - tests
@@ -740,6 +743,8 @@ items:
       - runtime handoff frontier metadata proof markers fail the standalone verifier and shared successor authority check
       - distinct queue proof anti-collapse guard prevents broad prose proof lines from satisfying command and negative-proof rows
       - duplicate queue, design-queue, and registry work-task rows for next90-m102-fleet-reporter-receipts fail the shared successor authority check
+      - cached packet fallback provenance guard keeps ready followthrough closed when `source.refresh_mode=cached_packets_fallback`
+      - seeded cached-packet mirror provenance guard keeps ready followthrough closed when `seeded_from_cached_packets_generated_at` is present
     allowed_paths:
       - scripts
       - tests
@@ -824,9 +829,15 @@ items:
       - /docker/chummercomplete/chummer6-ui-finish commit 6eafef39 tightens the M103 verifier against design-owned queue source drift.
       - /docker/chummercomplete/chummer6-ui-finish commit 1e5557f9 pins the M103 design queue source proof.
       - /docker/chummercomplete/chummer6-ui-finish commit 9e8d494b tightens the M103 successor registry guard.
+      - /docker/chummercomplete/chummer6-ui-finish commit e796c016 pins M103 successor proof commits.
+      - /docker/chummercomplete/chummer6-ui-finish commit cb84c37b tightens the M103 veteran successor proof guard.
+      - /docker/chummercomplete/chummer6-ui-finish commit 809a91d0 pins the M103 veteran successor guard.
       - /docker/chummercomplete/chummer6-ui-finish commit 0d2e357e pins the M103 veteran proof successor commit.
       - /docker/chummercomplete/chummer6-ui-finish commit b42416b8 pins the M103 veteran proof hardening commit.
       - /docker/chummercomplete/chummer6-ui-finish commit 5d9f1c86 pins M103 queue frontier proof.
+      - /docker/chummercomplete/chummer6-ui-finish commit df06b668 pins M103 frontier proof anchor.
+      - /docker/chummercomplete/chummer6-ui-finish commit 8ea486f6 binds M103 queue proof anchors.
+      - /docker/chummercomplete/chummer6-ui-finish commit 11a0882e pins M103 veteran proof anchor.
       - /docker/chummercomplete/chummer6-ui-finish commit 2bfc7338 pins M103 veteran queue proof anchors.
       - /docker/chummercomplete/chummer6-ui-finish commit 243062ac pins M103 veteran queue proof commit.
       - /docker/chummercomplete/chummer6-ui-finish commit b8de3f95 tightens the M103 active-run proof guard.
@@ -842,10 +853,12 @@ items:
       - /docker/chummercomplete/chummer6-ui-finish commit 783ac00b pins M103 veteran proof floor.
       - /docker/chummercomplete/chummer6-ui-finish commit 827d3546 pins M103 veteran certification proof floor.
       - /docker/chummercomplete/chummer6-ui-finish commit 89ab0ec0 pins M103 veteran certification proof floor.
+      - /docker/chummercomplete/chummer6-ui-finish commit bb825994 pins M103 current veteran proof floor.
       - /docker/chummercomplete/chummer6-ui-finish commit 594aa3cd pins M103 current veteran proof floor guard.
       - /docker/chummercomplete/chummer6-ui-finish commit eb11fde4 binds the M103 veteran proof guard to the current queue anchor.
       - /docker/chummercomplete/chummer6-ui-finish commit fa07f2bb pins M103 queue anchor proof floor.
       - /docker/chummercomplete/chummer6-ui-finish commit 680deb43 pins M103 veteran certification proof floor.
+      - /docker/chummercomplete/chummer6-ui-finish commit 10d65c5f pins M103 veteran certification proof floor.
       - /docker/chummercomplete/chummer6-ui-finish commit ba914e9a pins the current M103 veteran proof floor.
       - /docker/chummercomplete/chummer6-ui-finish commit de5837b9 tightens the M103 veteran proof token guard.
       - /docker/chummercomplete/chummer6-ui-finish commit 762aaedb pins the M103 veteran proof token guard.
@@ -879,12 +892,14 @@ items:
       - /docker/chummercomplete/chummer6-ui-finish/.codex-studio/published/NEXT90_M104_UI_EXPLAIN_RECEIPTS.generated.json
       - /docker/chummercomplete/chummer6-ui-finish/scripts/ai/milestones/next90-m104-ui-explain-receipts-check.sh
       - /docker/chummercomplete/chummer6-ui-finish/Chummer.Avalonia/DesktopTrustReceiptText.cs
+      - /docker/chummercomplete/chummer6-ui-finish/Chummer.Avalonia/DesktopTrustPanelFactory.cs
       - /docker/chummercomplete/chummer6-ui-finish/Chummer.Desktop.Runtime/DesktopInstallLinkingRuntime.cs
       - /docker/chummercomplete/chummer6-ui-finish/Chummer.Blazor/Components/Shell/DialogTrustReceiptText.cs
       - /docker/chummercomplete/chummer6-ui-finish/Chummer.Blazor/Components/Shell/DialogHost.razor
       - /docker/chummercomplete/chummer6-ui-finish/Chummer.Blazor/Components/Shell/SectionPane.razor
       - /docker/chummercomplete/chummer6-ui-finish/Chummer.Tests/Presentation/BlazorShellComponentTests.cs
       - /docker/chummercomplete/chummer6-ui-finish/Chummer.Tests/Presentation/AccessibilitySignoffSmokeTests.cs
+      - /docker/chummercomplete/chummer6-ui-finish/Chummer.Tests/Presentation/DesktopTrustPanelFactoryTests.cs
       - /docker/chummercomplete/chummer6-ui-finish commit b0f5a122 tightens exact allowed_paths and owned_surfaces closure for this completed package.
       - /docker/chummercomplete/chummer6-ui-finish commit 0a2a321f tightens M104 explain receipt guard wiring for the completed package proof chain.
       - /docker/chummercomplete/chummer6-ui-finish commit 2c29f1be tightens M104 explain receipt commit proof for the completed package.
@@ -1017,6 +1032,9 @@ items:
     wave: W8
     repo: executive-assistant
     status: complete
+    landed_commit: dacbdad
+    completion_action: verify_closed_package_only
+    do_not_reopen_reason: M106 executive-assistant governor packets are complete; future shards must verify this packet pack, focused test, canonical registry row, Fleet queue row, and design queue row instead of reopening the EA-owned operator-packet and reporter-followthrough slice.
     proof:
       - /docker/EA/docs/chummer_governor_packets/CHUMMER_GOVERNOR_PACKET_PACK.yaml
       - /docker/EA/docs/chummer_governor_packets/OPERATOR_AND_REPORTER_PACKET_SPECIMENS.yaml
