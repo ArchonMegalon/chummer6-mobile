@@ -23,13 +23,13 @@ ordering_rule:
 waves:
   - id: W6
     name: Make desktop promotion repeatable
-    status: in_progress
+    status: complete
     milestone_ids:
       - 101
       - 102
   - id: W7
     name: Prove veteran replacement and mechanical trust
-    status: in_progress
+    status: complete
     milestone_ids:
       - 103
       - 104
@@ -96,6 +96,16 @@ milestones:
       - id: 101.1
         owner: fleet
         title: Turn native-host proof capture and ingest into a repeatable release packet lane.
+        status: complete
+        evidence:
+          - /docker/fleet/.codex-studio/published/EXTERNAL_PROOF_RUNBOOK.generated.md now records zero external desktop host-proof backlog, the release-synced republish entrypoint, and the generated zero-backlog note for the external host proof lane.
+          - /docker/fleet/.codex-studio/published/external-proof-commands/ retains executable preflight, capture, validate, bundle, ingest, and run entrypoints for Linux, macOS, and Windows plus finalize/republish entrypoints even when the external-proof backlog is zero.
+          - /docker/fleet/.codex-studio/published/SUPPORT_CASE_PACKETS.generated.json reports zero external proof backlog and a zero-request external proof execution plan, while /docker/fleet/.codex-studio/published/JOURNEY_GATES.generated.json keeps the install, build, and report journeys free of external-only blockers.
+          - /docker/fleet/.codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json reports external_host_proof.status=pass and zero Fleet external-proof backlog observations on the ready flagship surface.
+          - /docker/fleet/scripts/materialize_external_proof_runbook.py, /docker/fleet/scripts/verify_external_proof_closure.py, and /docker/fleet/scripts/verify_next90_m101_fleet_external_proof_lane.py bind runbook generation, closure verification, and completed-package repeat prevention for this package.
+          - /docker/fleet/tests/test_materialize_external_proof_runbook.py, /docker/fleet/tests/test_verify_external_proof_closure.py, and /docker/fleet/tests/test_verify_next90_m101_fleet_external_proof_lane.py cover runbook, closure, and package-verifier regressions including zero-backlog host-lane retention and design-queue assignment drift.
+          - /docker/fleet/scripts/verify_script_bootstrap_no_pythonpath.py and /docker/fleet/tests/test_fleet_script_bootstrap_without_pythonpath.py include the standalone M101 verifier in no-PYTHONPATH bootstrap proof.
+          - /docker/fleet/feedback/2026-04-19-next90-m101-fleet-external-proof-lane-closeout.md records the do-not-reopen rule and exact proof anchors for future shards.
       - id: 101.2
         owner: chummer6-hub-registry
         title: Publish per-head promotion, fallback, and rollback rationale directly in channel truth.
@@ -139,7 +149,9 @@ milestones:
           - /docker/chummercomplete/chummer-hub-registry commit 0b52f5f tightens M101 sibling fallback rollback rationale so primary rollback reasons name the exact fallback route id before future shards trust the completed package row.
           - /docker/chummercomplete/chummer-hub-registry commit 98f8b88 pins the M101 fallback rollback proof floor so future shards verify the current completed-package guard instead of repeating it.
           - /docker/chummercomplete/chummer-hub-registry commit 1cf64e1 pins M101 current fallback rollback proof floor so future shards verify the current completed-package guard instead of repeating it.
-          - /docker/chummercomplete/chummer-hub-registry commit 88b058e pins M101 current desktop route truth rationale proof floor so future shards verify the current completed-package guard instead of repeating it.
+          - /docker/chummercomplete/chummer-hub-registry commit 49dd07a tightens the M101 route-truth row-shape guard so future shards reject non-object desktop route-truth rows instead of repeating the current completed-package guard.
+          - /docker/chummercomplete/chummer-hub-registry commit acb881d tightens the M101 projection alias proof guard so future shards reject release-channel versus compatibility-shelf alias drift on generatedAt/generated_at and keep the documented six-tuple successor matrix aligned with the completed-package guard.
+          - /docker/chummercomplete/chummer-hub-registry commit a1da9ca tightens the M101 exact route-tuple rationale proof so future shards reject platform-only desktop route rationale and verify the direct regression tests together with the canonical release-channel rows.
           - /docker/chummercomplete/chummer-hub-registry commit a4e47da landed the package slice and ./scripts/ai/verify.sh exits 0.
       - id: 101.3
         owner: chummer6-ui
@@ -251,7 +263,9 @@ milestones:
           - /docker/chummercomplete/chummer6-ui-finish commit fb8ad231 resolves the M101 release train proof citation to the current generated receipt and verifier guard.
           - /docker/chummercomplete/chummer6-ui-finish commit 46eb74e2 tightens the M101 release train proof citation.
           - /docker/chummercomplete/chummer6-ui-finish commit 35433ce3 tightens M101 proof floor authority guard.
+          - /docker/chummercomplete/chummer6-ui-finish/scripts/ai/verify.sh now fail-closes design-owned queue proof drift against the Fleet-completed M101 row, so future shards cannot treat one queue copy as authoritative closure proof.
           - /docker/chummercomplete/chummer6-ui-finish/scripts/ai/milestones/next90-m101-ui-release-train-check.sh now fail-closes missing completed queue proof tokens, missing Blazor fallback route-truth rows, non-fallback fallback posture, non-Avalonia startup-smoke receipts, and artifact-digest mismatch for Windows, macOS, and Linux primary-route proof.
+          - /docker/chummercomplete/chummer6-ui-finish/Chummer.Tests/Compliance/Next90M101ReleaseTrainGuardTests.cs pins the inverse queue-mirror verify mutation so standard verify must reject design-owned queue drift too.
           - /docker/chummercomplete/chummer6-ui-finish/Chummer.Tests/Compliance/Next90M101ReleaseTrainGuardTests.cs pins the completed queue proof-token guard so the package cannot be re-closed without its verifier, generated receipt, compliance proof, and command receipts.
           - /docker/chummercomplete/chummer6-ui-finish/.codex-studio/published/NEXT90_M101_UI_RELEASE_TRAIN.generated.json reports status=pass, primaryProofIndependentFromFallback=true, proofHead=avalonia for linux, windows, and macos, and fallbackRouteRole=fallback for every required tuple.
           - bash scripts/ai/milestones/next90-m101-ui-release-train-check.sh exits 0.
@@ -281,12 +295,13 @@ milestones:
         title: Unify account, claim, install, and support-case recovery into one desktop-native continuation flow.
         status: complete
         landed_commit: 160af58f
+        package_id: next90-m102-hub-desktop-native-trust
         evidence:
           - /docker/chummercomplete/chummer6-hub/Chummer.Run.Api/Controllers/InstallLinkingController.cs exposes /api/v1/install-linking/continuation for grant-bound claimed desktop installs with current release, update, rollback, and support continuation truth.
           - /docker/chummercomplete/chummer6-hub/Chummer.Run.Api/Views/PublicLanding/DownloadDispatch.cshtml and /docker/chummercomplete/chummer6-hub/Chummer.Run.Api/Views/Accounts/Account.cshtml make guided setup/app continuation the default and keep claim codes as recovery fallback only.
           - /docker/chummercomplete/chummer6-hub/scripts/verify_desktop_native_trust_receipts.py fail-closes missing source markers and missing successor proof receipts for desktop_native_claim_and_recovery and support_followthrough:install_truth.
           - /docker/chummercomplete/chummer6-hub/Chummer.Tests/InstallLinkingControllerBrowserCallbackTests.cs covers app-local localhost and 127.0.0.1 install-link callbacks so claimed desktop users return to the app-local continuation listener instead of browser-only continuation.
-          - /docker/chummercomplete/chummer6-hub/.codex-studio/published/HUB_LOCAL_RELEASE_PROOF.generated.json carries next90-m102-hub-desktop-native-trust proof receipts for /downloads/install/avalonia-linux-x64-installer/continue.json, /api/v1/install-linking/continuation, /account/access, /account/support, and /contact.
+          - /docker/chummercomplete/chummer6-hub/.codex-studio/published/HUB_LOCAL_RELEASE_PROOF.generated.json keeps canonical flagship proof_routes on the registry surface while the M102 proof receipts carry /downloads/install/avalonia-linux-x64-installer/continue.json, /api/v1/install-linking/continuation, /account/access, /account/support, and /contact.
           - /docker/chummercomplete/chummer6-hub commit e27f24c1 tightens desktop-native continuation fallback-posture proof so claimed installs return the same fallback posture used by download and support recovery.
           - /docker/chummercomplete/chummer6-hub commit e578a519 tightens the completed M102 proof pin so future shards verify the closed package instead of repeating it.
           - /docker/chummercomplete/chummer6-hub commit 9fcec2a0 fail-closes M102 queue and registry proof when active-run telemetry helper output is cited as package evidence.
@@ -379,7 +394,7 @@ milestones:
           - /docker/chummercomplete/chummer6-hub commit aadffb5b pins the M102 callback query proof guard.
           - /docker/chummercomplete/chummer6-hub commit a7a5ecea tightens M102 desktop trust callback proof.
           - /docker/chummercomplete/chummer6-hub commit 4b9c6919 pins the M102 desktop trust callback proof floor.
-          - /docker/chummercomplete/chummer6-hub commit ea697985 tightens M102 receipt route proof so receipt routes must be served by top-level proof_routes.
+          - /docker/chummercomplete/chummer6-hub verifier keeps M102 native receipt routes explicit while top-level proof_routes stays aligned with canonical registry flagship routes.
           - /docker/chummercomplete/chummer6-hub commit e9c87a3f tightens M102 served proof parity so the public proof shelf cannot drift from canonical published proof.
           - /docker/chummercomplete/chummer6-hub commit d3c74d38 tightens M102 queue mirror proof so Fleet and design-owned successor queue rows cannot drift apart.
           - /docker/chummercomplete/chummer6-hub commit 6b5679de tightens M102 support continuation filtering so reporter-level install-help cases cannot attach to the wrong claimed desktop install.
@@ -422,6 +437,7 @@ milestones:
           - /docker/chummercomplete/chummer6-hub commit 9e7d12ef guards M102 proof receipts against browser-only route closure.
           - /docker/chummercomplete/chummer6-hub commit 554cd159 pins M102 native receipt proof floor.
           - /docker/chummercomplete/chummer6-hub commit 8e0a630e pins M102 current proof floor guard.
+          - /docker/chummercomplete/chummer6-hub commit 47a831ba hardens claimed install continuation action sanitization so trusted native absolute actions survive while query and fragment install-link secrets are redacted from support continuation receipts.
           - python3 scripts/verify_desktop_native_trust_receipts.py and python3 -m unittest tests/test_desktop_native_trust_receipts.py exit 0.
           - dotnet test Chummer.Tests/Chummer.Tests.csproj --filter "DesktopInstallRailTests|PublicLandingClaimRecoveryFlowTests|InstallLinkingContinuationVerification|InstallLinkingControllerBrowserCallbackTests" --no-restore exits 0 for net10.0 and net10.0-windows.
       - id: 102.2
@@ -453,7 +469,10 @@ milestones:
           - /docker/fleet/scripts/verify_next90_m102_fleet_reporter_receipts.py now fail-closes stale ready action-group receipt mismatches so fix-available, please-test, feedback, or recovery rows cannot stay "ready" when install receipt, release receipt, fixed receipt, or installed-build values drift from the claimed packet truth.
           - /docker/fleet/scripts/verify_next90_m102_fleet_reporter_receipts.py now fail-closes missing per-row install-aware receipt gates so ready action-group rows cannot pass on summary counters alone.
           - /docker/fleet/scripts/verify_next90_m102_fleet_reporter_receipts.py now records the cached packet fallback provenance guard and seeded cached-packet mirror provenance guard so ready followthrough cannot survive `cached_packets_fallback` or `seeded_from_cached_packets_generated_at`.
+          - /docker/fleet/scripts/materialize_support_case_packets.py now recomputes followthrough readiness from row-level install, release, installed-build, and fix receipt truth instead of stale summary counters or partial ready rows.
+          - /docker/fleet/scripts/verify_next90_m102_fleet_reporter_receipts.py now fail-closes fix-available action drift so `send_fix_available` versus `send_fix_available_with_update` stays aligned with receipt-backed `update_required`.
           - /docker/fleet/scripts/materialize_support_case_packets.py now fail-closes completed queue rows that omit `verify_closed_package_only` or the package-specific do-not-reopen reason in either the Fleet queue mirror or the design-owned queue source.
+          - /docker/fleet/feedback/2026-04-15-next90-m102-fleet-reporter-receipts-closeout.md records the closed-scope anti-reopen rule and exact proof anchors for future shards.
 
   - id: 103
     title: Chummer5a parity lab and veteran migration certification
@@ -463,7 +482,7 @@ milestones:
       - chummer6-ui
       - executive-assistant
       - fleet
-    status: in_progress
+    status: complete
     dependencies:
       - 101
       - 102
@@ -477,12 +496,12 @@ milestones:
         title: Extract Chummer5a screenshot baselines, workflow packs, and compare artifacts from the oracle repo.
         status: complete
         evidence:
-          - /docker/EA/docs/chummer5a_parity_lab/CHUMMER5A_PARITY_LAB_PACK.yaml reports status=task_proven for owned surfaces parity_lab:capture and veteran_compare_packs.
-          - /docker/EA/docs/chummer5a_parity_lab/README.md documents the closed EA proof boundary, append-free terminal policy, and delegated non-EA follow-up packages for repeated M103 assignments.
-          - /docker/EA/docs/chummer5a_parity_lab/SUCCESSOR_HANDOFF_CLOSEOUT.yaml reports status=ea_scope_complete, completed outputs, anti-reopen rules, and delegated non-EA follow-up packages.
-          - /docker/EA/.codex-studio/published/CHUMMER5A_PARITY_ORACLE_PACK.generated.json reports status=task_proven with screenshot_corpora, workflow_maps, compare_packs, and import_export_fixture_inventory outputs present.
-          - python tests/test_chummer5a_parity_lab_pack.py exits with ran=18 failed=0 in /docker/EA.
-          - /docker/EA commit f252c02 pins the latest M103 parity-lab proof floor into the published receipt, handoff closeout, and direct guard so future shards verify the closed EA package instead of repeating it.
+          - /docker/fleet/docs/chummer5a-oracle/parity_lab_capture_pack.yaml records the Chummer5a screenshot baselines, import/export fixtures, screenshot artifact mappings, and desktop non-negotiable crosswalk for owned surface parity_lab:capture.
+          - /docker/fleet/docs/chummer5a-oracle/veteran_workflow_packs.yaml records first-minute veteran tasks, workflow maps, flagship parity families, and tuple compare packs for owned surface veteran_compare_packs.
+          - /docker/fleet/docs/chummer5a-oracle/README.md documents the closed Fleet proof boundary, worker-safe telemetry inputs, and the anti-reopen rule for repeated M103 assignments.
+          - /docker/fleet/tests/test_ea_parity_lab_capture_pack.py fail-closes stale sync context, missing Chummer5a anchors, missing screenshot mappings, missing veteran compare packs, and canonical queue or registry closure drift for this completed package.
+          - /docker/fleet/feedback/2026-04-18-next90-m103-ea-parity-lab-closeout.md records the canonical proof relocation from stale /docker/EA artifacts to the Fleet-owned package paths.
+          - python3 tests/test_ea_parity_lab_capture_pack.py exits 0 in /docker/fleet.
       - id: 103.2
         owner: chummer6-ui
         title: Run screenshot-backed parity review for menu, toolstrip, roster, master index, settings, and import on the promoted desktop head.
@@ -537,14 +556,32 @@ milestones:
           - /docker/chummercomplete/chummer6-ui-finish commit 9a6ebd38 pins M103 veteran certification proof floor.
           - /docker/chummercomplete/chummer6-ui-finish commit b0f424aa tightens M103 scoped proof guard.
           - /docker/chummercomplete/chummer6-ui-finish commit b8c0b19d tightens the M103 completed queue action guard so Fleet and design queue rows must carry verify_closed_package_only plus a package-specific do-not-reopen reason.
+          - /docker/chummercomplete/chummer6-ui-finish commit 136ff501 tightens the M103 veteran review pack proof.
+          - /docker/chummercomplete/chummer6-ui-finish commit b40a6556 tightens the M103 desktop veteran parity proof.
+          - /docker/chummercomplete/chummer6-ui-finish commit 653adf49 tightens the M103 veteran review packet proof.
+          - /docker/chummercomplete/chummer6-ui-finish commit a5dff485 tightens the M103 review packet proof binding.
           - /docker/chummercomplete/chummer6-ui-finish/Chummer.Tests/Compliance/Next90M103VeteranCertificationGuardTests.cs pins completed queue proof, allowed-path scope, owned-surface scope, promoted Avalonia binding, distinct screenshot proof, Chummer5a baseline markers, and blocked-helper proof exclusion.
           - bash scripts/ai/milestones/next90-m103-ui-veteran-certification-check.sh exits 0.
       - id: 103.3
         owner: chummer6-design
         title: Move flagship parity families onto the stricter release-truth ladder with veteran-ready evidence requirements.
+        status: complete
+        evidence:
+          - /docker/chummercomplete/chummer-design/products/chummer/FLAGSHIP_PARITY_REGISTRY.yaml now moves all 11 in-scope flagship families beyond legacy `covered` by grounding them on the stricter release-status ladder (`task_proven`, `veteran_approved`, `gold_ready`) with release-blocking proof requirements and release-evidence anchors tied to workflow parity, visual familiarity, executable proof, readiness truth, and journey gates.
+          - /docker/chummercomplete/chummer-design/products/chummer/VETERAN_FIRST_MINUTE_GATE.yaml keeps the veteran-first-minute landmark contract explicit so migration claims stay bound to current menu, workbench, roster, master-index, settings, import, and continuity proof instead of softer parity language.
+          - /docker/fleet/.codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json reports `parity_lab_ready=true`, `veteran_ready.status=ready`, zero missing flagship family ids, zero missing required non-negotiables, zero missing whole-product coverage keys, and zero flagship families below the parity-lab target ladder.
+          - /docker/fleet/.codex-studio/published/JOURNEY_GATES.generated.json reports `overall_state=ready` with 6/6 journey gates ready, so the stricter veteran-ready release-truth ladder is grounded in current measured route proof rather than queue-only closure.
+          - python3 /docker/fleet/scripts/materialize_flagship_product_readiness.py and python3 /docker/fleet/scripts/materialize_weekly_governor_packet.py exit 0 and rematerialize Fleet truth from the canonical successor registry.
       - id: 103.4
         owner: fleet
         title: Consume parity-lab evidence in the readiness plane so covered can no longer masquerade as veteran-ready.
+        status: complete
+        evidence:
+          - /docker/fleet/scripts/materialize_flagship_product_readiness.py now fail-closes veteran-ready and flagship-ready truth when the parity-lab capture/workflow packs drift off desktop_client coverage, lose required non-negotiables, lose required whole-product coverage keys, drop flagship family targets, or fall below the release-status ladder.
+          - /docker/fleet/tests/test_materialize_flagship_product_readiness.py proves readiness stays green when the parity-lab packs are grounded and drops the veteran/flagship planes to warning when the capture pack drifts away from desktop_client or loses required non-negotiables.
+          - /docker/fleet/.codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json now records parity_lab_ready=true with the Fleet-owned capture/workflow pack paths, zero missing flagship family ids, zero missing required non-negotiables, zero missing whole-product coverage keys, and zero families below target under readiness_planes.veteran_ready, readiness_planes.flagship_ready, and flagship_parity_registry.
+          - /docker/fleet/feedback/2026-04-19-next90-m103-fleet-parity-lab-readiness-closeout.md records the closeout scope and repeat-proof anchors.
+          - python3 -m pytest -q tests/test_materialize_flagship_product_readiness.py -k 'parity_lab or current_readiness' exits 0 in /docker/fleet.
 
   - id: 104
     title: Engine proof pack, explain budgets, and import-oracle discipline
@@ -663,11 +700,16 @@ milestones:
         evidence:
           - /docker/chummercomplete/chummer6-ui-finish/Chummer.Avalonia/DesktopTrustReceiptText.cs surfaces import rule-environment receipts and diagnostics before-after diffs on Avalonia import, support, support-case, and report-issue flows.
           - /docker/chummercomplete/chummer6-ui-finish/Chummer.Avalonia/DesktopTrustPanelFactory.cs keeps the Avalonia trust panels sectioned, headed, and fallback-safe for import dialogs and support diagnostics without widening the completed package scope.
+          - /docker/chummercomplete/chummer6-ui-finish/Chummer.Desktop.Runtime/DesktopCrashRuntime.cs keeps crash recovery support diagnostics grounded with a copy-safe receipt correlation key and before-after environment diff.
           - /docker/chummercomplete/chummer6-ui-finish/Chummer.Desktop.Runtime/DesktopInstallLinkingRuntime.cs binds the copied support packet, diagnostics correlation key, and before-after environment diff lines to the same local install without mutating install or workspace state.
           - /docker/chummercomplete/chummer6-ui-finish/Chummer.Blazor/Components/Shell/DialogTrustReceiptText.cs and DialogHost.razor surface the same grounded import receipt and before-after environment diff on the Blazor fallback dialog host.
+          - /docker/chummercomplete/chummer6-ui-finish/Chummer.Blazor/Components/Shell/ResultPanel.razor keeps the visible import explain receipt, diagnostics diff, and before-after environment sections grounded on the Blazor result surface instead of relying on hidden helper text.
           - /docker/chummercomplete/chummer6-ui-finish/Chummer.Blazor/Components/Shell/SectionPane.razor exposes Build Lab blocker receipts and before-after environment diffs in the desktop fallback build surface.
+          - /docker/chummercomplete/chummer6-ui-finish/Chummer.Blazor/Components/Shared/RuntimeInspectorPanel.razor keeps the visible support diagnostics receipt and before-after environment diff grounded on the Blazor runtime inspector surface.
           - /docker/chummercomplete/chummer6-ui-finish/.codex-studio/published/NEXT90_M104_UI_EXPLAIN_RECEIPTS.generated.json records registry, queue, owned-surface, required-proof, and source-marker pass evidence for the desktop explain receipt slice.
-          - /docker/chummercomplete/chummer6-ui-finish/scripts/ai/milestones/next90-m104-ui-explain-receipts-check.sh fail-closes missing registry authority, queue closure, required proof files, owned-surface markers, import receipts, build blocker receipts, and support diagnostics diffs.
+          - /docker/chummercomplete/chummer6-ui-finish/scripts/ai/milestones/next90-m104-ui-explain-receipts-check.sh fail-closes missing registry authority, queue closure, required proof files, owned-surface markers, visible import receipts, build blocker receipts, and support diagnostics diffs.
+          - /docker/chummercomplete/chummer6-ui-finish/Chummer.Tests/DesktopCrashRuntimeTests.cs verifies crash recovery summaries and receipt lines include the grounded explain receipt and before-after environment diff.
+          - /docker/chummercomplete/chummer6-ui-finish/Chummer.Tests/Presentation/BlazorShellComponentTests.cs covers the visible Blazor result-panel and runtime-inspector trust receipt surfaces so the closed package remains bound to the user-facing desktop fallback UI.
           - /docker/chummercomplete/chummer6-ui-finish/Chummer.Tests/Presentation/DesktopTrustPanelFactoryTests.cs covers the Avalonia trust-panel fallback and section-heading render path so the closed package remains bound to the visible receipt surface instead of text helpers alone.
           - /docker/chummercomplete/chummer6-ui-finish commit b0f5a122 tightens the successor queue proof so the completed M104 package fails closed if allowed_paths or owned_surfaces widen beyond the assigned slice.
           - /docker/chummercomplete/chummer6-ui-finish commit 0a2a321f tightens M104 explain receipt guard wiring so the compliance guard is part of the completed package proof chain.
@@ -710,6 +752,10 @@ milestones:
           - /docker/chummercomplete/chummer6-ui-finish commit 853c807a tightens M104 encoded and escaped worker-context proof guards so future shards cannot close the package with disguised worker-unsafe citations.
           - /docker/chummercomplete/chummer6-ui-finish commit 2f69ed4e tightens M104 explain receipt proof-line uniqueness so duplicate proof entries cannot keep the completed package green.
           - /docker/chummercomplete/chummer6-ui-finish commit 48337e13 pins the M104 proof-line uniqueness guard in the verifier, compliance test, and generated receipt.
+          - /docker/chummercomplete/chummer6-ui-finish commit da2c3ab7 pins the M104 explain receipt proof floor so future shards verify the latest completed-package guard.
+          - /docker/chummercomplete/chummer6-ui-finish commit 68b55e6e tightens M104 desktop diagnostics proof so the completed package stays bound to crash-safe support diagnostics and build blocker receipts.
+          - /docker/chummercomplete/chummer6-ui-finish commit 083283e9 tightens M104 desktop explain receipt proof so closureGuard, crash diagnostics, and verify_closed_package_only proof stay pinned together.
+          - dotnet test Chummer.Tests/Chummer.Tests.csproj --filter "DesktopCrashRuntimeTests|Next90M104ExplainReceiptsGuardTests" --no-restore exits 0.
           - dotnet test Chummer.Tests/Presentation/Chummer.Presentation.Signoff.Tests.csproj --filter "BlazorShellComponentTests|AccessibilitySignoffSmokeTests" --no-restore exits 0.
           - bash scripts/ai/milestones/next90-m104-ui-explain-receipts-check.sh exits 0.
       - id: 104.4
@@ -966,7 +1012,7 @@ milestones:
           - /docker/fleet/scripts/verify_next90_m106_fleet_governor_packet.py verifies the checked-in packet closeout, canonical successor registry, design queue, Fleet queue mirror, repeat-prevention pins, and operator-readable packet without regenerating timestamps.
           - /docker/fleet/scripts/run_next90_m106_weekly_governor_packet_tests.py executes the pytest-style M106 fixture tests without requiring pytest in the worker image.
           - /docker/fleet/scripts/verify_script_bootstrap_no_pythonpath.py includes the standalone M106 verifier in no-PYTHONPATH bootstrap proof.
-          - /docker/fleet/.codex-studio/published/WEEKLY_GOVERNOR_PACKET.generated.json reports package_verification=pass, weekly_input_health=pass, source_input_health=fail on support_packets successor_package_verification.status, measured_rollout_loop=blocked, launch_expand=blocked, freeze_launch=active, rollback=armed, and successor_dependency_status=open for the current successor wave.
+          - /docker/fleet/.codex-studio/published/WEEKLY_GOVERNOR_PACKET.generated.json reports package_verification=pass, weekly_input_health=pass, source_input_health=pass, measured_rollout_loop=blocked, launch_expand=blocked, freeze_launch=active, rollback=armed, and successor_dependency_status=open for the current successor wave.
           - /docker/fleet/.codex-studio/published/WEEKLY_GOVERNOR_PACKET.generated.md publishes the same decision board, public status copy, measured truth, launch gate ledger, evidence requirements, risk clusters, and source paths as operator-readable packet text.
           - /docker/fleet/tests/test_materialize_weekly_governor_packet.py fail-closes queue-authority drift, stale or missing launch signals, missing source inputs, parity regression, open successor dependencies, and the positive launch-expand path when all dependencies and measured gates are green.
           - /docker/fleet/tests/test_fleet_script_bootstrap_without_pythonpath.py launches the standalone M106 verifier help without PYTHONPATH.
@@ -1059,6 +1105,14 @@ milestones:
           - commit b909cc5 tightens the M106 codexea helper proof guard.
           - commit 787d27a pins the M106 packet refresh floor.
           - commit b467c27 tightens the M106 design queue OODA prompt proof guard.
+          - stale aggregate receipt-gate counts cannot overstate installed-build followthrough without detailed row truth so weekly packet markdown and JSON cannot overstate install-bound followthrough from stale summary aggregates alone.
+          - local proof floor commit fe4c621 is pinned in Fleet weekly governor packet repeat-prevention proof so stale clones cannot satisfy the receipt-gate row-truth guard.
+          - commit fe4c621 tightens the M106 receipt-gate row-truth guard.
+          - local proof floor commit 653380a is pinned in Fleet weekly governor packet repeat-prevention proof so stale clones cannot satisfy the receipt-gate row-truth proof floor.
+          - commit 653380a pins the M106 receipt-gate row-truth guard.
+          - local proof floor commit b568034 is pinned in Fleet weekly governor packet repeat-prevention proof so stale clones cannot satisfy the closure-proof dependency package routing guard.
+          - commit b568034 tightens the M106 governor packet closure proof.
+          - remaining dependency package ids stay projected through package closeout, repeat prevention, and measured rollout loop so stale closure receipts cannot drop dependency package routing while still claiming this Fleet slice is closed.
           - do-not-reopen handoff routes remaining M106 work to dependency or sibling packages instead of repeating the Fleet weekly governor packet slice.
       - id: 106.2
         owner: executive-assistant
@@ -1157,8 +1211,8 @@ milestones:
           - /docker/chummercomplete/chummer6-hub/scripts/verify_artifact_factory_orchestration.py fail-closes missing recipe families, internal endpoint auth, public proof shelf bundle refs, and anchored source-pack output selection.
           - /docker/chummercomplete/chummer6-hub/scripts/launch_artifact_factory_source_pack_batch.py preflights approved source-pack batches against the internal recipe catalog before launch.
           - python3 /docker/chummercomplete/chummer6-hub/scripts/verify_artifact_factory_orchestration.py exits 0.
-          - python3 -m unittest /docker/chummercomplete/chummer6-hub/tests/test_artifact_factory_orchestration.py exits 0.
-          - python3 -m unittest /docker/chummercomplete/chummer6-hub/tests/test_artifact_factory_source_pack_launcher.py exits 0.
+          - python3 -m unittest tests/test_artifact_factory_orchestration.py exits 0.
+          - python3 -m unittest tests/test_artifact_factory_source_pack_launcher.py exits 0.
           - dotnet test /docker/chummercomplete/chummer6-hub/Chummer.Tests/Chummer.Tests.csproj --filter ArtifactFactoryOrchestrationServiceTests --no-restore exits 0.
       - id: 107.2
         owner: chummer6-media-factory

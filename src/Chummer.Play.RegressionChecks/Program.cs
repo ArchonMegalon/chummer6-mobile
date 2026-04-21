@@ -787,6 +787,13 @@ static void VerifyPlayRoamingRestoreServiceProjectsClaimedDeviceRecovery()
     Assert(plan.LocalOnlyNotes.Any(item => item.Contains("install-local", StringComparison.Ordinal)), "play restore service must expose install-local notes on the shell projection");
     Assert(plan.Campaigns.Count == 1, "play restore service must project at least one campaign return target");
     Assert(plan.Dossiers.Count == 1, "play restore service must project at least one grounded dossier return target");
+
+    RoamingWorkspaceRestorePlan travelPlan = service.CreatePlan(response, "install-play_tablet:travel");
+
+    Assert(travelPlan.TargetDeviceId == "install-play_tablet", "play restore service must normalize travel targets to the canonical primary claimed device");
+    Assert(travelPlan.TargetDeviceId.Contains(":travel:travel", StringComparison.Ordinal) is false, "play restore service target ids must never expand travel lineage");
+    Assert(travelPlan.TravelCompanionLabels.Any(item => item.Contains("install-play_tablet:travel", StringComparison.Ordinal)), "play restore service must keep the trusted travel companion visible after normalization");
+    Assert(travelPlan.TravelCompanionLabels.All(item => !item.Contains(":travel:travel", StringComparison.Ordinal)), "play restore service travel companion labels must never expand travel lineage");
 }
 
 static PlayResumeResponse CreateWorkspaceLiteProjectionResponse(
