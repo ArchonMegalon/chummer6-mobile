@@ -315,10 +315,18 @@ public static class PlayWebApplication
             }
         );
         app.MapGet(
+            "/play",
+            (string? sessionId, string? deviceId, PlaySurfaceRole role = PlaySurfaceRole.Player) =>
+                Results.Redirect(
+                    BuildPlayIndexHref(sessionId, deviceId, role),
+                    permanent: false
+                )
+        );
+        app.MapGet(
             "/play/{sessionId}",
             (string sessionId, PlaySurfaceRole role = PlaySurfaceRole.Player) =>
                 Results.Redirect(
-                    $"/index.html?sessionId={Uri.EscapeDataString(sessionId)}&role={Uri.EscapeDataString(role.ToString())}",
+                    BuildPlayIndexHref(sessionId, deviceId: null, role),
                     permanent: false
                 )
         );
@@ -693,6 +701,26 @@ public static class PlayWebApplication
         }
 
         return new EngineSessionEnvelope(sessionId, "scene-main", "scene-r1", "runtime-local");
+    }
+
+    private static string BuildPlayIndexHref(string? sessionId, string? deviceId, PlaySurfaceRole role)
+    {
+        List<string> queryParts =
+        [
+            $"role={Uri.EscapeDataString(role.ToString())}"
+        ];
+
+        if (!string.IsNullOrWhiteSpace(sessionId))
+        {
+            queryParts.Insert(0, $"sessionId={Uri.EscapeDataString(sessionId)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(deviceId))
+        {
+            queryParts.Add($"deviceId={Uri.EscapeDataString(deviceId)}");
+        }
+
+        return $"/index.html?{string.Join("&", queryParts)}";
     }
 
 }

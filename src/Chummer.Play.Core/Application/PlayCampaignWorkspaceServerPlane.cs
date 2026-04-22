@@ -1,5 +1,4 @@
 using Chummer.Campaign.Contracts;
-using Chummer.Control.Contracts.Support;
 using Chummer.Play.Core.PlayApi;
 
 namespace Chummer.Play.Core.Application;
@@ -12,10 +11,39 @@ public sealed record PlayCampaignWorkspaceServerPlane(
     IReadOnlyList<RecapShelfEntry> RecapShelf,
     IReadOnlyList<RuleEnvironmentHealthCue> RuleHealth,
     IReadOnlyList<ContinuityConflictCue> ContinuityConflicts,
-    IReadOnlyList<SupportClosureCue> SupportClosures,
-    IReadOnlyList<KnownIssueAffectingInstall> KnownIssues,
-    IReadOnlyList<DecisionNotice> DecisionNotices,
-    NextSafeActionCue NextSafeAction);
+    IReadOnlyList<PlaySupportClosureCue> SupportClosures,
+    IReadOnlyList<PlayKnownIssueCue> KnownIssues,
+    IReadOnlyList<PlayDecisionNotice> DecisionNotices,
+    PlayNextSafeActionCue NextSafeAction);
+
+public sealed record PlaySupportClosureCue(
+    string CaseId,
+    string Status,
+    string StageLabel,
+    string Summary,
+    string NextSafeAction,
+    string? FixedReleaseLabel,
+    string AffectedInstallSummary);
+
+public sealed record PlayKnownIssueCue(
+    string CaseId,
+    string Severity,
+    string Summary,
+    string AffectedInstallSummary,
+    string DetailHref);
+
+public sealed record PlayDecisionNotice(
+    string NoticeId,
+    string Kind,
+    string Summary,
+    string ActionLabel,
+    string ActionHref);
+
+public sealed record PlayNextSafeActionCue(
+    string ActionId,
+    string Label,
+    string Summary,
+    string SourceKind);
 
 public static class PlayCampaignWorkspaceServerPlaneProjector
 {
@@ -32,14 +60,14 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
             ?? resume.Checkpoint?.CapturedAtUtc
             ?? resume.Bootstrap.Projection.GeneratedAtUtc;
         string nextSafeActionSummary = BuildNextSafeActionSummary(resume, session);
-        SupportClosureCue supportClosure = BuildSupportClosureCue(resume, session, roleSummary);
+        PlaySupportClosureCue supportClosure = BuildSupportClosureCue(resume, session, roleSummary);
         string activeSceneSummary = $"{session.SceneId} is pinned at {session.SceneRevision} on {session.RuntimeFingerprint}.";
 
         string[] blockers = BuildBlockers(resume, session);
         RuleEnvironmentHealthCue[] ruleHealth = BuildRuleHealth(resume, session);
         ContinuityConflictCue[] continuityConflicts = BuildContinuityConflicts(resume, session);
-        KnownIssueAffectingInstall[] knownIssues = BuildKnownIssues(resume, session, roleSummary);
-        DecisionNotice[] decisionNotices = BuildDecisionNotices(resume, session);
+        PlayKnownIssueCue[] knownIssues = BuildKnownIssues(resume, session, roleSummary);
+        PlayDecisionNotice[] decisionNotices = BuildDecisionNotices(resume, session);
         RecapShelfEntry[] recapShelf = BuildAftermathShelf(resume, session, roleLabel, latestTimeline, updatedAtUtc);
 
         WorkspaceSummary workspace = new(
@@ -89,7 +117,7 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
             Blockers: blockers,
             ReturnSummary: workspace.ReturnSummary);
 
-        NextSafeActionCue nextSafeAction = new(
+        PlayNextSafeActionCue nextSafeAction = new(
             ActionId: $"next-safe-action:{resume.SessionId}",
             Label: "Next safe action",
             Summary: nextSafeActionSummary,
@@ -353,14 +381,14 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
         return cues.ToArray();
     }
 
-    private static SupportClosureCue BuildSupportClosureCue(
+    private static PlaySupportClosureCue BuildSupportClosureCue(
         PlayResumeResponse resume,
         EngineSessionEnvelope session,
         string roleSummary)
     {
         if (resume.SupportNotice is not null)
         {
-            return new SupportClosureCue(
+            return new PlaySupportClosureCue(
                 CaseId: $"play-support:{resume.SessionId}",
                 Status: resume.SupportNotice.StatusLabel.ToLowerInvariant().Replace(' ', '_'),
                 StageLabel: resume.SupportNotice.StatusLabel,
@@ -370,7 +398,7 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
                 AffectedInstallSummary: roleSummary);
         }
 
-        return new SupportClosureCue(
+        return new PlaySupportClosureCue(
             CaseId: $"play-support:{resume.SessionId}",
             Status: resume.RuntimeBundle is null ? "runtime_proof_missing" : "ready_to_verify",
             StageLabel: resume.RuntimeBundle is null ? "Runtime proof missing" : "Ready to verify",
@@ -382,17 +410,17 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
             AffectedInstallSummary: roleSummary);
     }
 
-    private static KnownIssueAffectingInstall[] BuildKnownIssues(
+    private static PlayKnownIssueCue[] BuildKnownIssues(
         PlayResumeResponse resume,
         EngineSessionEnvelope session,
         string roleSummary)
     {
-        List<KnownIssueAffectingInstall> items = [];
+        List<PlayKnownIssueCue> items = [];
 
         if (resume.SupportNotice is not null)
         {
             items.Add(
-                new KnownIssueAffectingInstall(
+                new PlayKnownIssueCue(
                     CaseId: $"play-known-issue:{resume.SessionId}",
                     Severity: resume.CachePressure.BackpressureActive ? "warning" : "info",
                     Summary: resume.SupportNotice.KnownIssueSummary,
@@ -402,7 +430,7 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
         else if (resume.RuntimeBundle is null)
         {
             items.Add(
-                new KnownIssueAffectingInstall(
+                new PlayKnownIssueCue(
                     CaseId: $"play-known-issue:{resume.SessionId}",
                     Severity: "warning",
                     Summary: $"Runtime proof is still missing for {resume.SessionId}/{session.SceneId} on this mobile shell.",
@@ -413,13 +441,13 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
         return items.ToArray();
     }
 
-    private static DecisionNotice[] BuildDecisionNotices(PlayResumeResponse resume, EngineSessionEnvelope session)
+    private static PlayDecisionNotice[] BuildDecisionNotices(PlayResumeResponse resume, EngineSessionEnvelope session)
     {
         if (resume.RuntimeBundle is null)
         {
             return
             [
-                new DecisionNotice(
+                new PlayDecisionNotice(
                     NoticeId: $"notice:{resume.SessionId}:runtime",
                     Kind: "runtime_proof",
                     Summary: $"Reconnect {session.SceneId} once before you trust offline continuation or support closure on this shell.",
@@ -432,7 +460,7 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
         {
             return
             [
-                new DecisionNotice(
+                new PlayDecisionNotice(
                     NoticeId: $"notice:{resume.SessionId}:cache",
                     Kind: "cache_pressure",
                     Summary: $"Clear cache pressure before you seed more travel or observer state on this device.",
@@ -444,7 +472,7 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
 
         return
         [
-            new DecisionNotice(
+            new PlayDecisionNotice(
                 NoticeId: $"notice:{resume.SessionId}:continue",
                 Kind: "continue",
                 Summary: $"Continue {session.SceneId} from the current grounded lane and keep the next move scoped to this device role.",

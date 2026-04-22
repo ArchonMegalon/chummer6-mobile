@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Chummer.Campaign.Contracts;
-using Chummer.Control.Contracts.Support;
 using Chummer.Play.Core.PlayApi;
 
 namespace Chummer.Play.Core.Application;
@@ -124,7 +123,7 @@ public static class PlayCampaignWorkspaceLiteProjector
         string serverPlaneSummary = $"{serverPlane.Campaign.SessionReadinessSummary} {serverPlane.Campaign.RestoreSummary}";
         string runboardSummary = $"{serverPlane.Runboard.Title}: {serverPlane.Runboard.ObjectiveSummary}";
         string rosterSummary = serverPlane.Roster.Summary;
-        DecisionNotice? decisionNotice = serverPlane.DecisionNotices.FirstOrDefault();
+        PlayDecisionNotice? decisionNotice = serverPlane.DecisionNotices.FirstOrDefault();
         string decisionNoticeSummary = decisionNotice is null
             ? "No campaign decision notices are active for this shell."
             : $"{decisionNotice.Summary} {decisionNotice.ActionLabel}.";

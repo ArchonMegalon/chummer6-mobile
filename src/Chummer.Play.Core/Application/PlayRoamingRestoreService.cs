@@ -22,9 +22,7 @@ public sealed class PlayRoamingRestoreService : IPlayRoamingRestoreService
     {
         ArgumentNullException.ThrowIfNull(resume);
 
-        string effectiveTargetDeviceId = string.IsNullOrWhiteSpace(targetDeviceId)
-            ? BuildDefaultDeviceId(resume)
-            : targetDeviceId.Trim();
+        string effectiveTargetDeviceId = NormalizeTargetDeviceId(resume, targetDeviceId);
         WorkspaceRestoreProjection restore = BuildRestoreProjection(resume, effectiveTargetDeviceId);
         return _planner.CreatePlan(restore, effectiveTargetDeviceId);
     }
@@ -226,6 +224,24 @@ public sealed class PlayRoamingRestoreService : IPlayRoamingRestoreService
 
     private static string BuildDefaultDeviceId(PlayResumeResponse resume)
         => $"install-{ResolveDeviceRole(resume.Role)}";
+
+    private static string NormalizeTargetDeviceId(PlayResumeResponse resume, string? targetDeviceId)
+    {
+        string primaryDeviceId = BuildDefaultDeviceId(resume);
+        if (string.IsNullOrWhiteSpace(targetDeviceId))
+        {
+            return primaryDeviceId;
+        }
+
+        string normalized = targetDeviceId.Trim();
+        string travelDeviceId = $"{primaryDeviceId}:travel";
+        if (string.Equals(normalized, travelDeviceId, StringComparison.OrdinalIgnoreCase))
+        {
+            return primaryDeviceId;
+        }
+
+        return normalized;
+    }
 
     private static string ResolveDeviceRole(PlaySurfaceRole role)
         => role switch

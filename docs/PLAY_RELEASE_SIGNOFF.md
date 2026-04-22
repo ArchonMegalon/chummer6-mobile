@@ -47,3 +47,11 @@ The deeper player-vs-GM completion lane is considered executable when the follow
 - GM lane criteria: GM guidance and operations posture remain separated from player quick-action posture, role routes stay concrete across resume/workspace/restore/onboarding seams, and GM operations summaries remain explicit through `VerifyBootstrapRoleShellEntryPointsAsync`, `VerifyRoleBoundarySurvivesCapabilityLeakageAsync`, `VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync`, and `VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth`.
 - Observer handoff criteria: observer bootstrap/resume remain read-mostly, observer transition and follow-through guidance remain explicit, and observer lane action isolation stays intact through `VerifyObserverBootstrapAndResumeStayReadMostlyAsync`, `VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync`, `VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth`, and `VerifyIndexShellBindsContextualActionLabelsAsync`.
 - Release-proof cadence criteria: each role-depth slice must keep these criteria represented in `WORKLIST.md` (`TG-M14-PL`, `TG-M14-GM`, `TG-M14-OB`, `TG-M14-RP`) and preserved by `scripts/ai/verify.sh`.
+
+## Post-closure artifact/publication projection criteria (M15)
+
+The remaining creator-publication and projection finish lane is considered executable when the following remain true and regression-backed:
+
+- Artifact shelf projection criteria: workspace-lite recap and replay summaries keep publication state, trust ranking, discoverability, lineage, and direct creator-publication follow-through explicit through `VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary`.
+- Moderation boundary criteria: mobile surfaces expose publication-safe next actions and Hub-owned status follow-through without claiming moderation ownership, admin review authority, or a second publication truth; the repo boundary remains documented in `docs/chummer6-mobile.design.v1.md` and `docs/chummer6-mobile.design.v1.md` continues to reject publish/admin/moderation ownership.
+- Release-proof cadence criteria: this synthesized completion slice must stay represented in `WORKLIST.md` (`TG-M15-AP`, `TG-M15-MB`, `TG-M15-RP`) and preserved by `scripts/ai/verify.sh`.

@@ -50,6 +50,7 @@ test -f src/Chummer.Play.Web/wwwroot/icons/icon-192.svg
 test -f src/Chummer.Play.Web/wwwroot/icons/icon-512.svg
 test -f scripts/materialize_mobile_local_release_proof.py
 test -f scripts/ai/with-package-plane.sh
+test -f scripts/ai/verify_design_mirror.py
 test -f src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj
 test -f src/Chummer.Play.RegressionChecks/Program.cs
 test -f src/Chummer.Play.Core/Chummer.Play.Core.csproj
@@ -62,6 +63,8 @@ test -f eng/package-stubs/CampaignContractsStub/CampaignContractsStub.csproj
 test -f eng/package-stubs/ControlContractsStub/ControlContractsStub.csproj
 test -f eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj
 test -f eng/package-stubs/UiKitStub/UiKitStub.csproj
+
+python3 scripts/ai/verify_design_mirror.py >/dev/null
 
 if rg -n "Chummer\\.Contracts/" src README.md AGENTS.md WORKLIST.md docs >/dev/null 2>&1; then
   echo "copied contract source paths are not allowed in chummer6-mobile" >&2
@@ -111,22 +114,23 @@ fi
 
 rg -n "<PackageVersion Include=\"Chummer\\.Engine\\.Contracts\"" Directory.Packages.props >/dev/null
 rg -n "<PackageVersion Include=\"Chummer\\.Campaign\\.Contracts\"" Directory.Packages.props >/dev/null
-rg -n "<PackageVersion Include=\"Chummer\\.Control\\.Contracts\"" Directory.Packages.props >/dev/null
 rg -n "<PackageVersion Include=\"Chummer\\.Play\\.Contracts\"" Directory.Packages.props >/dev/null
 rg -n "<PackageVersion Include=\"Chummer\\.Ui\\.Kit\"" Directory.Packages.props >/dev/null
 rg -n "<ChummerEngineContractsPackageId" Directory.Build.props >/dev/null
 rg -n "<ChummerCampaignContractsPackageId" Directory.Build.props >/dev/null
-rg -n "<ChummerControlContractsPackageId" Directory.Build.props >/dev/null
 rg -n "<ChummerEngineContractsPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<ChummerCampaignContractsPackageVersion>" Directory.Packages.props >/dev/null
-rg -n "<ChummerControlContractsPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<ChummerPlayContractsPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<ChummerUiKitPackageVersion>" Directory.Packages.props >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerEngineContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerCampaignContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
-rg -n "<PackageReference Include=\"\\$\\(ChummerControlContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerPlayContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerUiKitPackageId\\)\"" src/Chummer.Play.Components/Chummer.Play.Components.csproj >/dev/null
+
+if rg -n "Chummer\\.Control\\.Contracts(\\.Support)?|ChummerControlContractsPackage(Id|Version)" src docs README.md AGENTS.md WORKLIST.md src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null 2>&1; then
+  echo "mobile must not consume Chummer.Control.Contracts directly; keep support/control truth projected through play-safe summaries instead" >&2
+  exit 1
+fi
 
 if rg -n "ChummerContractsPackageId|ChummerContractsPackageVersion" Directory.Build.props Directory.Packages.props src docs README.md AGENTS.md WORKLIST.md >/dev/null 2>&1; then
   echo "legacy engine contract package property naming is not allowed; use ChummerEngineContracts* properties" >&2
@@ -140,9 +144,9 @@ mapfile -t package_references < <(
 
 for package_reference in "${package_references[@]}"; do
   case "${package_reference}" in
-    '$(ChummerEngineContractsPackageId)'|'$(ChummerCampaignContractsPackageId)'|'$(ChummerControlContractsPackageId)'|'$(ChummerPlayContractsPackageId)'|'$(ChummerUiKitPackageId)')
+    '$(ChummerEngineContractsPackageId)'|'$(ChummerCampaignContractsPackageId)'|'$(ChummerPlayContractsPackageId)'|'$(ChummerUiKitPackageId)')
       ;;
-    Chummer.Engine.Contracts|Chummer.Campaign.Contracts|Chummer.Control.Contracts|Chummer.Play.Contracts|Chummer.Ui.Kit)
+    Chummer.Engine.Contracts|Chummer.Campaign.Contracts|Chummer.Play.Contracts|Chummer.Ui.Kit)
       echo "shared Chummer package references must use Directory.Build.props package id properties: ${package_reference}" >&2
       exit 1
       ;;
@@ -212,10 +216,23 @@ require_worklist_or_audit_pattern 'TG-M14-OB .* done '
 require_worklist_or_audit_pattern 'TG-M14-OB .*VerifyObserverBootstrapAndResumeStayReadMostlyAsync.*VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync.*VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth.*VerifyIndexShellBindsContextualActionLabelsAsync'
 require_worklist_or_audit_pattern 'TG-M14-RP .* done '
 require_worklist_or_audit_pattern 'TG-M14-RP .*docs/PLAY_RELEASE_SIGNOFF.md.*scripts/ai/verify.sh.*WL-032'
+require_worklist_or_audit_pattern 'WL-033 .* done .*artifact/publication projection completion work'
+require_worklist_or_audit_pattern 'M15 .*done .*publication state, trust ranking, discoverability, lineage'
+require_worklist_or_audit_pattern 'TG-M15-AP .* done '
+require_worklist_or_audit_pattern 'TG-M15-AP .*VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary'
+require_worklist_or_audit_pattern 'TG-M15-AP .*publication state, trust ranking, discoverability, lineage, and direct creator-status hrefs'
+require_worklist_or_audit_pattern 'TG-M15-MB .* done '
+require_worklist_or_audit_pattern 'TG-M15-MB .*publish/admin/moderation ownership out of mobile.*creator-status deep links'
+require_worklist_or_audit_pattern 'TG-M15-RP .* done '
+require_worklist_or_audit_pattern 'TG-M15-RP .*docs/PLAY_RELEASE_SIGNOFF.md.*scripts/ai/verify.sh.*WL-033'
 require_worklist_or_audit_pattern '2026-03-23: closed `WL-026`.*feedback/2026-03-21-204029-audit-task-2652.md.*feedback/2026-03-21-204029-audit-task-48734.md'
 require_worklist_or_audit_pattern 'WL-009 .* done .*bootstrap'
 require_worklist_or_audit_pattern 'WL-010 .* done .*BrowserSessionApiClient'
 require_worklist_or_audit_pattern 'WL-011 .* done .*BrowserSessionEventLogStore'
+rg -n 'Publication-safe projection boundary' docs/chummer6-mobile.design.v1.md >/dev/null
+rg -n 'show recap-safe and replay-safe artifact shelf summaries' docs/chummer6-mobile.design.v1.md >/dev/null
+rg -n 'deep-link into Hub-owned creator publication status or support follow-through' docs/chummer6-mobile.design.v1.md >/dev/null
+rg -n 'own publication review state transitions|own moderation decisions or admin tooling|second creator-publication truth' docs/chummer6-mobile.design.v1.md >/dev/null
 rg -n 'published-feed cutover for `Chummer.Play.Contracts` and `Chummer.Ui.Kit`' docs/chummer-play.design.v1.md >/dev/null
 rg -n 'Milestone 4 dedicated play API ownership: `WL-004` aligns the contract family and `WL-012` owns the executable `/api/play/projection`, `/api/play/reconnect`, and `/api/play/sync` route surface' docs/chummer-play.design.v1.md >/dev/null
 rg -n 'Milestone 6 offline cache and local-first replay ownership: `WL-005` remains the sync/storage umbrella, `WL-011` owns browser-backed event-ledger persistence, and `WL-013` owns runtime bundle lineage, replay checkpoints, and resume metadata in browser storage' docs/chummer-play.design.v1.md >/dev/null

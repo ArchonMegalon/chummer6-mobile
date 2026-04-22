@@ -18,6 +18,22 @@ This repo does not own:
 - provider secrets or direct third-party orchestration
 - publish/admin/moderation surfaces
 
+## Publication-safe projection boundary
+
+This repo may project publication-safe follow-through for live play artifacts when that keeps replay, recap, and continuity understandable on a mobile shell.
+
+That means `chummer6-mobile` may:
+
+- show recap-safe and replay-safe artifact shelf summaries
+- expose provenance, trust-band, discoverability, and next-safe-action cues
+- deep-link into Hub-owned creator publication status or support follow-through
+
+It must not:
+
+- own publication review state transitions
+- own moderation decisions or admin tooling
+- invent a second creator-publication truth outside the Hub/registry boundary
+
 ## Package-only rule
 
 This repo consumes:

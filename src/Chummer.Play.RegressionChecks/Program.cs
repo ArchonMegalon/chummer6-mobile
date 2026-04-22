@@ -48,6 +48,7 @@ await RunCheckAsync(nameof(VerifyQuickActionRejectsCrossRoleAuthorizationAsync),
 await RunCheckAsync(nameof(VerifyDeniedQuickActionsPreserveStoredReplayStateAsync), VerifyDeniedQuickActionsPreserveStoredReplayStateAsync);
 await RunCheckAsync(nameof(VerifyObserverBootstrapAndResumeStayReadMostlyAsync), VerifyObserverBootstrapAndResumeStayReadMostlyAsync);
 await RunCheckAsync(nameof(VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync), VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync);
+await RunCheckAsync(nameof(VerifyNoSessionRestoreHrefUsesRealPlayEntryRouteAsync), VerifyNoSessionRestoreHrefUsesRealPlayEntryRouteAsync);
 await RunCheckAsync(nameof(VerifyCachePressureBudgetContractAsync), VerifyCachePressureBudgetContractAsync);
 await RunCheckAsync(nameof(VerifyEventLogDropsMalformedStoredLedgerAsync), VerifyEventLogDropsMalformedStoredLedgerAsync);
 await RunCheckAsync(nameof(VerifyEventLogDropsUnparseableStoredLedgerKeysAsync), VerifyEventLogDropsUnparseableStoredLedgerKeysAsync);
@@ -159,6 +160,52 @@ static void VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState()
     Assert(plan.AttentionItems[0].Contains("install-local", StringComparison.Ordinal), "roaming restore attention items must preserve the install-local guardrail");
     Assert(plan.CanResume, "roaming restore must remain resumable when package-owned campaign state exists");
     Assert(!plan.RequiresConflictReview, "roaming restore should stay conflict-free for aligned package-owned state");
+}
+
+static async Task VerifyNoSessionRestoreHrefUsesRealPlayEntryRouteAsync()
+{
+    IRoamingWorkspaceSyncPlanner planner = new RoamingWorkspaceSyncPlanner();
+    WorkspaceRestoreProjection baseline = CreateWorkspaceRestoreProjection(conflicts: Array.Empty<string>());
+    WorkspaceRestoreProjection restore = baseline with
+    {
+        RecentDossiers =
+        [
+            baseline.RecentDossiers[0] with
+            {
+                LatestContinuity = null,
+                CurrentRunId = null,
+                CurrentSceneId = null,
+            }
+        ],
+        RecentCampaigns =
+        [
+            baseline.RecentCampaigns[0] with
+            {
+                LatestContinuity = null,
+                ActiveRunId = null,
+                RunIds = Array.Empty<string>(),
+            }
+        ],
+    };
+
+    RoamingWorkspaceRestorePlan plan = planner.CreatePlan(restore, "install-tablet");
+
+    Assert(plan.ResumeFollowThroughHref.Contains("/play?", StringComparison.Ordinal), "no-session restore must route through the concrete /play entry path");
+    Assert(plan.ResumeFollowThroughHref.Contains("deviceId=install-tablet", StringComparison.Ordinal), "no-session restore href must preserve the claimed device id");
+    Assert(plan.ResumeFollowThroughHref.Contains("role=Player", StringComparison.Ordinal), "no-session restore href must preserve the mapped shell role");
+
+    var app = PlayWebApplication.Build([]);
+    try
+    {
+        var (route, query) = SplitHref(plan.ResumeFollowThroughHref);
+        var response = await ExecuteRouteResponseAsync(app, HttpMethod.Get, route, query);
+        Assert(response.StatusCode == StatusCodes.Status302Found, "sessionless /play entry must redirect instead of returning a dead route");
+        Assert(string.Equals(response.Location, "/index.html?role=Player&deviceId=install-tablet", StringComparison.Ordinal), "sessionless /play entry must land on the index shell with role and claimed-device context");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
 }
 
 static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
@@ -3369,6 +3416,69 @@ static async Task<TResponse> ExecuteRouteRequestAsync<TResponse>(
     var payload = await reader.ReadToEndAsync();
     return JsonSerializer.Deserialize<TResponse>(payload, new JsonSerializerOptions(JsonSerializerDefaults.Web))
         ?? throw new InvalidOperationException($"Route '{route}' returned an empty JSON payload.");
+}
+
+static async Task<(int StatusCode, string Location)> ExecuteRouteResponseAsync(
+    WebApplication app,
+    HttpMethod method,
+    string route,
+    string query = "",
+    string? jsonBody = null,
+    IReadOnlyDictionary<string, string>? routeValues = null
+)
+{
+    var endpointRouteBuilder = (IEndpointRouteBuilder)app;
+    var endpoint = endpointRouteBuilder
+        .DataSources
+        .SelectMany(static source => source.Endpoints)
+        .OfType<RouteEndpoint>()
+        .FirstOrDefault(candidate =>
+            candidate.RequestDelegate is not null
+            && MethodMatches(candidate, method)
+            && RouteMatches(candidate, route)
+        );
+    if (endpoint is null)
+    {
+        throw new InvalidOperationException($"Could not resolve endpoint for route '{route}' and method '{method.Method}'.");
+    }
+
+    var context = new DefaultHttpContext
+    {
+        RequestServices = app.Services,
+    };
+    context.Request.Method = method.Method;
+    context.Request.Path = NormalizePath(route);
+    context.Request.QueryString = new QueryString(query);
+    context.Response.Body = new MemoryStream();
+    if (routeValues is not null)
+    {
+        foreach (var routeValue in routeValues)
+        {
+            context.Request.RouteValues[routeValue.Key] = routeValue.Value;
+        }
+    }
+
+    if (!string.IsNullOrWhiteSpace(jsonBody))
+    {
+        var bytes = Encoding.UTF8.GetBytes(jsonBody);
+        context.Request.Body = new MemoryStream(bytes);
+        context.Request.ContentLength = bytes.Length;
+        context.Request.ContentType = "application/json";
+    }
+
+    await endpoint.RequestDelegate!(context);
+    return (context.Response.StatusCode, context.Response.Headers.Location.ToString());
+}
+
+static (string Route, string Query) SplitHref(string href)
+{
+    int separator = href.IndexOf('?', StringComparison.Ordinal);
+    if (separator < 0)
+    {
+        return (href, string.Empty);
+    }
+
+    return (href[..separator], href[separator..]);
 }
 
 static bool MethodMatches(RouteEndpoint endpoint, HttpMethod method)

@@ -457,7 +457,7 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
             ?? primaryDossier?.LatestContinuity?.SessionId;
         if (string.IsNullOrWhiteSpace(sessionId))
         {
-            return $"/play?deviceId={Uri.EscapeDataString(targetDevice.InstallationId)}";
+            return $"/play?deviceId={Uri.EscapeDataString(targetDevice.InstallationId)}&role={Uri.EscapeDataString(ResolvePlayRole(targetDevice.DeviceRole))}";
         }
 
         return $"/play/{Uri.EscapeDataString(sessionId)}?deviceId={Uri.EscapeDataString(targetDevice.InstallationId)}&role={Uri.EscapeDataString(ResolvePlayRole(targetDevice.DeviceRole))}";

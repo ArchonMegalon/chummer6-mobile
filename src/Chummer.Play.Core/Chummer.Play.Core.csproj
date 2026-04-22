@@ -6,7 +6,6 @@
   <ItemGroup>
     <PackageReference Include="$(ChummerEngineContractsPackageId)" />
     <PackageReference Include="$(ChummerCampaignContractsPackageId)" />
-    <PackageReference Include="$(ChummerControlContractsPackageId)" />
     <PackageReference Include="$(ChummerPlayContractsPackageId)" />
   </ItemGroup>
 </Project>
