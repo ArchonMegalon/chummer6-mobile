@@ -1,13 +1,23 @@
 mode: append
 items:
-- title: Auto-detect and repair recurring `mobile` mirror drift after 6437 repeated audit observations; keep one bounded queue slice for the affected local design mirror bundle instead of reopening one-off mirror refresh work.
-  task: Auto-detect and repair recurring `mobile` mirror drift after 6437 repeated audit observations; keep one bounded queue slice for the affected local design mirror bundle instead of reopening one-off mirror refresh work.
+- title: Auto-detect and repair recurring `mobile` mirror drift after 15726 repeated audit observations; keep one bounded queue slice for the affected local design mirror bundle instead of reopening one-off mirror refresh work.
+  task: Auto-detect and repair recurring `mobile` mirror drift after 15726 repeated audit observations; keep one bounded queue slice for the affected local design mirror bundle instead of reopening one-off mirror refresh work.
   package_id: audit-task-11710
   source_ref: audit_task_candidates[11710]
   audit_finding_key: project.design_mirror_missing_or_stale
   audit_scope_id: mobile
   source_items:
-  - /docker/chummercomplete/chummer-play/.codex-design/product/PROGRAM_MILESTONES.yaml
+  - /docker/chummercomplete/chummer-play/.codex-design/product/OPEN_RUNS_AND_COMMUNITY_HUB.md
+  - /docker/chummercomplete/chummer-play/.codex-design/product/COMMUNITY_HUB_OPERATIONS_MODEL.md
+  - /docker/chummercomplete/chummer-play/.codex-design/product/horizons/community-hub.md
+  - /docker/chummercomplete/chummer-play/.codex-design/product/README.md
+  - /docker/chummercomplete/chummer-play/.codex-design/product/METRICS_AND_SLOS.yaml
+  - /docker/chummercomplete/chummer-play/.codex-design/product/CAMPAIGN_AUTHORITY_AND_PERMISSIONS.md
+  - /docker/chummercomplete/chummer-play/.codex-design/product/USER_JOURNEYS.md
+  - /docker/chummercomplete/chummer-play/.codex-design/product/NEXT_90_DAY_PRODUCT_ADVANCE_GUIDE.md
+  - /docker/chummercomplete/chummer-play/.codex-design/product/NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml
+  - /docker/chummercomplete/chummer-play/.codex-design/product/NEXT_90_DAY_QUEUE_STAGING.generated.yaml
+  - /docker/chummercomplete/chummer-play/.codex-design/product/WORLD_STATE_AND_MISSION_MARKET_MODEL.md
   allowed_paths:
   - .codex-design
   owned_surfaces:

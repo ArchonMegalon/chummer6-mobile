@@ -8,7 +8,7 @@ Use this review context in the mirrored `chummer6-mobile` repo.
 - Flag missing offline, stale-state, or replay-safety tests as P1.
 - Flag builder or inspector UX added to the dedicated play shell as P1.
 - Flag rule evaluation, runtime fingerprint generation, or provider-secret handling in mobile as P1.
-- Flag dependencies beyond `Chummer.Engine.Contracts`, `Chummer.Play.Contracts`, and `Chummer.Ui.Kit` without explicit design approval as P1.
+- Flag dependencies beyond `Chummer.Engine.Contracts`, `Chummer.Play.Contracts`, `Chummer.Campaign.Contracts`, `Chummer.World.Contracts`, and `Chummer.Ui.Kit` without explicit design approval as P1.
 
 ## Boundary check
 

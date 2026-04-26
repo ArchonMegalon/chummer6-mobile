@@ -1,0 +1,18 @@
+<Project>
+  <Target Name="PurgeRelocatedBuildCaches" BeforeTargets="PrepareForBuild">
+    <ItemGroup>
+      <_ChummerRelocatedBuildCacheFiles Include="
+        $(IntermediateOutputPath)$(MSBuildProjectName).csproj.FileListAbsolute.txt;
+        $(IntermediateOutputPath)$(MSBuildProjectName).genruntimeconfig.cache;
+        $(IntermediateOutputPath)$(MSBuildProjectName).assets.cache;
+        $(IntermediateOutputPath)$(MSBuildProjectName).csproj.CoreCompileInputs.cache;
+        $(IntermediateOutputPath)$(MSBuildProjectName).csproj.AssemblyReference.cache;
+        $(IntermediateOutputPath)$(MSBuildProjectName).AssemblyInfoInputs.cache;
+        $(IntermediateOutputPath)$(MSBuildProjectName).MvcApplicationPartsAssemblyInfo.cache" />
+      <_ChummerRelocatedUpToDateMarkers Include="$(IntermediateOutputPath)Chummer..*.Up2Date" />
+    </ItemGroup>
+
+    <Delete Files="@(_ChummerRelocatedBuildCacheFiles)" />
+    <Delete Files="@(_ChummerRelocatedUpToDateMarkers)" />
+  </Target>
+</Project>

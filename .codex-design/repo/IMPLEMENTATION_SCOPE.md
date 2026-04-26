@@ -28,6 +28,8 @@ local-first play, reconnect/replay behavior, mobile/tablet UX, and installable P
 
 * `Chummer.Engine.Contracts`
 * `Chummer.Play.Contracts`
+* `Chummer.Campaign.Contracts` for campaign continuity projections
+* `Chummer.World.Contracts` for world-state and mission-market projections
 * `Chummer.Ui.Kit`
 
 ## Boundary truth
