@@ -8,14 +8,14 @@ namespace Chummer.Play.Web;
 public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
 {
     private const int RuntimeBundleQuota = 8;
-    private readonly IBrowserKeyValueStore _browserStore;
+    private readonly IOfflineCacheStorage _offlineCacheStorage;
     private static readonly SemaphoreSlim RuntimeBundleQuotaLock = new(1, 1);
     private static readonly ConcurrentDictionary<string, SessionLockEntry> RuntimeBundleSessionLocks = new(StringComparer.Ordinal);
     private static readonly object RuntimeBundleSessionLocksGate = new();
 
     public BrowserSessionOfflineCacheService(IBrowserKeyValueStore browserStore)
     {
-        _browserStore = browserStore;
+        _offlineCacheStorage = browserStore;
     }
 
     public IReadOnlyList<string> CachePolicies =>
@@ -129,7 +129,7 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
                 }
                 catch (ArgumentException)
                 {
-                    await _browserStore.RemoveAsync(key, cancellationToken);
+                    await _offlineCacheStorage.RemoveAsync(key, cancellationToken);
                     return null;
                 }
 
@@ -232,7 +232,7 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
         }
         catch (ArgumentException)
         {
-            await _browserStore.RemoveAsync(key, cancellationToken);
+            await _offlineCacheStorage.RemoveAsync(key, cancellationToken);
             return null;
         }
 
@@ -250,7 +250,7 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
             var entry = await _browserStore.GetAsync<RuntimeBundleCacheEntry>(key, cancellationToken);
             if (entry is null)
             {
-                await _browserStore.RemoveAsync(key, cancellationToken);
+                await _offlineCacheStorage.RemoveAsync(key, cancellationToken);
                 continue;
             }
 
@@ -260,7 +260,7 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
             }
             catch (ArgumentException)
             {
-                await _browserStore.RemoveAsync(key, cancellationToken);
+                await _offlineCacheStorage.RemoveAsync(key, cancellationToken);
                 continue;
             }
 
@@ -275,7 +275,7 @@ public sealed class BrowserSessionOfflineCacheService : IPlayOfflineCacheService
         var matchingKeys = await _browserStore.ListKeysAsync(key, cancellationToken);
         if (matchingKeys.Contains(key, StringComparer.Ordinal))
         {
-            await _browserStore.RemoveAsync(key, cancellationToken);
+            await _offlineCacheStorage.RemoveAsync(key, cancellationToken);
         }
     }
 

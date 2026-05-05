@@ -683,8 +683,11 @@ public static class PlayRouteHandlers
 
     private static string BuildContinuityToken(string sessionId, long observedThroughSequence)
     {
-        var safeSessionId = sessionId.Replace(':', '-');
-        return $"{safeSessionId}:{observedThroughSequence}:{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+        var encodedSessionId = Convert.ToBase64String(Encoding.UTF8.GetBytes(sessionId))
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
+        return $"{encodedSessionId}:{observedThroughSequence}";
     }
 
     private static PlayRuntimeBundleMetadata? SelectObservedRuntimeBundle(

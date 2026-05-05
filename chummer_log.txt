@@ -1,0 +1,1 @@
+What shipped: Code aligns with AGENTS.md guardrails.
