@@ -18,9 +18,21 @@ public sealed record RoamingWorkspaceRestorePlan(
     string LocalCacheBoundarySummary,
     string OfflineTruthSummary,
     IReadOnlyList<string> OfflineTruthLabels,
+    string ActionRequiredSummary,
+    IReadOnlyList<string> ActionRequiredLabels,
+    string TravelCampaignCurrentState,
+    string TravelCampaignStateSummary,
+    string TravelCampaignCachedState,
+    string TravelCampaignStaleState,
+    string TravelCampaignActionRequired,
+    IReadOnlyList<string> TravelCampaignStateLabels,
     string TravelCompanionSummary,
     IReadOnlyList<string> TravelCompanionLabels,
     IReadOnlyList<string> PrefetchLabels,
+    string StarterPrimerFollowThrough,
+    string StarterPrimerFollowThroughHref,
+    string FirstSessionBriefingFollowThrough,
+    string FirstSessionBriefingFollowThroughHref,
     string? ReturnTargetCampaignName,
     string ResumeFollowThrough,
     string ResumeFollowThroughHref,
@@ -85,13 +97,26 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
         var localCacheBoundarySummary = BuildLocalCacheBoundarySummary(localOnlyNotes);
         var offlineTruthSummary = BuildOfflineTruthSummary(restore, targetDevice, conflictSummaries, canResume);
         var offlineTruthLabels = BuildOfflineTruthLabels(restore, targetDevice, conflictSummaries, canResume);
+        var actionRequiredSummary = BuildActionRequiredSummary(restore, targetDevice, conflictSummaries, canResume);
+        var actionRequiredLabels = BuildActionRequiredLabels(restore, targetDevice, conflictSummaries, canResume);
         var travelCompanionSummary = BuildTravelCompanionSummary(restore, targetDevice, conflictSummaries, canResume);
         var travelCompanionLabels = BuildTravelCompanionLabels(restore, targetDevice, conflictSummaries, canResume);
+        var travelCampaignCurrentState = BuildTravelCampaignCurrentState(restore, targetDevice, conflictSummaries, canResume);
+        var travelCampaignStateSummary = BuildTravelCampaignStateSummary(restore, targetDevice, conflictSummaries, canResume, prefetchReadinessSummary);
+        var travelCampaignCachedState = BuildTravelCampaignCachedState(restore, targetDevice, conflictSummaries, canResume);
+        var travelCampaignStaleState = BuildTravelCampaignStaleState(restore, targetDevice, conflictSummaries, canResume);
+        var travelCampaignActionRequired = BuildTravelCampaignActionRequired(restore, targetDevice, conflictSummaries, canResume, actionRequiredSummary);
+        var travelCampaignStateLabels = BuildTravelCampaignStateLabels(restore, targetDevice, conflictSummaries, canResume, offlineTruthLabels, actionRequiredLabels, travelCompanionLabels);
         var prefetchLabels = BuildPrefetchLabels(restore, targetDevice);
+        string? artifactSessionId = ResolveArtifactSessionId(primaryCampaign, primaryDossier);
         var resumeFollowThrough = BuildResumeFollowThrough(targetDevice, primaryCampaign, primaryDossier, conflictSummaries, canResume);
         var resumeFollowThroughHref = BuildResumeFollowThroughHref(targetDevice, primaryCampaign, primaryDossier);
         var supportFollowThrough = BuildSupportFollowThrough(targetDevice, primaryCampaign, primaryDossier, primaryEnvironment, conflictSummaries, localOnlyNotes);
         var supportFollowThroughHref = BuildSupportFollowThroughHref(targetDevice, primaryCampaign, primaryDossier, primaryEnvironment, conflictSummaries, localOnlyNotes);
+        var starterPrimerFollowThrough = BuildStarterPrimerFollowThrough(targetDevice, primaryCampaign, conflictSummaries, canResume);
+        var starterPrimerFollowThroughHref = BuildStarterArtifactFollowThroughHref(targetDevice, artifactSessionId, "artifact:{sessionId}:starter-primer");
+        var firstSessionBriefingFollowThrough = BuildFirstSessionBriefingFollowThrough(targetDevice, primaryCampaign, conflictSummaries, canResume);
+        var firstSessionBriefingFollowThroughHref = BuildStarterArtifactFollowThroughHref(targetDevice, artifactSessionId, "artifact:{sessionId}:first-session-briefing");
         var attentionItems = BuildAttentionItems(conflictSummaries, localOnlyNotes, primaryEnvironment);
 
         return new RoamingWorkspaceRestorePlan(
@@ -110,9 +135,21 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
             LocalCacheBoundarySummary: localCacheBoundarySummary,
             OfflineTruthSummary: offlineTruthSummary,
             OfflineTruthLabels: offlineTruthLabels,
+            ActionRequiredSummary: actionRequiredSummary,
+            ActionRequiredLabels: actionRequiredLabels,
+            TravelCampaignCurrentState: travelCampaignCurrentState,
+            TravelCampaignStateSummary: travelCampaignStateSummary,
+            TravelCampaignCachedState: travelCampaignCachedState,
+            TravelCampaignStaleState: travelCampaignStaleState,
+            TravelCampaignActionRequired: travelCampaignActionRequired,
+            TravelCampaignStateLabels: travelCampaignStateLabels,
             TravelCompanionSummary: travelCompanionSummary,
             TravelCompanionLabels: travelCompanionLabels,
             PrefetchLabels: prefetchLabels,
+            StarterPrimerFollowThrough: starterPrimerFollowThrough,
+            StarterPrimerFollowThroughHref: starterPrimerFollowThroughHref,
+            FirstSessionBriefingFollowThrough: firstSessionBriefingFollowThrough,
+            FirstSessionBriefingFollowThroughHref: firstSessionBriefingFollowThroughHref,
             ReturnTargetCampaignName: primaryCampaign?.Name,
             ResumeFollowThrough: resumeFollowThrough,
             ResumeFollowThroughHref: resumeFollowThroughHref,
@@ -257,6 +294,149 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
                 ? $"Offline action lane: resolve conflict review before mutating campaign continuity."
                 : $"Offline action lane: resume is allowed on {targetDevice.DeviceRole} with bounded local truth.";
         return [cached, stale, action];
+    }
+
+    private static string BuildActionRequiredSummary(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        RuleEnvironmentRef? primaryEnvironment = restore.RecentCampaigns
+            .OrderByDescending(static campaign => campaign.UpdatedAtUtc)
+            .FirstOrDefault()?.RuleEnvironment
+            ?? restore.RecentDossiers.OrderByDescending(static dossier => dossier.UpdatedAtUtc).FirstOrDefault()?.RuleEnvironment
+            ?? restore.RecentRuleEnvironments.FirstOrDefault();
+
+        if (!canResume)
+        {
+            return $"Action required: claim or reconnect {targetDevice.DeviceRole} before this device can carry campaign continuity at all.";
+        }
+
+        if (conflictSummaries.Count > 0)
+        {
+            return $"Action required: review {conflictSummaries.Count} restore conflict(s) before you trust stale or travel campaign state on {targetDevice.DeviceRole}.";
+        }
+
+        if (primaryEnvironment is not null && !string.Equals(primaryEnvironment.ApprovalState, "approved", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"Action required: approve {primaryEnvironment.CompatibilityFingerprint} before you trust this claimed device for continuity-critical offline campaign state.";
+        }
+
+        return $"Action required: keep continuity mutations on {targetDevice.DeviceRole}, then complete the next online sync before you widen campaign state beyond this bounded restore packet.";
+    }
+
+    private static string[] BuildActionRequiredLabels(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        RuleEnvironmentRef? primaryEnvironment = restore.RecentCampaigns
+            .OrderByDescending(static campaign => campaign.UpdatedAtUtc)
+            .FirstOrDefault()?.RuleEnvironment
+            ?? restore.RecentDossiers.OrderByDescending(static dossier => dossier.UpdatedAtUtc).FirstOrDefault()?.RuleEnvironment
+            ?? restore.RecentRuleEnvironments.FirstOrDefault();
+        string resumeLane = !canResume
+            ? $"Action-required lane: seed a claimed restore packet on {targetDevice.InstallationId} before offline continuity is allowed."
+            : conflictSummaries.Count > 0
+                ? $"Action-required lane: clear restore conflict review before mutating campaign continuity on {targetDevice.InstallationId}."
+                : $"Action-required lane: keep mutations on {targetDevice.InstallationId} until the next online sync closes.";
+        string ruleLane = primaryEnvironment is not null && !string.Equals(primaryEnvironment.ApprovalState, "approved", StringComparison.OrdinalIgnoreCase)
+            ? $"Rule-action lane: {primaryEnvironment.CompatibilityFingerprint} is still {primaryEnvironment.ApprovalState}; do not trust it as final offline campaign truth yet."
+            : "Rule-action lane: approved rule posture is already attached to this claimed device.";
+        string travelLane = conflictSummaries.Count > 0 || !canResume
+            ? $"Travel-action lane: hold travel companion propagation for {targetDevice.DeviceRole} until restore review closes."
+            : "Travel-action lane: travel companion carry-forward is staged, but final propagation still stays online-only.";
+        return [resumeLane, ruleLane, travelLane];
+    }
+
+    private static string BuildTravelCampaignCurrentState(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        string posture = !canResume
+            ? $"no bounded travel continuity packet is staged for {targetDevice.DeviceRole} yet."
+            : conflictSummaries.Count > 0
+                ? $"warning posture is active until {conflictSummaries.Count} restore conflict(s) close."
+                : $"travel continuity is aligned for {targetDevice.DeviceRole}.";
+        return $"Current continuity posture: {posture}";
+    }
+
+    private static string BuildTravelCampaignStateSummary(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume,
+        string prefetchReadinessSummary)
+    {
+        string cached = canResume
+            ? $"{DescribePrefetchInventory(restore)} are staged for bounded travel follow-through."
+            : $"no cached travel continuity packet is staged for {targetDevice.DeviceRole}.";
+        return $"Cached state: {cached} {prefetchReadinessSummary}";
+    }
+
+    private static string BuildTravelCampaignCachedState(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        string cached = canResume
+            ? $"{DescribePrefetchInventory(restore)} remain attached to {targetDevice.InstallationId} for travel-safe carry-forward."
+            : $"no cached travel campaign state is attached to {targetDevice.InstallationId} yet.";
+        return $"Cached state: {cached}";
+    }
+
+    private static string BuildTravelCampaignStaleState(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        string stale = conflictSummaries.Count > 0
+            ? $"warning posture is active until {conflictSummaries.Count} restore conflict(s) close for {targetDevice.DeviceRole}."
+            : canResume
+                ? $"green; bounded travel continuity is aligned for {targetDevice.DeviceRole}."
+                : $"pending until {targetDevice.DeviceRole} seeds a bounded travel continuity packet.";
+        return $"Stale state: {stale}";
+    }
+
+    private static string BuildTravelCampaignActionRequired(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume,
+        string actionRequiredSummary)
+    {
+        string normalized = actionRequiredSummary.StartsWith("Action required:", StringComparison.Ordinal)
+            ? actionRequiredSummary
+            : $"Action required: {actionRequiredSummary}";
+        return $"{normalized} Travel lane: {targetDevice.DeviceRole} on {targetDevice.InstallationId}.";
+    }
+
+    private static IReadOnlyList<string> BuildTravelCampaignStateLabels(
+        WorkspaceRestoreProjection restore,
+        ClaimedDeviceRestoreProjection targetDevice,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume,
+        IReadOnlyList<string> offlineTruthLabels,
+        IReadOnlyList<string> actionRequiredLabels,
+        IReadOnlyList<string> travelCompanionLabels)
+    {
+        List<string> labels =
+        [
+            .. offlineTruthLabels,
+            .. actionRequiredLabels,
+            .. travelCompanionLabels
+        ];
+
+        return labels
+            .Where(static item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static string BuildTravelCompanionSummary(
@@ -453,14 +633,67 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
         CampaignProjection? primaryCampaign,
         RunnerDossierProjection? primaryDossier)
     {
-        string? sessionId = primaryCampaign?.LatestContinuity?.SessionId
-            ?? primaryDossier?.LatestContinuity?.SessionId;
+        string? sessionId = ResolveArtifactSessionId(primaryCampaign, primaryDossier);
         if (string.IsNullOrWhiteSpace(sessionId))
         {
             return $"/play?deviceId={Uri.EscapeDataString(targetDevice.InstallationId)}&role={Uri.EscapeDataString(ResolvePlayRole(targetDevice.DeviceRole))}";
         }
 
         return $"/play/{Uri.EscapeDataString(sessionId)}?deviceId={Uri.EscapeDataString(targetDevice.InstallationId)}&role={Uri.EscapeDataString(ResolvePlayRole(targetDevice.DeviceRole))}";
+    }
+
+    private static string BuildStarterPrimerFollowThrough(
+        ClaimedDeviceRestoreProjection targetDevice,
+        CampaignProjection? primaryCampaign,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        string targetLabel = primaryCampaign?.Name ?? targetDevice.DeviceRole;
+        if (!canResume)
+        {
+            return $"Seed the claimed starter lane for {targetLabel} before you trust a travel-safe starter primer on {targetDevice.DeviceRole}.";
+        }
+
+        if (conflictSummaries.Count > 0)
+        {
+            return $"Clear restore conflict review before you reopen the starter primer for {targetLabel} on {targetDevice.DeviceRole}.";
+        }
+
+        return $"Open the starter primer for {targetLabel} on {targetDevice.DeviceRole} from the same claimed-device artifact lane.";
+    }
+
+    private static string BuildFirstSessionBriefingFollowThrough(
+        ClaimedDeviceRestoreProjection targetDevice,
+        CampaignProjection? primaryCampaign,
+        IReadOnlyList<string> conflictSummaries,
+        bool canResume)
+    {
+        string targetLabel = primaryCampaign?.Name ?? targetDevice.DeviceRole;
+        if (!canResume)
+        {
+            return $"Seed the claimed starter lane for {targetLabel} before you trust a travel-safe first-session briefing on {targetDevice.DeviceRole}.";
+        }
+
+        if (conflictSummaries.Count > 0)
+        {
+            return $"Clear restore conflict review before you reopen the first-session briefing for {targetLabel} on {targetDevice.DeviceRole}.";
+        }
+
+        return $"Open the first-session briefing for {targetLabel} on {targetDevice.DeviceRole} from the same claimed-device artifact lane.";
+    }
+
+    private static string BuildStarterArtifactFollowThroughHref(
+        ClaimedDeviceRestoreProjection targetDevice,
+        string? sessionId,
+        string artifactPattern)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId))
+        {
+            return $"/play?deviceId={Uri.EscapeDataString(targetDevice.InstallationId)}&role={Uri.EscapeDataString(ResolvePlayRole(targetDevice.DeviceRole))}";
+        }
+
+        string artifactId = artifactPattern.Replace("{sessionId}", sessionId, StringComparison.Ordinal);
+        return $"/artifacts/{Uri.EscapeDataString(sessionId)}/{Uri.EscapeDataString(artifactId)}?deviceId={Uri.EscapeDataString(targetDevice.InstallationId)}&role={Uri.EscapeDataString(ResolvePlayRole(targetDevice.DeviceRole))}&view=travel";
     }
 
     private static string BuildSupportFollowThrough(
@@ -537,6 +770,12 @@ public sealed class RoamingWorkspaceSyncPlanner : IRoamingWorkspaceSyncPlanner
 
         return "Player";
     }
+
+    private static string? ResolveArtifactSessionId(
+        CampaignProjection? primaryCampaign,
+        RunnerDossierProjection? primaryDossier)
+        => primaryCampaign?.LatestContinuity?.SessionId
+            ?? primaryDossier?.LatestContinuity?.SessionId;
 
     private static string DescribePrefetchInventory(WorkspaceRestoreProjection restore)
         => $"{restore.RecentDossiers.Count} dossier(s), {restore.RecentCampaigns.Count} campaign(s), {restore.RecentRuleEnvironments.Count} rule environment(s), and {restore.RecentArtifacts.Count} artifact(s)";

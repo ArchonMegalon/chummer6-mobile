@@ -2087,6 +2087,15 @@ milestones:
       - id: 119.3
         owner: chummer6-mobile
         title: Add travel/mobile starter continuity for primer, briefing, and recap artifacts.
+        status: complete
+        completion_action: verify_closed_package_only
+        do_not_reopen_reason: M119 chummer6-mobile starter-lane continuity is complete; future shards must verify the mobile
+          onboarding continuity proof, standalone verifier, generated release proof, canonical registry row, and queue mirrors
+          instead of reopening the mobile starter-lane slice.
+        evidence:
+          - /docker/chummercomplete/chummer-play/docs/next90-m119-mobile-onboarding-continuity.proof.md
+          - /docker/chummercomplete/chummer-play/scripts/verify_next90_m119_mobile_onboarding_continuity.py
+          - /docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json
       - id: 119.4
         owner: chummer6-media-factory
         title: Render starter primer, first-session briefing, and support-safe onboarding companion artifacts.

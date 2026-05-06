@@ -129,6 +129,14 @@ static void VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState()
     Assert(plan.ResumeFollowThrough.Contains("Resume Redmond Patrol", StringComparison.Ordinal), "roaming restore must surface an explicit claimed-device resume follow-through.");
     Assert(plan.ResumeFollowThroughHref.Contains("/play/session-redmond", StringComparison.Ordinal), "roaming restore must expose a direct claimed-device resume href.");
     Assert(plan.ResumeFollowThroughHref.Contains("deviceId=install-tablet", StringComparison.Ordinal), "roaming restore resume href must preserve the claimed device id.");
+    Assert(plan.StarterPrimerFollowThrough.Contains("starter primer", StringComparison.OrdinalIgnoreCase), "roaming restore must surface a starter-primer follow-through on the claimed device.");
+    Assert(plan.StarterPrimerFollowThroughHref.Contains("/artifacts/session-redmond/", StringComparison.Ordinal), "roaming restore must expose a direct claimed-device starter-primer href.");
+    Assert(plan.StarterPrimerFollowThroughHref.Contains("artifact%3Asession-redmond%3Astarter-primer", StringComparison.Ordinal), "roaming restore starter-primer href must preserve the canonical starter-primer artifact id.");
+    Assert(plan.StarterPrimerFollowThroughHref.Contains("deviceId=install-tablet", StringComparison.Ordinal), "roaming restore starter-primer href must preserve the claimed device id.");
+    Assert(plan.FirstSessionBriefingFollowThrough.Contains("first-session briefing", StringComparison.OrdinalIgnoreCase), "roaming restore must surface a first-session briefing follow-through on the claimed device.");
+    Assert(plan.FirstSessionBriefingFollowThroughHref.Contains("/artifacts/session-redmond/", StringComparison.Ordinal), "roaming restore must expose a direct claimed-device first-session briefing href.");
+    Assert(plan.FirstSessionBriefingFollowThroughHref.Contains("artifact%3Asession-redmond%3Afirst-session-briefing", StringComparison.Ordinal), "roaming restore first-session briefing href must preserve the canonical briefing artifact id.");
+    Assert(plan.FirstSessionBriefingFollowThroughHref.Contains("view=travel", StringComparison.Ordinal), "roaming restore first-session briefing href must preserve the travel artifact shelf.");
     Assert(plan.SupportFollowThrough.Contains("Redmond Patrol", StringComparison.Ordinal), "roaming restore must surface a support follow-through tied to the target campaign.");
     Assert(plan.SupportFollowThroughHref.Contains("/contact", StringComparison.Ordinal), "roaming restore must expose a direct support follow-through href.");
     Assert(plan.SupportFollowThroughHref.Contains("campaignId=campaign-redmond", StringComparison.Ordinal), "roaming restore support href must preserve the target campaign id.");
@@ -142,6 +150,14 @@ static void VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState()
     Assert(plan.OfflineTruthLabels.Any(item => item.Contains("Cached lane:", StringComparison.Ordinal)), "roaming restore must expose a cached-state label for the target device.");
     Assert(plan.OfflineTruthLabels.Any(item => item.Contains("Stale lane:", StringComparison.Ordinal)), "roaming restore must expose a stale-state label for the target device.");
     Assert(plan.OfflineTruthLabels.Any(item => item.Contains("Offline action lane:", StringComparison.Ordinal)), "roaming restore must expose an offline-action label for the target device.");
+    Assert(plan.TravelCampaignCurrentState.Contains("Current continuity posture:", StringComparison.Ordinal), "roaming restore must expose explicit travel campaign current posture.");
+    Assert(plan.TravelCampaignStateSummary.Contains("Cached state:", StringComparison.Ordinal), "roaming restore must expose explicit travel campaign cached-state summary.");
+    Assert(plan.TravelCampaignCachedState.Contains("Cached state:", StringComparison.Ordinal), "roaming restore must expose explicit travel campaign cached-state detail.");
+    Assert(plan.TravelCampaignStaleState.Contains("Stale state:", StringComparison.Ordinal), "roaming restore must expose explicit travel campaign stale-state detail.");
+    Assert(plan.TravelCampaignActionRequired.Contains("Action required:", StringComparison.Ordinal), "roaming restore must expose explicit travel campaign action-required posture.");
+    Assert(plan.TravelCampaignActionRequired.Contains("Travel lane: play_tablet on install-tablet.", StringComparison.Ordinal), "roaming restore must keep the target travel lane explicit inside the travel campaign action-required posture.");
+    Assert(plan.TravelCampaignStateLabels.Any(item => item.Contains("Cached lane:", StringComparison.Ordinal)), "roaming restore must expose cached travel campaign labels.");
+    Assert(plan.TravelCampaignStateLabels.Any(item => item.Contains("Travel companion lane:", StringComparison.Ordinal)), "roaming restore must expose travel companion lane labels inside the travel campaign state list.");
     Assert(plan.TravelCompanionSummary.Contains("Cached:", StringComparison.Ordinal), "roaming restore must expose explicit cached-state truth for the travel companion lane.");
     Assert(plan.TravelCompanionSummary.Contains("Stale:", StringComparison.Ordinal), "roaming restore must expose explicit stale-state truth for the travel companion lane.");
     Assert(plan.TravelCompanionSummary.Contains("Offline actions:", StringComparison.Ordinal), "roaming restore must expose explicit offline-action boundaries for the travel companion lane.");
@@ -240,15 +256,52 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
             FollowThroughHref: "/contact?kind=install_help&sessionId=session-redmond&sceneId=scene-redmond&bundle=bundle-redmond"));
 
     var projection = PlayCampaignWorkspaceLiteProjector.Create(response);
+    var travelProjection = PlayCampaignWorkspaceLiteProjector.Create(response, artifactView: "travel");
+    var recapProjection = PlayCampaignWorkspaceLiteProjector.Create(response, artifactView: "travel", artifactId: "artifact-recap-1");
 
     Assert(projection.Summary.Contains("session-redmond", StringComparison.Ordinal), "workspace-lite summary must keep the session identity visible");
     Assert(projection.Summary.Contains("Objective board refreshed", StringComparison.Ordinal), "workspace-lite summary must surface the latest timeline clue");
     Assert(projection.CurrentSceneSummary.Contains("scene-redmond", StringComparison.Ordinal), "workspace-lite summary must surface the current scene");
     Assert(projection.ChangePacketSummary.Contains("Return anchor stays on checkpoint 12", StringComparison.Ordinal), "workspace-lite summary must surface the claimed-device return anchor in the change packet.");
+    Assert(projection.PlayerTableCardsSummary.Contains("Player table cards:", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated player table-card summary.");
+    Assert(projection.PlayerTableCardsSummary.Contains("Action budget cue:", StringComparison.Ordinal), "workspace-lite table-card summary must expose an action-budget cue.");
+    Assert(projection.PlayerTableCardLabels.Any(item => item.Contains("Initiative lane:", StringComparison.Ordinal)), "workspace-lite summary must expose an initiative lane label for table cards.");
+    Assert(projection.PlayerTableCardLabels.Any(item => item.Contains("Action-budget lane:", StringComparison.Ordinal)), "workspace-lite summary must expose an action-budget lane label for table cards.");
+    Assert(projection.PlayerTableCardLabels.Any(item => item.Contains("Condition/effect lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a condition/effect lane label for table cards.");
+    Assert(projection.PlayerTableCardLabels.Any(item => item.Contains("Receipt lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a receipt lane label for table cards.");
+    Assert(projection.BetweenTurnAffordancesSummary.Contains("Between-turn affordances:", StringComparison.Ordinal), "workspace-lite summary must expose between-turn affordance posture.");
+    Assert(projection.BetweenTurnAffordancesSummary.Contains("Support cue:", StringComparison.Ordinal), "workspace-lite between-turn summary must keep the support cue explicit.");
+    Assert(projection.BetweenTurnAffordanceLabels.Any(item => item.Contains("Ready lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a ready lane label for between-turn affordances.");
+    Assert(projection.BetweenTurnAffordanceLabels.Any(item => item.Contains("Recap lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a recap lane label for between-turn affordances.");
+    Assert(projection.BetweenTurnAffordanceLabels.Any(item => item.Contains("Travel lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a travel lane label for between-turn affordances.");
+    Assert(projection.BetweenTurnAffordanceLabels.Any(item => item.Contains("Support lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a support lane label for between-turn affordances.");
+    Assert(projection.GmLiteContinuitySummary.Contains("GM-lite continuity:", StringComparison.Ordinal), "workspace-lite summary must expose a GM-lite continuity summary.");
+    Assert(projection.GmLiteContinuitySummary.Contains("runboard", StringComparison.OrdinalIgnoreCase), "workspace-lite GM-lite continuity summary must keep runboard posture explicit.");
+    Assert(projection.GmLiteContinuityLabels.Any(item => item.Contains("Initiative lane:", StringComparison.Ordinal)), "workspace-lite summary must expose an initiative lane label for GM-lite continuity.");
+    Assert(projection.GmLiteContinuityLabels.Any(item => item.Contains("Roster lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a roster lane label for GM-lite continuity.");
+    Assert(projection.GmLiteContinuityLabels.Any(item => item.Contains("Objective lane:", StringComparison.Ordinal)), "workspace-lite summary must expose an objective lane label for GM-lite continuity.");
+    Assert(projection.GmLiteContinuityLabels.Any(item => item.Contains("GM-lite lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a bounded GM-lite lane label.");
     Assert(projection.ChangePacketLabels.Any(item => item.Contains("Scene packet: scene-redmond", StringComparison.Ordinal)), "workspace-lite summary must surface a scene packet label.");
     Assert(projection.ChangePacketLabels.Any(item => item.Contains("Latest signal: Objective board refreshed", StringComparison.Ordinal)), "workspace-lite summary must surface the latest timeline signal inside the change packet.");
     Assert(projection.ChangePacketLabels.Any(item => item.Contains("Bundle proof: bundle-redmond", StringComparison.Ordinal)), "workspace-lite summary must keep the grounded bundle proof inside the change packet.");
     Assert(projection.ChangePacketLabels.Any(item => item.Contains("Replay-safe packet: scene-redmond replay timeline", StringComparison.Ordinal)), "workspace-lite summary must surface the replay-safe packet inside the change packet.");
+    Assert(projection.QuickExplainSummary.Contains("Quick explain:", StringComparison.Ordinal), "workspace-lite summary must expose a packet-backed quick explain summary.");
+    Assert(projection.QuickExplainSummary.Contains("scene-redmond", StringComparison.Ordinal), "workspace-lite quick explain must keep the current scene visible.");
+    Assert(projection.QuickExplainSummary.Contains("Objective board refreshed", StringComparison.Ordinal), "workspace-lite quick explain must keep the latest timeline signal visible.");
+    Assert(projection.QuickExplainLabels.Any(item => item.Contains("Scene value:", StringComparison.Ordinal)), "workspace-lite quick explain must expose a scene-value anchor.");
+    Assert(projection.QuickExplainLabels.Any(item => item.Contains("Return anchor value:", StringComparison.Ordinal)), "workspace-lite quick explain must expose the local return-anchor value.");
+    Assert(projection.QuickExplainLabels.Any(item => item.Contains("bundle-redmond", StringComparison.Ordinal)), "workspace-lite quick explain must keep grounded bundle proof visible.");
+    Assert(projection.SourceAnchorSummary.Contains("Source anchors:", StringComparison.Ordinal), "workspace-lite summary must expose source-anchor context.");
+    Assert(projection.SourceAnchorSummary.Contains("/play/session-redmond?role=Player", StringComparison.Ordinal), "workspace-lite source-anchor context must keep the owner route explicit.");
+    Assert(projection.SourceAnchorLabels.Any(item => item.Contains("Scene packet anchor:", StringComparison.Ordinal)), "workspace-lite source-anchor context must expose the scene packet anchor.");
+    Assert(projection.SourceAnchorLabels.Any(item => item.Contains("Runtime anchor: sr6.preview.v1.", StringComparison.Ordinal)), "workspace-lite source-anchor context must expose the runtime anchor.");
+    Assert(projection.StaleStatePosture.Contains("Stale-state posture: green", StringComparison.Ordinal), "workspace-lite summary must expose explicit stale-state posture.");
+    Assert(projection.StaleStatePosture.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite stale-state posture must keep grounded bundle proof explicit.");
+    Assert(projection.GroundedFollowUpSummary.Contains("Grounded follow-up:", StringComparison.Ordinal), "workspace-lite summary must expose a bounded grounded follow-up summary.");
+    Assert(projection.GroundedFollowUpSummary.Contains("Text-first fallback stays bounded", StringComparison.Ordinal), "workspace-lite grounded follow-up must stay text-first and bounded.");
+    Assert(projection.GroundedFollowUpLabels.Any(item => item.Contains("Continue lane:", StringComparison.Ordinal)), "workspace-lite grounded follow-up must expose a continue lane.");
+    Assert(projection.GroundedFollowUpLabels.Any(item => item.Contains("Support lane:", StringComparison.Ordinal)), "workspace-lite grounded follow-up must expose a support lane.");
+    Assert(projection.GroundedFollowUpLabels.Any(item => item.Contains("Boundary lane:", StringComparison.Ordinal)), "workspace-lite grounded follow-up must expose a boundary lane.");
     Assert(projection.ServerPlaneSummary.Contains("Session readiness is green", StringComparison.Ordinal), "workspace-lite summary must expose campaign server-plane readiness for the current shell.");
     Assert(projection.ServerPlaneSummary.Contains("checkpoint 12", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must expose the restore summary inside the server-plane summary.");
     Assert(projection.RunboardSummary.Contains("scene-redmond live runboard", StringComparison.Ordinal), "workspace-lite summary must expose the current runboard summary.");
@@ -282,15 +335,51 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.ReplayNextAction.Contains("replay timeline", StringComparison.Ordinal), "workspace-lite summary must expose the replay-specific next artifact step.");
     Assert(projection.ReplayPublicationHref.Contains("/account/work/publications/", StringComparison.Ordinal), "workspace-lite summary must expose a direct follow-through href into replay publication status.");
     Assert(projection.SelectedArtifactView == "personal", "workspace-lite summary must default the player lane to the personal artifact shelf view.");
-    Assert(projection.ArtifactShelfViews.Count == 3, "workspace-lite summary must expose first-class artifact shelf views for personal, campaign, and published browsing.");
-    Assert(projection.ArtifactShelfViews.Any(item => item.ViewId == "personal" && item.Label == "My stuff" && item.IsSelected && item.Href == "/artifacts?view=personal"), "workspace-lite summary must expose a selected personal artifact shelf view.");
-    Assert(projection.ArtifactShelfViews.Any(item => item.ViewId == "campaign" && item.Label == "Campaign stuff" && item.Href == "/artifacts?view=campaign"), "workspace-lite summary must expose the campaign artifact shelf view as a direct browse target.");
-    Assert(projection.ArtifactShelfViews.Any(item => item.ViewId == "creator" && item.Label == "Published stuff" && item.Href == "/artifacts?view=creator"), "workspace-lite summary must expose the published artifact shelf view as a direct browse target.");
+    Assert(projection.ArtifactShelfSelectionSummary.Contains("My stuff shelf:", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated selected artifact shelf summary.");
+    Assert(projection.ArtifactShelfViews.Count == 4, "workspace-lite summary must expose first-class artifact shelf views for personal, campaign, travel, and published browsing.");
+    Assert(projection.ArtifactShelfViews.Any(item => item.ViewId == "personal" && item.Label == "My stuff" && item.IsSelected && item.Href == "/artifacts/session-redmond?role=Player&view=personal"), "workspace-lite summary must expose a selected personal artifact shelf view.");
+    Assert(projection.ArtifactShelfViews.Any(item => item.ViewId == "campaign" && item.Label == "Campaign stuff" && item.Href == "/artifacts/session-redmond?role=Player&view=campaign"), "workspace-lite summary must expose the campaign artifact shelf view as a direct browse target.");
+    Assert(projection.ArtifactShelfViews.Any(item => item.ViewId == "travel" && item.Label == "Travel cache" && item.Href == "/artifacts/session-redmond?role=Player&view=travel"), "workspace-lite summary must expose the travel artifact shelf view as a direct browse target.");
+    Assert(projection.ArtifactShelfViews.Any(item => item.ViewId == "creator" && item.Label == "Published stuff" && item.Href == "/artifacts/session-redmond?role=Player&view=creator"), "workspace-lite summary must expose the published artifact shelf view as a direct browse target.");
+    Assert(travelProjection.SelectedArtifactView == "travel", "workspace-lite summary must let the mobile shell reopen the travel artifact shelf view directly.");
+    Assert(travelProjection.ArtifactShelfSelectionSummary.Contains("Travel shelf:", StringComparison.Ordinal), "workspace-lite summary must expose dedicated travel artifact shelf copy.");
+    Assert(travelProjection.ArtifactShelfSelectionSummary.Contains("scene-redmond recap-safe packet", StringComparison.Ordinal), "workspace-lite travel shelf copy must keep recap artifacts visible inside the bounded travel lane.");
+    Assert(projection.SelectedRecapArtifactSummary.Contains("no recap artifact is pinned yet", StringComparison.Ordinal), "workspace-lite summary must keep unselected recap artifact posture explicit.");
+    Assert(projection.SelectedRecapArtifactHref == "/artifacts/session-redmond?role=Player&view=personal", "workspace-lite summary must fall back to the selected artifact shelf when no recap artifact is pinned.");
+    Assert(recapProjection.SelectedRecapArtifactSummary.Contains("artifact-recap-1", StringComparison.Ordinal), "workspace-lite summary must expose the selected recap artifact identity.");
+    Assert(recapProjection.SelectedRecapArtifactSummary.Contains("travel shelf", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must keep the selected recap artifact anchored to the selected travel shelf.");
+    Assert(recapProjection.SelectedRecapArtifactHref == "/artifacts/session-redmond/artifact-recap-1?role=Player&view=travel", "workspace-lite summary must expose a direct recap artifact deep link that preserves the selected travel shelf.");
+    Assert(projection.LaunchPrimerSummary.Contains("Starter primer:", StringComparison.Ordinal), "workspace-lite summary must expose a starter-primer continuity summary.");
+    Assert(projection.LaunchPrimerSummary.Contains("bundle-redmond", StringComparison.Ordinal), "workspace-lite starter-primer summary must keep the grounded bundle visible.");
+    Assert(projection.LaunchPrimerProvenanceSummary.Contains("Starter primer provenance:", StringComparison.Ordinal), "workspace-lite summary must expose starter-primer provenance.");
+    Assert(projection.LaunchPrimerHref == "/artifacts/session-redmond/artifact%3Asession-redmond%3Astarter-primer?role=Player&view=personal", "workspace-lite summary must expose a direct starter-primer artifact href.");
+    Assert(projection.FirstSessionBriefingSummary.Contains("First-session briefing:", StringComparison.Ordinal), "workspace-lite summary must expose a first-session briefing continuity summary.");
+    Assert(projection.FirstSessionBriefingSummary.Contains("browser detour", StringComparison.OrdinalIgnoreCase), "workspace-lite first-session briefing summary must keep the no-detour continuity claim explicit.");
+    Assert(projection.FirstSessionBriefingProvenanceSummary.Contains("First-session briefing provenance:", StringComparison.Ordinal), "workspace-lite summary must expose first-session briefing provenance.");
+    Assert(projection.FirstSessionBriefingHref == "/artifacts/session-redmond/artifact%3Asession-redmond%3Afirst-session-briefing?role=Player&view=travel", "workspace-lite summary must expose a direct first-session briefing artifact href.");
+    Assert(projection.StarterArtifactContinuitySummary.Contains("Starter continuity:", StringComparison.Ordinal), "workspace-lite summary must expose a starter continuity summary.");
+    Assert(projection.StarterArtifactContinuitySummary.Contains("Primer lane:", StringComparison.Ordinal), "workspace-lite starter continuity summary must keep the primer lane explicit.");
+    Assert(projection.StarterArtifactContinuitySummary.Contains("Briefing lane:", StringComparison.Ordinal), "workspace-lite starter continuity summary must keep the briefing lane explicit.");
+    Assert(projection.StarterArtifactContinuityLabels.Any(item => item.Contains("Starter primer lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a starter-primer continuity label.");
+    Assert(projection.StarterArtifactContinuityLabels.Any(item => item.Contains("First-session briefing lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a first-session briefing continuity label.");
+    Assert(projection.StarterArtifactContinuityLabels.Any(item => item.Contains("Starter artifact shelf:", StringComparison.Ordinal)), "workspace-lite summary must expose a claimed-device starter artifact shelf label.");
     Assert(projection.CampaignMemorySummary.Contains("Campaign memory:", StringComparison.Ordinal), "workspace-lite summary must expose a first-class campaign-memory summary.");
     Assert(projection.CampaignMemorySummary.Contains("governed memory lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must keep the governed memory-lane wording explicit.");
     Assert(projection.CampaignMemorySummary.Contains("player lane", StringComparison.OrdinalIgnoreCase), "workspace-lite summary must keep the current role inside the campaign-memory summary.");
     Assert(projection.CampaignMemorySummary.Contains("replay timeline", StringComparison.Ordinal), "workspace-lite summary must keep replay-safe carry-forward inside the campaign-memory summary.");
     Assert(projection.CampaignMemorySummary.Contains("recap-safe packet", StringComparison.Ordinal), "workspace-lite summary must keep recap-safe carry-forward inside the campaign-memory summary.");
+    Assert(projection.RunnerGoalUpdatesSummary.Contains("Runner goal updates:", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated runner-goal update summary.");
+    Assert(projection.RunnerGoalUpdatesSummary.Contains("Return moments stay player-safe", StringComparison.Ordinal), "workspace-lite runner-goal summary must keep player-safe return language explicit.");
+    Assert(projection.RunnerGoalUpdateLabels.Any(item => item.Contains("Goal checkpoint lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a checkpoint lane for runner-goal updates.");
+    Assert(projection.RunnerGoalUpdateLabels.Any(item => item.Contains("Goal signal lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a replay-safe signal lane for runner-goal updates.");
+    Assert(projection.RunnerGoalUpdateLabels.Any(item => item.Contains("Goal route lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a return-route lane for runner-goal updates.");
+    Assert(projection.RunnerGoalUpdateLabels.Any(item => item.Contains("Goal boundary lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a boundary lane for runner-goal updates.");
+    Assert(projection.PlayerSafeConsequenceFeedSummary.Contains("Player-safe consequence feed:", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated player-safe consequence feed summary.");
+    Assert(projection.PlayerSafeConsequenceFeedSummary.Contains("BLACK LEDGER world truth", StringComparison.Ordinal), "workspace-lite consequence-feed summary must keep BLACK LEDGER truth outside mobile.");
+    Assert(projection.PlayerSafeConsequenceFeedLabels.Any(item => item.Contains("Consequence lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a consequence lane label.");
+    Assert(projection.PlayerSafeConsequenceFeedLabels.Any(item => item.Contains("Spoiler lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a spoiler-boundary lane label.");
+    Assert(projection.PlayerSafeConsequenceFeedLabels.Any(item => item.Contains("Return lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a return lane label for consequence feed views.");
+    Assert(projection.PlayerSafeConsequenceFeedLabels.Any(item => item.Contains("Trust lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a trust lane label for consequence feed views.");
     Assert(projection.CampaignMemoryReturnSummary.Contains("Memory return:", StringComparison.Ordinal), "workspace-lite summary must expose a dedicated campaign-memory return cue.");
     Assert(projection.CampaignMemoryReturnSummary.Contains("Next:", StringComparison.Ordinal), "workspace-lite summary must keep the next safe action attached to the memory return cue.");
     Assert(projection.ContinuityRailSummary.Contains("Downtime:", StringComparison.Ordinal), "workspace-lite summary must expose downtime posture on the continuity rail.");
@@ -330,6 +419,14 @@ static void VerifyCampaignWorkspaceLiteProjectionPromotesContinuitySummary()
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("Can-do-now lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a lane label for actions allowed offline right now.");
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("Needs-online lane:", StringComparison.Ordinal)), "workspace-lite summary must expose a lane label for actions that remain online-only.");
     Assert(projection.OfflineTruthLabels.Any(item => item.Contains("safehouse", StringComparison.OrdinalIgnoreCase)), "workspace-lite summary must keep safehouse continuity explicit in offline-truth lane labels.");
+    Assert(projection.MobileCampaignCurrentState.Contains("Current continuity posture:", StringComparison.Ordinal), "workspace-lite summary must expose explicit mobile campaign current posture.");
+    Assert(projection.MobileCampaignStateSummary.Contains("Cached state:", StringComparison.Ordinal), "workspace-lite summary must expose explicit mobile campaign cached-state summary.");
+    Assert(projection.MobileCampaignCachedState.Contains("Cached state:", StringComparison.Ordinal), "workspace-lite summary must expose explicit mobile campaign cached-state detail.");
+    Assert(projection.MobileCampaignStaleState.Contains("Stale state:", StringComparison.Ordinal), "workspace-lite summary must expose explicit mobile campaign stale-state detail.");
+    Assert(projection.MobileCampaignActionRequired.Contains("Action required:", StringComparison.Ordinal), "workspace-lite summary must expose explicit mobile campaign action-required posture.");
+    Assert(projection.MobileCampaignActionRequired.Contains("Mobile shell owner: player lane. Session: scene-redmond.", StringComparison.Ordinal), "workspace-lite summary must keep the claimed mobile lane explicit inside the campaign action-required posture.");
+    Assert(projection.MobileCampaignStateLabels.Any(item => item.Contains("Cached lane:", StringComparison.Ordinal)), "workspace-lite summary must expose cached mobile campaign labels.");
+    Assert(projection.MobileCampaignStateLabels.Any(item => item.Contains("Action-required lane:", StringComparison.Ordinal)), "workspace-lite summary must expose action-required mobile campaign labels.");
     Assert(projection.DecisionNotice.Contains("Continue scene-redmond", StringComparison.Ordinal), "workspace-lite summary must expose the active campaign decision notice.");
     Assert(projection.DecisionNoticeHref.Contains("/play/session-redmond?role=Player", StringComparison.Ordinal), "workspace-lite summary must expose a direct decision-notice follow-through href.");
     Assert(projection.RolePosture.Contains("/play/session-redmond?role=Player", StringComparison.Ordinal), "workspace-lite summary must expose the role route posture");
@@ -518,9 +615,21 @@ static void VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure
         LocalCacheBoundarySummary: "install-local",
         OfflineTruthSummary: "None",
         OfflineTruthLabels: [],
+        ActionRequiredSummary: "Claim or reconnect this device before continuity can start.",
+        ActionRequiredLabels: ["Action-required lane: seed a claimed restore packet before offline continuity is allowed."],
+        TravelCampaignCurrentState: "Current continuity posture: no bounded travel continuity packet is staged for play_tablet yet.",
+        TravelCampaignStateSummary: "Cached state: no cached travel continuity packet is staged for play_tablet.",
+        TravelCampaignCachedState: "Cached state: no cached travel campaign state is attached to install-empty yet.",
+        TravelCampaignStaleState: "Stale state: pending until play_tablet seeds a bounded travel continuity packet.",
+        TravelCampaignActionRequired: "Action required: claim or reconnect play_tablet before this device can carry campaign continuity at all.",
+        TravelCampaignStateLabels: ["Cached lane: no travel continuity packet is staged yet."],
         TravelCompanionSummary: "None",
         TravelCompanionLabels: [],
         PrefetchLabels: [],
+        StarterPrimerFollowThrough: "Open starter primer",
+        StarterPrimerFollowThroughHref: "/artifacts/session-empty/artifact%3Asession-empty%3Astarter-primer?deviceId=install-empty&role=Player&view=travel",
+        FirstSessionBriefingFollowThrough: "Open first-session briefing",
+        FirstSessionBriefingFollowThroughHref: "/artifacts/session-empty/artifact%3Asession-empty%3Afirst-session-briefing?deviceId=install-empty&role=Player&view=travel",
         ReturnTargetCampaignName: null,
         AttentionItems: [],
         ConflictSummaries: [],
@@ -534,7 +643,10 @@ static void VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure
         Entitlements: []);
     var noSessionProjection = PlayEntryRecoveryProjector.Create(noSessionResume, noSessionRestore);
     Assert(noSessionProjection.EntryState == "no_session", "entry recovery must classify empty cache state as no_session");
-    Assert(noSessionProjection.RecommendedActionLabel.Contains("bootstrap", StringComparison.OrdinalIgnoreCase), "entry recovery no_session state must recommend one-tap bootstrap");
+    Assert(noSessionProjection.RecommendedActionLabel.Contains("starter primer", StringComparison.OrdinalIgnoreCase), "entry recovery no_session state must recommend the starter-primer lane.");
+    Assert(noSessionProjection.RecommendedActionHref.Contains("starter-primer", StringComparison.OrdinalIgnoreCase), "entry recovery no_session state must route directly to the starter-primer artifact lane.");
+    Assert(noSessionProjection.RecoveryActions.Any(item => item.Contains("Starter primer lane:", StringComparison.Ordinal)), "entry recovery no_session state must expose starter-primer continuity guidance.");
+    Assert(noSessionProjection.RecoveryActions.Any(item => item.Contains("First-session briefing lane:", StringComparison.Ordinal)), "entry recovery no_session state must expose first-session briefing continuity guidance.");
 
     var noCampaignResume = CreateWorkspaceLiteProjectionResponse(
         sessionId: "session-no-campaign",
@@ -564,9 +676,21 @@ static void VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure
         LocalCacheBoundarySummary: "install-local",
         OfflineTruthSummary: "None",
         OfflineTruthLabels: [],
+        ActionRequiredSummary: "Create a campaign return target before continuity can start.",
+        ActionRequiredLabels: ["Action-required lane: seed a claimed restore packet before offline continuity is allowed."],
+        TravelCampaignCurrentState: "Current continuity posture: no bounded travel continuity packet is staged for play_tablet yet.",
+        TravelCampaignStateSummary: "Cached state: no cached travel continuity packet is staged for play_tablet.",
+        TravelCampaignCachedState: "Cached state: no cached travel campaign state is attached to install-no-campaign yet.",
+        TravelCampaignStaleState: "Stale state: pending until play_tablet seeds a bounded travel continuity packet.",
+        TravelCampaignActionRequired: "Action required: claim or reconnect play_tablet before this device can carry campaign continuity at all.",
+        TravelCampaignStateLabels: ["Cached lane: no travel continuity packet is staged yet."],
         TravelCompanionSummary: "None",
         TravelCompanionLabels: [],
         PrefetchLabels: [],
+        StarterPrimerFollowThrough: "Open starter primer",
+        StarterPrimerFollowThroughHref: "/artifacts/session-no-campaign/artifact%3Asession-no-campaign%3Astarter-primer?deviceId=install-no-campaign&role=Player&view=travel",
+        FirstSessionBriefingFollowThrough: "Open first-session briefing",
+        FirstSessionBriefingFollowThroughHref: "/artifacts/session-no-campaign/artifact%3Asession-no-campaign%3Afirst-session-briefing?deviceId=install-no-campaign&role=Player&view=travel",
         ReturnTargetCampaignName: null,
         AttentionItems: [],
         ConflictSummaries: [],
@@ -580,7 +704,8 @@ static void VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure
         Entitlements: []);
     var noCampaignProjection = PlayEntryRecoveryProjector.Create(noCampaignResume, noCampaignRestore);
     Assert(noCampaignProjection.EntryState == "no_campaign", "entry recovery must classify missing campaign target as no_campaign");
-    Assert(noCampaignProjection.RecommendedActionHref.Contains("/campaigns/new", StringComparison.Ordinal), "entry recovery no_campaign state must recommend one-tap campaign onboarding");
+    Assert(noCampaignProjection.RecommendedActionLabel.Contains("starter primer", StringComparison.OrdinalIgnoreCase), "entry recovery no_campaign state must stay on the starter-primer continuity lane.");
+    Assert(noCampaignProjection.RecommendedActionHref.Contains("starter-primer", StringComparison.OrdinalIgnoreCase), "entry recovery no_campaign state must recommend one-tap starter-primer follow-through");
 
     var postFailureResume = CreateWorkspaceLiteProjectionResponse(
             sessionId: "session-post-failure",
@@ -619,9 +744,21 @@ static void VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure
         LocalCacheBoundarySummary: "install-local",
         OfflineTruthSummary: "warning posture",
         OfflineTruthLabels: ["Stale lane: warning-only"],
+        ActionRequiredSummary: "Review restore conflicts before you trust stale or travel campaign state on play_tablet.",
+        ActionRequiredLabels: ["Action-required lane: clear restore conflict review before mutating campaign continuity on install-post-failure."],
+        TravelCampaignCurrentState: "Current continuity posture: warning posture is active until restore conflict review closes.",
+        TravelCampaignStateSummary: "Cached state: warning-only until restore conflict review closes.",
+        TravelCampaignCachedState: "Cached state: staged packet remains bounded during restore conflict review.",
+        TravelCampaignStaleState: "Stale state: warning posture is active until restore conflict review closes.",
+        TravelCampaignActionRequired: "Action required: review restore conflicts before you trust stale or travel campaign state on play_tablet.",
+        TravelCampaignStateLabels: ["Cached lane: staged packet remains bounded during restore conflict review."],
         TravelCompanionSummary: "warning posture",
         TravelCompanionLabels: ["Stale lane: warning-only"],
         PrefetchLabels: [],
+        StarterPrimerFollowThrough: "Review primer follow-through",
+        StarterPrimerFollowThroughHref: "/artifacts/session-post-failure/artifact%3Asession-post-failure%3Astarter-primer?deviceId=install-post-failure&role=Player&view=travel",
+        FirstSessionBriefingFollowThrough: "Review first-session briefing follow-through",
+        FirstSessionBriefingFollowThroughHref: "/artifacts/session-post-failure/artifact%3Asession-post-failure%3Afirst-session-briefing?deviceId=install-post-failure&role=Player&view=travel",
         ReturnTargetCampaignName: "Redmond Patrol",
         AttentionItems: [],
         ConflictSummaries: ["conflict"],
@@ -636,7 +773,11 @@ static void VerifyEntryRecoveryProjectionCoversNoSessionNoCampaignAndPostFailure
     var postFailureProjection = PlayEntryRecoveryProjector.Create(postFailureResume, postFailureRestore);
     Assert(postFailureProjection.EntryState == "post_failure", "entry recovery must classify conflict/cache/runtime proof failures as post_failure");
     Assert(postFailureProjection.RecommendedActionLabel.Contains("Review", StringComparison.OrdinalIgnoreCase), "entry recovery post_failure state must recommend one-tap restore review");
-    Assert(postFailureProjection.RecoveryActions.Count == 3, "entry recovery must expose retry/cancel/restore guidance labels for every entry state");
+    Assert(postFailureProjection.EntryStateSummary.Contains("cached, stale, and action-required travel continuity", StringComparison.Ordinal), "entry recovery post_failure state must keep continuity breakdown explicit before resume");
+    Assert(postFailureProjection.RecoveryActions.Count == 8, "entry recovery must expose retry/cancel/restore, explicit travel continuity breakdown, and starter continuity guidance labels for every entry state");
+    Assert(postFailureProjection.RecoveryActions.Any(item => item.Contains("Travel continuity cached state:", StringComparison.Ordinal)), "entry recovery post_failure state must repeat cached travel continuity in recovery actions");
+    Assert(postFailureProjection.RecoveryActions.Any(item => item.Contains("Travel continuity stale state:", StringComparison.Ordinal)), "entry recovery post_failure state must repeat stale travel continuity in recovery actions");
+    Assert(postFailureProjection.RecoveryActions.Any(item => item.Contains("Travel continuity action required:", StringComparison.Ordinal)), "entry recovery post_failure state must repeat action-required travel continuity in recovery actions");
 }
 
 static void VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails()
@@ -715,11 +856,19 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(observerProjection.CampaignMemorySummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer lane explicit inside campaign memory.");
     Assert(observerProjection.CampaignMemoryReturnSummary.Contains("install-local continuity lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep campaign-memory return bounded to the same install-local lane.");
     Assert(observerProjection.ContinuityRailSummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer lane explicit in continuity-rail posture.");
+    Assert(observerProjection.PlayerTableCardsSummary.Contains("Player table cards:", StringComparison.Ordinal), "observer workspace-lite projection must expose player table cards as a bounded live-play receipt.");
+    Assert(observerProjection.BetweenTurnAffordancesSummary.Contains("Between-turn affordances:", StringComparison.Ordinal), "observer workspace-lite projection must expose a between-turn affordance summary.");
+    Assert(observerProjection.GmLiteContinuitySummary.Contains("GM-lite continuity:", StringComparison.Ordinal), "observer workspace-lite projection must expose a GM-lite continuity summary.");
+    Assert(observerProjection.GmLiteContinuitySummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer lane explicit inside the GM-lite continuity view.");
+    Assert(observerProjection.RunnerGoalUpdatesSummary.Contains("Runner goal updates:", StringComparison.Ordinal), "observer workspace-lite projection must expose a runner-goal update summary.");
+    Assert(observerProjection.PlayerSafeConsequenceFeedSummary.Contains("Player-safe consequence feed:", StringComparison.Ordinal), "observer workspace-lite projection must expose a player-safe consequence feed summary.");
+    Assert(observerProjection.PlayerSafeConsequenceFeedSummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer lane explicit inside the consequence feed summary.");
     Assert(observerProjection.OfflineTruthSummary.Contains("observer", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep observer posture explicit in offline-truth summary.");
     Assert(observerProjection.OfflinePrefetchSummary.Contains("observer lane", StringComparison.OrdinalIgnoreCase), "observer workspace-lite projection must keep the observer return lane explicit in offline prefetch");
     Assert(observerProjection.FollowThroughLabels.Any(item => item.Contains("observer lane", StringComparison.OrdinalIgnoreCase)), "observer workspace-lite projection must surface observer-specific follow-through labels");
     Assert(observerProjection.SelectedArtifactView == "campaign", "observer workspace-lite projection must fall back to the campaign artifact shelf view while creator discovery stays bounded.");
     Assert(observerProjection.ArtifactShelfViews.Any(item => item.ViewId == "campaign" && item.IsSelected), "observer workspace-lite projection must keep the campaign artifact shelf view selected while creator discovery stays bounded.");
+    Assert(observerProjection.ArtifactShelfViews.Any(item => item.ViewId == "travel" && item.Href.Contains("role=Observer", StringComparison.Ordinal)), "observer workspace-lite projection must keep travel artifact shelf links role-concrete.");
     Assert(observerProjection.CoachHints.SequenceEqual(
         [
             "Stay read-mostly until the owner lane confirms the next revision.",
@@ -769,11 +918,21 @@ static void VerifyCampaignWorkspaceLiteProjectionPreservesObserverAndGmRoleDepth
     Assert(gmProjection.CampaignMemorySummary.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm lane explicit inside campaign memory.");
     Assert(gmProjection.CampaignMemoryReturnSummary.Contains("Next:", StringComparison.Ordinal), "gm workspace-lite projection must keep the next safe action attached to the campaign-memory return cue.");
     Assert(gmProjection.ContinuityRailSummary.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm lane explicit in continuity-rail posture.");
+    Assert(gmProjection.PlayerTableCardsSummary.Contains("Player table cards:", StringComparison.Ordinal), "gm workspace-lite projection must expose player table-card confidence copy.");
+    Assert(gmProjection.PlayerTableCardsSummary.Contains("Advance Initiative", StringComparison.Ordinal), "gm workspace-lite projection must surface the initiative quick action inside table-card confidence copy.");
+    Assert(gmProjection.BetweenTurnAffordancesSummary.Contains("Between-turn affordances:", StringComparison.Ordinal), "gm workspace-lite projection must expose between-turn affordances.");
+    Assert(gmProjection.GmLiteContinuitySummary.Contains("GM-lite continuity:", StringComparison.Ordinal), "gm workspace-lite projection must expose GM-lite continuity copy.");
+    Assert(gmProjection.GmLiteContinuitySummary.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep the GM runboard explicit inside the GM-lite continuity view.");
+    Assert(gmProjection.RunnerGoalUpdatesSummary.Contains("Runner goal updates:", StringComparison.Ordinal), "gm workspace-lite projection must expose runner-goal update copy.");
+    Assert(gmProjection.RunnerGoalUpdatesSummary.Contains("GM runboard", StringComparison.Ordinal), "gm workspace-lite projection must keep GM posture explicit inside runner-goal updates.");
+    Assert(gmProjection.PlayerSafeConsequenceFeedSummary.Contains("Player-safe consequence feed:", StringComparison.Ordinal), "gm workspace-lite projection must expose player-safe consequence feed copy.");
+    Assert(gmProjection.PlayerSafeConsequenceFeedLabels.Any(item => item.Contains("Trust lane:", StringComparison.Ordinal)), "gm workspace-lite projection must keep a trust lane label for the consequence feed view.");
     Assert(gmProjection.OfflineTruthSummary.Contains("GM", StringComparison.Ordinal), "gm workspace-lite projection must keep GM posture explicit in offline-truth summary.");
     Assert(gmProjection.OfflinePrefetchSummary.Contains("GM runboard return lane", StringComparison.Ordinal), "gm workspace-lite projection must keep the gm return lane explicit in offline prefetch");
     Assert(gmProjection.FollowThroughLabels.Any(item => item.Contains("GM changes anchored", StringComparison.Ordinal)), "gm workspace-lite projection must surface gm-specific follow-through labels");
     Assert(gmProjection.SelectedArtifactView == "campaign", "gm workspace-lite projection must default to the campaign artifact shelf view.");
     Assert(gmProjection.ArtifactShelfViews.Any(item => item.ViewId == "campaign" && item.IsSelected), "gm workspace-lite projection must keep the campaign artifact shelf view selected.");
+    Assert(gmProjection.ArtifactShelfViews.Any(item => item.ViewId == "travel" && item.Href.Contains("role=GameMaster", StringComparison.Ordinal)), "gm workspace-lite projection must keep travel artifact shelf links role-concrete.");
     Assert(gmProjection.CoachHints.SequenceEqual(
         [
             "Confirm the grounded scene before advancing the runboard.",
@@ -1684,6 +1843,24 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("<html lang=\"en\">", StringComparison.Ordinal), "play shell must declare an explicit document language");
     Assert(html.Contains("<main>", StringComparison.Ordinal), "play shell must expose a main landmark");
     Assert(html.Contains("<h1>Chummer Play</h1>", StringComparison.Ordinal), "play shell must expose a top-level heading");
+    Assert(html.Contains("id=\"shell-headline\"", StringComparison.Ordinal), "play shell must expose an authored hero headline.");
+    Assert(html.Contains("id=\"shell-subhead\"", StringComparison.Ordinal), "play shell must expose an authored hero subhead.");
+    Assert(html.Contains("id=\"shell-role-chip\"", StringComparison.Ordinal), "play shell must expose a live role chip.");
+    Assert(html.Contains("id=\"shell-session-chip\"", StringComparison.Ordinal), "play shell must expose a live session chip.");
+    Assert(html.Contains("id=\"shell-network-chip\"", StringComparison.Ordinal), "play shell must expose a live network chip.");
+    Assert(html.Contains("id=\"shell-install-chip\"", StringComparison.Ordinal), "play shell must expose a live install-status chip.");
+    Assert(html.Contains("id=\"shell-primary-action-link\"", StringComparison.Ordinal), "play shell must expose a hero primary action.");
+    Assert(html.Contains("id=\"shell-secondary-action-link\"", StringComparison.Ordinal), "play shell must expose a hero secondary action.");
+    Assert(html.Contains("id=\"shell-install-button\"", StringComparison.Ordinal), "play shell must expose an install action.");
+    Assert(html.Contains("id=\"shell-continuity-status\"", StringComparison.Ordinal), "play shell must expose continuity confidence in the hero shell.");
+    Assert(html.Contains("id=\"shell-restore-status\"", StringComparison.Ordinal), "play shell must expose restore readiness in the hero shell.");
+    Assert(html.Contains("id=\"shell-install-status\"", StringComparison.Ordinal), "play shell must expose installable posture in the hero shell.");
+    Assert(html.Contains("id=\"shell-service-worker-detail\"", StringComparison.Ordinal), "play shell must expose service-worker cache-control posture in the hero shell.");
+    Assert(html.Contains("id=\"shell-role-focus-heading\"", StringComparison.Ordinal), "play shell must expose authored role-focus copy.");
+    Assert(html.Contains("id=\"shell-reconnect-copy\"", StringComparison.Ordinal), "play shell must expose reconnect confidence copy.");
+    Assert(html.Contains("id=\"shell-continuity-safety\"", StringComparison.Ordinal), "play shell must expose claimed-device continuity safety copy in the hero shell.");
+    Assert(html.Contains("id=\"shell-network-state-list\"", StringComparison.Ordinal), "play shell must expose a live network-state list for install and reconnect trust.");
+    Assert(html.Contains("id=\"shell-offline-copy\"", StringComparison.Ordinal), "play shell must expose offline boundary copy.");
     Assert(html.Contains("id=\"output\" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"", StringComparison.Ordinal), "play shell resume status region must expose polite live updates");
     Assert(html.Contains("id=\"workspace-summary\"", StringComparison.Ordinal), "play shell must expose a workspace-lite summary region");
     Assert(html.Contains("id=\"entry-state-summary\"", StringComparison.Ordinal), "play shell must expose an onboarding/recovery entry-state summary.");
@@ -1704,8 +1881,28 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"recover-disconnect\"", StringComparison.Ordinal), "play shell must expose explicit disconnect recovery copy.");
     Assert(html.Contains("id=\"recover-role-change\"", StringComparison.Ordinal), "play shell must expose explicit role-change recovery copy.");
     Assert(html.Contains("id=\"recover-observer-transition\"", StringComparison.Ordinal), "play shell must expose explicit observer-transition recovery copy.");
+    Assert(html.Contains("id=\"workspace-player-table-cards\"", StringComparison.Ordinal), "play shell must expose a player table-card summary region.");
+    Assert(html.Contains("id=\"workspace-player-table-cards-list\"", StringComparison.Ordinal), "play shell must expose player table-card labels.");
+    Assert(html.Contains("id=\"workspace-between-turn-affordances\"", StringComparison.Ordinal), "play shell must expose a between-turn affordance summary region.");
+    Assert(html.Contains("id=\"workspace-between-turn-affordances-list\"", StringComparison.Ordinal), "play shell must expose between-turn affordance labels.");
+    Assert(html.Contains("id=\"workspace-gm-lite-continuity\"", StringComparison.Ordinal), "play shell must expose a GM-lite continuity summary region.");
+    Assert(html.Contains("id=\"workspace-gm-lite-continuity-list\"", StringComparison.Ordinal), "play shell must expose GM-lite continuity labels.");
     Assert(html.Contains("id=\"workspace-role\"", StringComparison.Ordinal), "play shell must expose role posture alongside current state");
     Assert(html.Contains("id=\"change-packet-summary\"", StringComparison.Ordinal), "play shell must expose a change-packet summary alongside current state");
+    Assert(html.Contains("id=\"workspace-quick-explain\"", StringComparison.Ordinal), "play shell must expose a quick-explain summary region.");
+    Assert(html.Contains("id=\"workspace-quick-explain-list\"", StringComparison.Ordinal), "play shell must expose quick-explain labels.");
+    Assert(html.Contains("id=\"workspace-source-anchor\"", StringComparison.Ordinal), "play shell must expose source-anchor context.");
+    Assert(html.Contains("id=\"workspace-source-anchor-list\"", StringComparison.Ordinal), "play shell must expose source-anchor labels.");
+    Assert(html.Contains("id=\"workspace-stale-posture\"", StringComparison.Ordinal), "play shell must expose explicit stale-state posture for the current shell.");
+    Assert(html.Contains("id=\"workspace-grounded-follow-up\"", StringComparison.Ordinal), "play shell must expose a grounded follow-up summary.");
+    Assert(html.Contains("id=\"workspace-grounded-follow-up-list\"", StringComparison.Ordinal), "play shell must expose grounded follow-up labels.");
+    Assert(html.Contains("id=\"workspace-mobile-campaign-card\"", StringComparison.Ordinal), "play shell must expose a dedicated mobile campaign continuity card.");
+    Assert(html.Contains("id=\"workspace-mobile-campaign-current-state\"", StringComparison.Ordinal), "play shell must expose explicit mobile campaign current posture.");
+    Assert(html.Contains("id=\"workspace-mobile-campaign-state\"", StringComparison.Ordinal), "play shell must expose explicit mobile campaign state summary.");
+    Assert(html.Contains("id=\"workspace-mobile-campaign-cached-state\"", StringComparison.Ordinal), "play shell must expose explicit mobile campaign cached-state detail.");
+    Assert(html.Contains("id=\"workspace-mobile-campaign-stale-state\"", StringComparison.Ordinal), "play shell must expose explicit mobile campaign stale-state detail.");
+    Assert(html.Contains("id=\"workspace-mobile-campaign-action-required\"", StringComparison.Ordinal), "play shell must expose explicit mobile campaign action-required detail.");
+    Assert(html.Contains("id=\"workspace-mobile-campaign-state-list\"", StringComparison.Ordinal), "play shell must expose explicit mobile campaign state labels.");
     Assert(html.Contains("id=\"workspace-legal-runner\"", StringComparison.Ordinal), "play shell must expose legal-runner proof alongside current state");
     Assert(html.Contains("id=\"workspace-understandable-return\"", StringComparison.Ordinal), "play shell must expose understandable-return proof alongside current state");
     Assert(html.Contains("id=\"workspace-campaign-ready\"", StringComparison.Ordinal), "play shell must expose campaign-ready proof alongside current state");
@@ -1723,6 +1920,14 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"workspace-recap-view\"", StringComparison.Ordinal), "play shell must expose the selected artifact shelf view alongside the recap-safe packet.");
     Assert(html.Contains("id=\"workspace-recap-views\"", StringComparison.Ordinal), "play shell must expose first-class artifact shelf browse targets alongside the recap-safe packet.");
     Assert(html.Contains("id=\"workspace-recap-publication-link\"", StringComparison.Ordinal), "play shell must expose a direct artifact-shelf follow-through link.");
+    Assert(html.Contains("id=\"workspace-artifact-shelf-summary\"", StringComparison.Ordinal), "play shell must expose a dedicated selected artifact shelf summary.");
+    Assert(html.Contains("id=\"workspace-artifact-selection\"", StringComparison.Ordinal), "play shell must expose a dedicated selected recap artifact summary.");
+    Assert(html.Contains("id=\"workspace-artifact-selection-link\"", StringComparison.Ordinal), "play shell must expose a direct selected recap artifact link.");
+    Assert(html.Contains("id=\"workspace-artifact-shelf-link\"", StringComparison.Ordinal), "play shell must expose a direct selected artifact shelf link.");
+    Assert(html.Contains("id=\"workspace-runner-goal-updates\"", StringComparison.Ordinal), "play shell must expose a dedicated runner-goal update summary.");
+    Assert(html.Contains("id=\"workspace-runner-goal-update-list\"", StringComparison.Ordinal), "play shell must expose runner-goal update labels.");
+    Assert(html.Contains("id=\"workspace-player-safe-consequence-feed\"", StringComparison.Ordinal), "play shell must expose a dedicated player-safe consequence feed summary.");
+    Assert(html.Contains("id=\"workspace-player-safe-consequence-feed-list\"", StringComparison.Ordinal), "play shell must expose player-safe consequence feed labels.");
     Assert(html.Contains("id=\"workspace-replay\"", StringComparison.Ordinal), "play shell must expose a replay-safe package summary alongside the recap-safe packet.");
     Assert(html.Contains("id=\"workspace-replay-audience\"", StringComparison.Ordinal), "play shell must expose replay artifact audience posture alongside the replay-safe package.");
     Assert(html.Contains("id=\"workspace-replay-ownership\"", StringComparison.Ordinal), "play shell must expose replay artifact ownership posture alongside the replay-safe package.");
@@ -1740,6 +1945,8 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"workspace-gm-ops-list\"", StringComparison.Ordinal), "play shell must expose GM operations lane labels for opposition/prep/roster/event controls.");
     Assert(html.Contains("id=\"workspace-offline-truth\"", StringComparison.Ordinal), "play shell must expose explicit cached/stale/offline-action truth alongside the continuity rail.");
     Assert(html.Contains("id=\"workspace-offline-truth-list\"", StringComparison.Ordinal), "play shell must expose explicit cached/stale/offline-action labels alongside the continuity rail.");
+    Assert(html.Contains("id=\"workspace-action-required\"", StringComparison.Ordinal), "play shell must expose a dedicated action-required summary alongside the continuity rail.");
+    Assert(html.Contains("id=\"workspace-action-required-list\"", StringComparison.Ordinal), "play shell must expose dedicated action-required labels alongside the continuity rail.");
     Assert(html.Contains("id=\"workspace-decision-notice\"", StringComparison.Ordinal), "play shell must expose the current decision notice alongside current state");
     Assert(html.Contains("id=\"workspace-decision-notice-link\"", StringComparison.Ordinal), "play shell must expose a direct decision-notice follow-through link.");
     Assert(html.Contains("id=\"workspace-travel\"", StringComparison.Ordinal), "play shell must expose deliberate travel readiness alongside current state");
@@ -1763,6 +1970,15 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"restore-local-boundary\"", StringComparison.Ordinal), "play shell must expose install-local cache boundaries for restore planning");
     Assert(html.Contains("id=\"restore-offline-truth\"", StringComparison.Ordinal), "play shell must expose restore cached/stale/offline-action truth.");
     Assert(html.Contains("id=\"restore-offline-truth-labels\"", StringComparison.Ordinal), "play shell must expose restore cached/stale/offline-action labels.");
+    Assert(html.Contains("id=\"restore-action-required\"", StringComparison.Ordinal), "play shell must expose restore action-required summary.");
+    Assert(html.Contains("id=\"restore-action-required-labels\"", StringComparison.Ordinal), "play shell must expose restore action-required labels.");
+    Assert(html.Contains("id=\"restore-travel-campaign-card\"", StringComparison.Ordinal), "play shell must expose a dedicated travel campaign continuity card.");
+    Assert(html.Contains("id=\"restore-travel-campaign-current-state\"", StringComparison.Ordinal), "play shell must expose explicit restore travel campaign current posture.");
+    Assert(html.Contains("id=\"restore-travel-campaign-state\"", StringComparison.Ordinal), "play shell must expose explicit restore travel campaign summary.");
+    Assert(html.Contains("id=\"restore-travel-campaign-cached-state\"", StringComparison.Ordinal), "play shell must expose explicit restore travel campaign cached-state detail.");
+    Assert(html.Contains("id=\"restore-travel-campaign-stale-state\"", StringComparison.Ordinal), "play shell must expose explicit restore travel campaign stale-state detail.");
+    Assert(html.Contains("id=\"restore-travel-campaign-action-required\"", StringComparison.Ordinal), "play shell must expose explicit restore travel campaign action-required detail.");
+    Assert(html.Contains("id=\"restore-travel-campaign-state-labels\"", StringComparison.Ordinal), "play shell must expose explicit restore travel campaign state labels.");
     Assert(html.Contains("id=\"restore-travel-companion\"", StringComparison.Ordinal), "play shell must expose restore travel companion continuity truth.");
     Assert(html.Contains("id=\"restore-travel-companion-labels\"", StringComparison.Ordinal), "play shell must expose restore travel companion continuity labels.");
     Assert(html.Contains("id=\"restore-prefetch-labels\"", StringComparison.Ordinal), "play shell must expose explicit prefetch labels for alternate claimed-device lanes");
@@ -1771,6 +1987,9 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("/api/play/workspace-lite/", StringComparison.Ordinal), "play shell must fetch the workspace-lite projection instead of dumping only the raw resume payload");
     Assert(html.Contains("/api/play/restore-plan/", StringComparison.Ordinal), "play shell must fetch the claimed-device restore projection alongside the workspace-lite payload");
     Assert(html.Contains("/api/play/onboarding-recovery/", StringComparison.Ordinal), "play shell must fetch onboarding/recovery entry projection alongside workspace and restore payloads");
+    Assert(html.Contains("beforeinstallprompt", StringComparison.Ordinal), "play shell must listen for install-prompt availability.");
+    Assert(html.Contains("window.addEventListener(\"online\", updateNetworkStatus);", StringComparison.Ordinal), "play shell must react to live online transitions.");
+    Assert(html.Contains("window.addEventListener(\"offline\", updateNetworkStatus);", StringComparison.Ordinal), "play shell must react to live offline transitions.");
 }
 
 static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
@@ -1778,79 +1997,179 @@ static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
     var indexHtmlPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "index.html");
     var html = await File.ReadAllTextAsync(indexHtmlPath);
 
-    Assert(html.Contains("document.getElementById(\"workspace-decision-notice-link\").textContent = payload.decisionNotice || \"Decision notice follow-through\";", StringComparison.Ordinal), "play shell must bind decision-notice link text to the workspace projection instead of hiding it behind generic copy.");
-    Assert(html.Contains("document.getElementById(\"entry-state-summary\").textContent = payload.entryStateSummary || \"Entry onboarding and recovery state is not available yet.\";", StringComparison.Ordinal), "play shell must bind onboarding/recovery entry state summary.");
-    Assert(html.Contains("document.getElementById(\"entry-recommended-link\").href = payload.recommendedActionHref || \"/play\";", StringComparison.Ordinal), "play shell must bind one-tap recommended onboarding/recovery href.");
-    Assert(html.Contains("document.getElementById(\"entry-recommended-link\").textContent = payload.recommendedActionLabel || \"Recommended next step\";", StringComparison.Ordinal), "play shell must bind one-tap recommended onboarding/recovery label.");
-    Assert(html.Contains("document.getElementById(\"entry-retry-link\").textContent = payload.retryActionLabel || \"Retry recovery\";", StringComparison.Ordinal), "play shell must bind retry label from onboarding/recovery projection.");
-    Assert(html.Contains("document.getElementById(\"entry-cancel-link\").textContent = payload.cancelActionLabel || \"Cancel and stay read-only\";", StringComparison.Ordinal), "play shell must bind cancel label from onboarding/recovery projection.");
-    Assert(html.Contains("document.getElementById(\"entry-restore-link\").textContent = payload.restoreActionLabel || \"Restore claimed-device plan\";", StringComparison.Ordinal), "play shell must bind restore label from onboarding/recovery projection.");
+    Assert(html.Contains("setLink(\"workspace-decision-notice-link\", payload.decisionNoticeHref, payload.decisionNotice, \"/\", \"Decision notice follow-through\");", StringComparison.Ordinal), "play shell must bind decision-notice follow-through from the workspace projection instead of hiding it behind generic copy.");
+    Assert(html.Contains("setText(\"entry-state-summary\", payload.entryStateSummary, \"Entry onboarding and recovery state is not available yet.\");", StringComparison.Ordinal), "play shell must bind onboarding/recovery entry state summary.");
+    Assert(html.Contains("setLink(\"entry-recommended-link\", payload.recommendedActionHref, payload.recommendedActionLabel, \"/play\", \"Recommended next step\");", StringComparison.Ordinal), "play shell must bind one-tap recommended onboarding/recovery route.");
+    Assert(html.Contains("setLink(\"entry-retry-link\", payload.retryActionHref, payload.retryActionLabel, \"/play\", \"Retry recovery\");", StringComparison.Ordinal), "play shell must bind retry route from onboarding/recovery projection.");
+    Assert(html.Contains("setLink(\"entry-cancel-link\", payload.cancelActionHref, payload.cancelActionLabel, \"/\", \"Cancel and stay read-only\");", StringComparison.Ordinal), "play shell must bind cancel route from onboarding/recovery projection.");
+    Assert(html.Contains("setLink(\"entry-restore-link\", payload.restoreActionHref, payload.restoreActionLabel, \"/play\", \"Restore claimed-device plan\");", StringComparison.Ordinal), "play shell must bind restore route from onboarding/recovery projection.");
     Assert(html.Contains("setList(\"entry-recovery-actions\", payload.recoveryActions);", StringComparison.Ordinal), "play shell must bind onboarding/recovery retry-cancel-restore guidance labels.");
-    Assert(html.Contains("document.getElementById(\"critical-rejoin\").textContent = payload.rejoinCommand || \"No rejoin command is available yet.\";", StringComparison.Ordinal), "play shell must bind the dedicated rejoin command label from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"critical-rejoin-link\").href = payload.rejoinCommandHref || \"/play\";", StringComparison.Ordinal), "play shell must bind the dedicated rejoin command href from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"critical-continue\").textContent = payload.continueCommand || \"No continue command is available yet.\";", StringComparison.Ordinal), "play shell must bind the dedicated continue command label from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"critical-continue-link\").href = payload.continueCommandHref || \"/play\";", StringComparison.Ordinal), "play shell must bind the dedicated continue command href from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"critical-support\").textContent = payload.supportCommand || \"No support command is available yet.\";", StringComparison.Ordinal), "play shell must bind the dedicated support command label from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"critical-support-link\").href = payload.supportCommandHref || \"/contact\";", StringComparison.Ordinal), "play shell must bind the dedicated support command href from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"critical-decision-receipt-summary\").textContent = payload.longRunningDecisionReceiptSummary || \"Decision receipts are not available yet.\";", StringComparison.Ordinal), "play shell must bind decision-receipt summary copy from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"critical-rejoin\", payload.rejoinCommand, \"No rejoin command is available yet.\");", StringComparison.Ordinal), "play shell must bind the dedicated rejoin command label from the workspace-lite projection.");
+    Assert(html.Contains("setLink(\"critical-rejoin-link\", payload.rejoinCommandHref, payload.rejoinCommand, \"/play\", \"Rejoin\");", StringComparison.Ordinal), "play shell must bind the dedicated rejoin command route from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"critical-continue\", payload.continueCommand, \"No continue command is available yet.\");", StringComparison.Ordinal), "play shell must bind the dedicated continue command label from the workspace-lite projection.");
+    Assert(html.Contains("setLink(\"critical-continue-link\", payload.continueCommandHref, payload.continueCommand, \"/play\", \"Continue\");", StringComparison.Ordinal), "play shell must bind the dedicated continue command route from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"critical-support\", payload.supportCommand, \"No support command is available yet.\");", StringComparison.Ordinal), "play shell must bind the dedicated support command label from the workspace-lite projection.");
+    Assert(html.Contains("setLink(\"critical-support-link\", payload.supportCommandHref, payload.supportCommand, \"/contact\", \"Support\");", StringComparison.Ordinal), "play shell must bind the dedicated support command route from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"critical-decision-receipt-summary\", payload.longRunningDecisionReceiptSummary, \"Decision receipts are not available yet.\");", StringComparison.Ordinal), "play shell must bind decision-receipt summary copy from the workspace-lite projection.");
     Assert(html.Contains("setList(\"critical-decision-receipts\", payload.longRunningDecisionReceipts);", StringComparison.Ordinal), "play shell must bind decision receipts for rejoin, quick actions, and resume from the workspace-lite projection.");
     Assert(html.Contains("setList(\"critical-low-noise-guidance\", payload.lowNoiseGuidance);", StringComparison.Ordinal), "play shell must bind low-noise guidance from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"recover-disconnect\").textContent = payload.disconnectRecoveryCopy || \"Disconnect recovery copy is not available yet.\";", StringComparison.Ordinal), "play shell must bind explicit disconnect recovery copy from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"recover-role-change\").textContent = payload.roleChangeRecoveryCopy || \"Role-change recovery copy is not available yet.\";", StringComparison.Ordinal), "play shell must bind explicit role-change recovery copy from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"recover-observer-transition\").textContent = payload.observerTransitionRecoveryCopy || \"Observer-transition recovery copy is not available yet.\";", StringComparison.Ordinal), "play shell must bind explicit observer-transition recovery copy from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-recap-audience\").textContent = payload.recapAudienceSummary || \"No artifact audience summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact audience posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-recap-ownership\").textContent = payload.recapOwnershipSummary || \"No artifact ownership summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact ownership posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-recap-publication\").textContent = payload.recapPublicationSummary || \"No artifact publication summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact publication posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-recap-provenance\").textContent = payload.recapProvenanceSummary || \"No artifact provenance summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact provenance posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-recap-audit\").textContent = payload.recapAuditSummary || \"No artifact audit summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact audit posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-recap-lineage\").textContent = payload.recapLineageSummary || \"No artifact lineage summary is available yet.\";", StringComparison.Ordinal), "play shell must bind artifact lineage posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-recap-next\").textContent = payload.recapNextAction || \"No artifact next step is available yet.\";", StringComparison.Ordinal), "play shell must bind the next artifact-shelf step from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-player-table-cards\", payload.playerTableCardsSummary, \"No player table-card summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the player table-card summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-player-table-cards-list\", payload.playerTableCardLabels);", StringComparison.Ordinal), "play shell must bind the player table-card labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-between-turn-affordances\", payload.betweenTurnAffordancesSummary, \"No between-turn affordance summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the between-turn affordance summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-between-turn-affordances-list\", payload.betweenTurnAffordanceLabels);", StringComparison.Ordinal), "play shell must bind the between-turn affordance labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-gm-lite-continuity\", payload.gmLiteContinuitySummary, \"No GM-lite continuity summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the GM-lite continuity summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-gm-lite-continuity-list\", payload.gmLiteContinuityLabels);", StringComparison.Ordinal), "play shell must bind the GM-lite continuity labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"recover-disconnect\", payload.disconnectRecoveryCopy, \"Disconnect recovery copy is not available yet.\");", StringComparison.Ordinal), "play shell must bind explicit disconnect recovery copy from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"recover-role-change\", payload.roleChangeRecoveryCopy, \"Role-change recovery copy is not available yet.\");", StringComparison.Ordinal), "play shell must bind explicit role-change recovery copy from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"recover-observer-transition\", payload.observerTransitionRecoveryCopy, \"Observer-transition recovery copy is not available yet.\");", StringComparison.Ordinal), "play shell must bind explicit observer-transition recovery copy from the workspace-lite projection.");
+    Assert(html.Contains("const explicitDeviceId = params.get(\"deviceId\") || \"\";", StringComparison.Ordinal), "play shell must read the explicit claimed-device id from the shell query.");
+    Assert(html.Contains("const resolvedDeviceId = resolveStableDeviceId(role, explicitDeviceId);", StringComparison.Ordinal), "play shell must stabilize a claimed-device id when the query omits one.");
+    Assert(html.Contains("const observerId = resolveObserverId();", StringComparison.Ordinal), "play shell must stabilize an observer continuity id for cross-device handoff.");
+    Assert(html.Contains("const observeResponse = await fetch(`/api/play/observe/${encodeURIComponent(sessionId)}`);", StringComparison.Ordinal), "play shell must load stored continuity state from the observe route.");
+    Assert(html.Contains("renderContinuityClaimStatus({", StringComparison.Ordinal), "play shell must surface continuity claim posture before rendering the deeper workspace surfaces.");
+    Assert(html.Contains("fetch(\"/api/play/continuity/claim\", {", StringComparison.Ordinal), "play shell must let the user refresh claimed-device continuity from the mobile shell.");
+    Assert(html.Contains("document.getElementById(\"shell-continuity-claim-button\").addEventListener(\"click\", claimContinuityOnThisDevice);", StringComparison.Ordinal), "play shell must wire the continuity-claim action button.");
+    Assert(html.Contains("id=\"shell-continuity-claim-status\"", StringComparison.Ordinal), "play shell must render a dedicated continuity-claim status surface.");
+    Assert(html.Contains("id=\"shell-owner-route-link\"", StringComparison.Ordinal), "play shell must render a dedicated owner-route follow-through for cross-device handoff.");
+    Assert(html.Contains("id=\"shell-continuity-claim-button\"", StringComparison.Ordinal), "play shell must render a one-tap claimed-device continuity action.");
+    Assert(html.Contains("setText(\"workspace-quick-explain\", payload.quickExplainSummary, \"No quick explain summary is available yet.\");", StringComparison.Ordinal), "play shell must bind packet-backed quick explain summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-quick-explain-list\", payload.quickExplainLabels);", StringComparison.Ordinal), "play shell must bind quick-explain labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-source-anchor\", payload.sourceAnchorSummary, \"No source-anchor context is available yet.\");", StringComparison.Ordinal), "play shell must bind source-anchor context from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-source-anchor-list\", payload.sourceAnchorLabels);", StringComparison.Ordinal), "play shell must bind source-anchor labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-stale-posture\", payload.staleStatePosture, \"No stale-state posture is available yet.\");", StringComparison.Ordinal), "play shell must bind stale-state posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-grounded-follow-up\", payload.groundedFollowUpSummary, \"No grounded follow-up summary is available yet.\");", StringComparison.Ordinal), "play shell must bind grounded follow-up summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-grounded-follow-up-list\", payload.groundedFollowUpLabels);", StringComparison.Ordinal), "play shell must bind grounded follow-up labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-mobile-campaign-current-state\", payload.mobileCampaignCurrentState, \"No mobile campaign continuity posture is available yet.\");", StringComparison.Ordinal), "play shell must bind explicit mobile campaign current posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-mobile-campaign-state\", payload.mobileCampaignStateSummary, \"No mobile campaign-state summary is available yet.\");", StringComparison.Ordinal), "play shell must bind explicit mobile campaign summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-mobile-campaign-state-list\", payload.mobileCampaignStateLabels);", StringComparison.Ordinal), "play shell must bind explicit mobile campaign state labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-action-required\", payload.actionRequiredSummary, \"No action-required summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the explicit workspace action-required summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-action-required-list\", payload.actionRequiredLabels);", StringComparison.Ordinal), "play shell must bind the explicit workspace action-required labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"restore-travel-campaign-current-state\", payload.travelCampaignCurrentState, \"No restore travel campaign continuity posture is available yet.\");", StringComparison.Ordinal), "play shell must bind explicit restore travel campaign current posture.");
+    Assert(html.Contains("setText(\"restore-travel-campaign-state\", payload.travelCampaignStateSummary, \"No restore travel campaign-state summary is available yet.\");", StringComparison.Ordinal), "play shell must bind explicit restore travel campaign summary.");
+    Assert(html.Contains("setList(\"restore-travel-campaign-state-labels\", payload.travelCampaignStateLabels);", StringComparison.Ordinal), "play shell must bind explicit restore travel campaign state labels from the restore projection.");
+    Assert(html.Contains("setText(\"restore-action-required\", payload.actionRequiredSummary, \"No restore action-required summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the explicit restore action-required summary from the restore projection.");
+    Assert(html.Contains("setList(\"restore-action-required-labels\", payload.actionRequiredLabels);", StringComparison.Ordinal), "play shell must bind the explicit restore action-required labels from the restore projection.");
+    Assert(html.Contains("function renderShellHero(payload, restorePayload)", StringComparison.Ordinal), "play shell must derive a dedicated flagship hero from workspace and restore payloads.");
+    Assert(html.Contains("document.getElementById(\"shell-headline\").textContent = roleFocus.heading;", StringComparison.Ordinal), "play shell must bind the hero headline to authored role-specific copy.");
+    Assert(html.Contains("document.getElementById(\"shell-subhead\").textContent = payload.summary || \"No workspace-lite summary is available yet.\";", StringComparison.Ordinal), "play shell must bind the hero subhead to the workspace-lite summary.");
+    Assert(html.Contains("document.getElementById(\"shell-status\").textContent = payload.currentSceneSummary || \"No current scene summary is available yet.\";", StringComparison.Ordinal), "play shell must bind the hero status line to the current scene summary.");
+    Assert(html.Contains("document.getElementById(\"shell-continuity-status\").textContent = payload.mobileCampaignCurrentState || \"No mobile continuity posture is available yet.\";", StringComparison.Ordinal), "play shell must bind the hero continuity status.");
+    Assert(html.Contains("document.getElementById(\"shell-restore-status\").textContent = restorePayload.resumeSummary || \"No claimed-device recovery summary is available yet.\";", StringComparison.Ordinal), "play shell must bind the hero restore status.");
+    Assert(html.Contains("setLink(\"shell-primary-action-link\", primaryActionHref, primaryActionText, \"/play\", \"Open safe next step\");", StringComparison.Ordinal), "play shell must bind the hero primary action to the safe-next-step route.");
+    Assert(html.Contains("setLink(\"shell-secondary-action-link\", secondaryActionHref, secondaryActionText, \"/contact\", \"Open support route\");", StringComparison.Ordinal), "play shell must bind the hero secondary action to the support route.");
+    Assert(html.Contains("document.getElementById(\"shell-install-button\").addEventListener(\"click\", async () => {", StringComparison.Ordinal), "play shell must bind the install action to the deferred PWA prompt.");
+    Assert(html.Contains("document.getElementById(\"shell-install-chip-value\").textContent = state.label;", StringComparison.Ordinal), "play shell must bind install-state chip copy from installability status.");
+    Assert(html.Contains("document.getElementById(\"shell-network-chip-value\").textContent = label;", StringComparison.Ordinal), "play shell must bind network-state chip copy from online/offline status.");
+    Assert(html.Contains("let lastWorkspacePayload = null;", StringComparison.Ordinal), "play shell must retain the latest workspace payload so install and network trust cues can stay current.");
+    Assert(html.Contains("let lastRestorePayload = null;", StringComparison.Ordinal), "play shell must retain the latest restore payload so install and network trust cues can stay current.");
+    Assert(html.Contains("let serviceWorkerDetail = \"Service worker state: verification is still pending.\";", StringComparison.Ordinal), "play shell must keep explicit service-worker trust copy.");
+    Assert(html.Contains("document.getElementById(\"shell-service-worker-detail\").textContent = serviceWorkerDetail;", StringComparison.Ordinal), "play shell must bind service-worker trust copy into the hero shell.");
+    Assert(html.Contains("document.getElementById(\"shell-continuity-safety\").textContent = lastWorkspacePayload?.actionRequiredSummary", StringComparison.Ordinal), "play shell must bind claimed-device continuity safety from the latest workspace or restore payload.");
+    Assert(html.Contains("setList(\"shell-network-state-list\", buildNetworkStateLabels());", StringComparison.Ordinal), "play shell must bind a live network-state list for install and reconnect trust.");
+    Assert(html.Contains("function buildNetworkStateLabels()", StringComparison.Ordinal), "play shell must derive explicit install, network, continuity, and support trust labels.");
+    Assert(html.Contains("lastWorkspacePayload = payload;", StringComparison.Ordinal), "play shell must capture the latest workspace payload when rendering the hero shell.");
+    Assert(html.Contains("lastRestorePayload = restorePayload;", StringComparison.Ordinal), "play shell must capture the latest restore payload when rendering the hero shell.");
+    Assert(html.Contains("serviceWorkerDetail = navigator.serviceWorker.controller", StringComparison.Ordinal), "play shell must distinguish an active service-worker controller from first-load registration.");
+    Assert(html.Contains("serviceWorkerDetail = \"Service worker state: registration failed, so install-local cache trust is reduced until this shell reloads cleanly.\";", StringComparison.Ordinal), "play shell must expose a degraded cache-trust posture when service-worker registration fails.");
+    Assert(html.Contains("window.addEventListener(\"beforeinstallprompt\", (event) => {", StringComparison.Ordinal), "play shell must react to the deferred install prompt event.");
+    Assert(html.Contains("updateNetworkStatus();", StringComparison.Ordinal), "play shell must refresh network and continuity trust cues after installability changes.");
+    Assert(html.Contains("function inferContinuityTone(text)", StringComparison.Ordinal), "play shell must derive tone-aware continuity cues from explicit stale/cached/action-required posture.");
+    Assert(html.Contains("if (lowered.includes(\"action required\") || lowered.includes(\"action-required\")) {", StringComparison.Ordinal), "play shell tone inference must treat action-required continuity as a first-class state.");
+    Assert(html.Contains("function syncContinuityCardTone(cardId, currentStateId, summaryId, currentStateText, actionId)", StringComparison.Ordinal), "play shell must let continuity card tone inspect explicit action-required posture.");
+    Assert(html.Contains("const actionState = actionId ? (document.getElementById(actionId).textContent || \"\") : \"\";", StringComparison.Ordinal), "play shell continuity card tone must read the action-required field.");
+    Assert(html.Contains("card.dataset.tone = inferContinuityTone(actionState || currentStateText || currentState || summary);", StringComparison.Ordinal), "play shell continuity card tone must prioritize action-required posture over summary-only copy.");
+    Assert(html.Contains("syncContinuityCardTone(\n      \"workspace-mobile-campaign-card\",", StringComparison.Ordinal), "play shell must apply tone-aware mobile campaign continuity card cues.");
+    Assert(html.Contains("`${payload.mobileCampaignStaleState || \"\"} ${payload.mobileCampaignCurrentState || \"\"}`", StringComparison.Ordinal), "play shell must let stale mobile campaign posture influence the continuity card tone before the summary can look green.");
+    Assert(html.Contains("\"workspace-mobile-campaign-action-required\");", StringComparison.Ordinal), "play shell must route workspace action-required posture into the mobile campaign continuity tone.");
+    Assert(html.Contains("syncContinuityStateBreakdown(\n      \"workspace-mobile-campaign-cached-state\",", StringComparison.Ordinal), "play shell must keep the workspace cached/stale/action-required continuity breakdown wired.");
+    Assert(html.Contains("syncContinuityCardTone(\n      \"restore-travel-campaign-card\",", StringComparison.Ordinal), "play shell must apply tone-aware restore travel continuity card cues.");
+    Assert(html.Contains("`${payload.travelCampaignStaleState || \"\"} ${payload.travelCampaignCurrentState || \"\"}`", StringComparison.Ordinal), "play shell must let stale restore travel posture influence the continuity card tone before the summary can look green.");
+    Assert(html.Contains("\"restore-travel-campaign-action-required\");", StringComparison.Ordinal), "play shell must route restore action-required posture into the travel campaign continuity tone.");
+    Assert(html.Contains("syncContinuityStateBreakdown(\n      \"restore-travel-campaign-cached-state\",", StringComparison.Ordinal), "play shell must keep the restore cached/stale/action-required continuity breakdown wired.");
+    Assert(html.Contains("setText(\"workspace-recap-audience\", payload.recapAudienceSummary, \"No artifact audience summary is available yet.\");", StringComparison.Ordinal), "play shell must bind artifact audience posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-recap-ownership\", payload.recapOwnershipSummary, \"No artifact ownership summary is available yet.\");", StringComparison.Ordinal), "play shell must bind artifact ownership posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-recap-publication\", payload.recapPublicationSummary, \"No artifact publication summary is available yet.\");", StringComparison.Ordinal), "play shell must bind artifact publication posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-recap-provenance\", payload.recapProvenanceSummary, \"No artifact provenance summary is available yet.\");", StringComparison.Ordinal), "play shell must bind artifact provenance posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-recap-audit\", payload.recapAuditSummary, \"No artifact audit summary is available yet.\");", StringComparison.Ordinal), "play shell must bind artifact audit posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-recap-lineage\", payload.recapLineageSummary, \"No artifact lineage summary is available yet.\");", StringComparison.Ordinal), "play shell must bind artifact lineage posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-recap-next\", payload.recapNextAction, \"No artifact next step is available yet.\");", StringComparison.Ordinal), "play shell must bind the next artifact-shelf step from the workspace-lite projection.");
     Assert(html.Contains("const selectedArtifactView = (payload.artifactShelfViews || []).find((item) => item.isSelected);", StringComparison.Ordinal), "play shell must derive the selected artifact shelf view from the workspace-lite projection.");
     Assert(html.Contains("document.getElementById(\"workspace-recap-view\").textContent = selectedArtifactView", StringComparison.Ordinal), "play shell must bind the selected artifact shelf view from the workspace-lite projection.");
     Assert(html.Contains("setLinkList(\"workspace-recap-views\", payload.artifactShelfViews);", StringComparison.Ordinal), "play shell must bind explicit artifact shelf browse links from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-replay\").textContent = payload.replaySummary || \"No replay-safe package summary is available yet.\";", StringComparison.Ordinal), "play shell must bind replay-safe package summary from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-replay-audience\").textContent = payload.replayAudienceSummary || \"No replay artifact audience summary is available yet.\";", StringComparison.Ordinal), "play shell must bind replay artifact audience posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-replay-ownership\").textContent = payload.replayOwnershipSummary || \"No replay artifact ownership summary is available yet.\";", StringComparison.Ordinal), "play shell must bind replay artifact ownership posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-replay-publication\").textContent = payload.replayPublicationSummary || \"No replay artifact publication summary is available yet.\";", StringComparison.Ordinal), "play shell must bind replay artifact publication posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-replay-provenance\").textContent = payload.replayProvenanceSummary || \"No replay artifact provenance summary is available yet.\";", StringComparison.Ordinal), "play shell must bind replay artifact provenance posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-replay-audit\").textContent = payload.replayAuditSummary || \"No replay artifact audit summary is available yet.\";", StringComparison.Ordinal), "play shell must bind replay artifact audit posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-replay-lineage\").textContent = payload.replayLineageSummary || \"No replay artifact lineage summary is available yet.\";", StringComparison.Ordinal), "play shell must bind replay artifact lineage posture from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-replay-next\").textContent = payload.replayNextAction || \"No replay artifact next step is available yet.\";", StringComparison.Ordinal), "play shell must bind the replay artifact next step from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-legal-runner\").textContent = payload.legalRunnerSummary || \"No legal-runner summary is available yet.\";", StringComparison.Ordinal), "play shell must bind legal-runner proof from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-understandable-return\").textContent = payload.understandableReturnSummary || \"No understandable-return summary is available yet.\";", StringComparison.Ordinal), "play shell must bind understandable-return proof from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-campaign-ready\").textContent = payload.campaignReadySummary || \"No campaign-ready summary is available yet.\";", StringComparison.Ordinal), "play shell must bind campaign-ready proof from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-recap-publication-link\").href = payload.recapPublicationHref || \"/account/work\";", StringComparison.Ordinal), "play shell must bind the artifact-shelf follow-through href from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-recap-publication-link\").textContent = payload.recapNextAction || \"Artifact shelf follow-through\";", StringComparison.Ordinal), "play shell must bind the artifact-shelf follow-through link text from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-replay-publication-link\").href = payload.replayPublicationHref || \"/account/work\";", StringComparison.Ordinal), "play shell must bind the replay artifact follow-through href from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-replay-publication-link\").textContent = payload.replayNextAction || \"Replay artifact follow-through\";", StringComparison.Ordinal), "play shell must bind the replay artifact follow-through link text from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-continuity-rail\").textContent = payload.continuityRailSummary || \"No continuity rail summary is available yet.\";", StringComparison.Ordinal), "play shell must bind continuity rail summary from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-artifact-shelf-summary\", payload.artifactShelfSelectionSummary, \"No mobile artifact shelf summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the selected artifact shelf summary from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-artifact-selection\", payload.selectedRecapArtifactSummary, \"Selected recap artifact: no recap artifact is pinned yet.\");", StringComparison.Ordinal), "play shell must bind the selected recap artifact summary from the workspace-lite projection.");
+    Assert(html.Contains("setLink(\"workspace-artifact-selection-link\", payload.selectedRecapArtifactHref || selectedArtifactView?.href, artifactId", StringComparison.Ordinal), "play shell must bind a direct selected recap artifact link from the workspace-lite projection.");
+    Assert(html.Contains("? `Open recap artifact ${artifactId}`", StringComparison.Ordinal), "play shell must keep the selected recap artifact link label specific to the requested artifact.");
+    Assert(html.Contains("document.getElementById(\"workspace-artifact-shelf-link\").href = selectedArtifactView?.href || \"/artifacts\";", StringComparison.Ordinal), "play shell must keep the selected artifact shelf link bound to the shelf browse target instead of reusing the recap deep link.");
+    Assert(html.Contains("? `Browse ${selectedArtifactView.label}`", StringComparison.Ordinal), "play shell must keep the selected artifact shelf link label scoped to shelf browsing instead of the recap artifact identity.");
+    Assert(html.Contains("setText(\"workspace-launch-primer\", payload.launchPrimerSummary, \"No starter primer summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the starter-primer continuity summary from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-launch-primer-provenance\", payload.launchPrimerProvenanceSummary, \"No starter primer provenance is available yet.\");", StringComparison.Ordinal), "play shell must bind the starter-primer provenance from the workspace-lite projection.");
+    Assert(html.Contains("setLink(\"workspace-launch-primer-link\", payload.launchPrimerHref, \"Open starter primer\", \"/artifacts\", \"Open starter primer\");", StringComparison.Ordinal), "play shell must bind a direct starter-primer artifact link from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-first-session-briefing\", payload.firstSessionBriefingSummary, \"No first-session briefing summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the first-session briefing continuity summary from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-first-session-briefing-provenance\", payload.firstSessionBriefingProvenanceSummary, \"No first-session briefing provenance is available yet.\");", StringComparison.Ordinal), "play shell must bind the first-session briefing provenance from the workspace-lite projection.");
+    Assert(html.Contains("setLink(\"workspace-first-session-briefing-link\", payload.firstSessionBriefingHref, \"Open first-session briefing\", \"/artifacts\", \"Open first-session briefing\");", StringComparison.Ordinal), "play shell must bind a direct first-session briefing artifact link from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-starter-artifact-continuity\", payload.starterArtifactContinuitySummary, \"No starter artifact continuity summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the starter artifact continuity summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-starter-artifact-continuity-list\", payload.starterArtifactContinuityLabels);", StringComparison.Ordinal), "play shell must bind starter artifact continuity labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-runner-goal-updates\", payload.runnerGoalUpdatesSummary, \"No runner-goal update summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the runner-goal update summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-runner-goal-update-list\", payload.runnerGoalUpdateLabels);", StringComparison.Ordinal), "play shell must bind runner-goal update labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-player-safe-consequence-feed\", payload.playerSafeConsequenceFeedSummary, \"No player-safe consequence feed summary is available yet.\");", StringComparison.Ordinal), "play shell must bind the player-safe consequence feed summary from the workspace-lite projection.");
+    Assert(html.Contains("setList(\"workspace-player-safe-consequence-feed-list\", payload.playerSafeConsequenceFeedLabels);", StringComparison.Ordinal), "play shell must bind player-safe consequence feed labels from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-replay\", payload.replaySummary, \"No replay-safe package summary is available yet.\");", StringComparison.Ordinal), "play shell must bind replay-safe package summary from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-replay-audience\", payload.replayAudienceSummary, \"No replay artifact audience summary is available yet.\");", StringComparison.Ordinal), "play shell must bind replay artifact audience posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-replay-ownership\", payload.replayOwnershipSummary, \"No replay artifact ownership summary is available yet.\");", StringComparison.Ordinal), "play shell must bind replay artifact ownership posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-replay-publication\", payload.replayPublicationSummary, \"No replay artifact publication summary is available yet.\");", StringComparison.Ordinal), "play shell must bind replay artifact publication posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-replay-provenance\", payload.replayProvenanceSummary, \"No replay artifact provenance summary is available yet.\");", StringComparison.Ordinal), "play shell must bind replay artifact provenance posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-replay-audit\", payload.replayAuditSummary, \"No replay artifact audit summary is available yet.\");", StringComparison.Ordinal), "play shell must bind replay artifact audit posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-replay-lineage\", payload.replayLineageSummary, \"No replay artifact lineage summary is available yet.\");", StringComparison.Ordinal), "play shell must bind replay artifact lineage posture from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-replay-next\", payload.replayNextAction, \"No replay artifact next step is available yet.\");", StringComparison.Ordinal), "play shell must bind the replay artifact next step from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-legal-runner\", payload.legalRunnerSummary, \"No legal-runner summary is available yet.\");", StringComparison.Ordinal), "play shell must bind legal-runner proof from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-understandable-return\", payload.understandableReturnSummary, \"No understandable-return summary is available yet.\");", StringComparison.Ordinal), "play shell must bind understandable-return proof from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-campaign-ready\", payload.campaignReadySummary, \"No campaign-ready summary is available yet.\");", StringComparison.Ordinal), "play shell must bind campaign-ready proof from the workspace-lite projection.");
+    Assert(html.Contains("setLink(\"workspace-recap-publication-link\", payload.recapPublicationHref, payload.recapNextAction, \"/account/work\", \"Artifact shelf follow-through\");", StringComparison.Ordinal), "play shell must bind the artifact-shelf follow-through route from the workspace-lite projection.");
+    Assert(html.Contains("setLink(\"workspace-replay-publication-link\", payload.replayPublicationHref, payload.replayNextAction, \"/account/work\", \"Replay artifact follow-through\");", StringComparison.Ordinal), "play shell must bind the replay artifact follow-through route from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-continuity-rail\", payload.continuityRailSummary, \"No continuity rail summary is available yet.\");", StringComparison.Ordinal), "play shell must bind continuity rail summary from the workspace-lite projection.");
     Assert(html.Contains("setList(\"workspace-continuity-rail-list\", payload.continuityRailLabels);", StringComparison.Ordinal), "play shell must bind continuity rail labels from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-gm-ops\").textContent = payload.gmOperationsSummary || \"No GM operations summary is available yet.\";", StringComparison.Ordinal), "play shell must bind GM operations summary from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-gm-ops\", payload.gmOperationsSummary, \"No GM operations summary is available yet.\");", StringComparison.Ordinal), "play shell must bind GM operations summary from the workspace-lite projection.");
     Assert(html.Contains("setList(\"workspace-gm-ops-list\", payload.gmOperationsLabels);", StringComparison.Ordinal), "play shell must bind GM operations lane labels from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"workspace-offline-truth\").textContent = payload.offlineTruthSummary || \"No offline truth summary is available yet.\";", StringComparison.Ordinal), "play shell must bind cached/stale/offline-action summary from the workspace-lite projection.");
+    Assert(html.Contains("setText(\"workspace-offline-truth\", payload.offlineTruthSummary, \"No offline truth summary is available yet.\");", StringComparison.Ordinal), "play shell must bind cached/stale/offline-action summary from the workspace-lite projection.");
     Assert(html.Contains("setList(\"workspace-offline-truth-list\", payload.offlineTruthLabels);", StringComparison.Ordinal), "play shell must bind cached/stale/offline-action labels from the workspace-lite projection.");
-    Assert(html.Contains("document.getElementById(\"follow-through-update-link\").textContent = payload.updateFollowThrough || \"Update follow-through\";", StringComparison.Ordinal), "play shell must bind update follow-through link text to the workspace projection.");
-    Assert(html.Contains("document.getElementById(\"follow-through-support-link\").textContent = payload.supportFollowThrough || \"Support follow-through\";", StringComparison.Ordinal), "play shell must bind support follow-through link text to the workspace projection.");
-    Assert(html.Contains("document.getElementById(\"follow-through-role-link\").textContent = payload.roleFollowThrough || \"Role follow-through\";", StringComparison.Ordinal), "play shell must bind role follow-through link text to the workspace projection.");
-    Assert(html.Contains("document.getElementById(\"restore-follow-through-link\").textContent = payload.resumeFollowThrough || \"Claimed-device follow-through\";", StringComparison.Ordinal), "play shell must bind claimed-device follow-through link text to the restore projection.");
-    Assert(html.Contains("document.getElementById(\"restore-support-follow-through-link\").textContent = payload.supportFollowThrough || \"Restore support follow-through\";", StringComparison.Ordinal), "play shell must bind restore support follow-through link text to the restore projection.");
-    Assert(html.Contains("document.getElementById(\"restore-offline-truth\").textContent = payload.offlineTruthSummary || \"No restore offline truth summary is available yet.\";", StringComparison.Ordinal), "play shell must bind restore cached/stale/offline-action summary from the restore projection.");
+    Assert(html.Contains("setLink(\"follow-through-update-link\", payload.updateFollowThroughHref, payload.updateFollowThrough, \"/downloads\", \"Update follow-through\");", StringComparison.Ordinal), "play shell must bind update follow-through route to the workspace projection.");
+    Assert(html.Contains("setLink(\"follow-through-support-link\", payload.supportFollowThroughHref, payload.supportFollowThrough, \"/contact\", \"Support follow-through\");", StringComparison.Ordinal), "play shell must bind support follow-through route to the workspace projection.");
+    Assert(html.Contains("setLink(\"follow-through-role-link\", payload.roleFollowThroughHref, payload.roleFollowThrough, \"/\", \"Role follow-through\");", StringComparison.Ordinal), "play shell must bind role follow-through route to the workspace projection.");
+    Assert(html.Contains("setLink(\"restore-follow-through-link\", payload.resumeFollowThroughHref, payload.resumeFollowThrough, \"/play\", \"Claimed-device follow-through\");", StringComparison.Ordinal), "play shell must bind claimed-device follow-through route to the restore projection.");
+    Assert(html.Contains("setLink(\"restore-support-follow-through-link\", payload.supportFollowThroughHref, payload.supportFollowThrough, \"/contact\", \"Restore support follow-through\");", StringComparison.Ordinal), "play shell must bind restore support follow-through route to the restore projection.");
+    Assert(html.Contains("setText(\"restore-starter-primer-follow-through\", payload.starterPrimerFollowThrough, \"No travel starter-primer follow-through is available yet.\");", StringComparison.Ordinal), "play shell must bind travel starter-primer follow-through from the restore projection.");
+    Assert(html.Contains("setLink(\"restore-starter-primer-follow-through-link\", payload.starterPrimerFollowThroughHref, payload.starterPrimerFollowThrough, \"/artifacts\", \"Open travel starter primer\");", StringComparison.Ordinal), "play shell must bind the travel starter-primer route from the restore projection.");
+    Assert(html.Contains("setText(\"restore-first-session-briefing-follow-through\", payload.firstSessionBriefingFollowThrough, \"No travel first-session briefing follow-through is available yet.\");", StringComparison.Ordinal), "play shell must bind travel first-session briefing follow-through from the restore projection.");
+    Assert(html.Contains("setLink(\"restore-first-session-briefing-follow-through-link\", payload.firstSessionBriefingFollowThroughHref, payload.firstSessionBriefingFollowThrough, \"/artifacts\", \"Open travel first-session briefing\");", StringComparison.Ordinal), "play shell must bind the travel first-session briefing route from the restore projection.");
+    Assert(html.Contains("setText(\"restore-offline-truth\", payload.offlineTruthSummary, \"No restore offline truth summary is available yet.\");", StringComparison.Ordinal), "play shell must bind restore cached/stale/offline-action summary from the restore projection.");
     Assert(html.Contains("setList(\"restore-offline-truth-labels\", payload.offlineTruthLabels);", StringComparison.Ordinal), "play shell must bind restore cached/stale/offline-action labels from the restore projection.");
-    Assert(html.Contains("document.getElementById(\"restore-travel-companion\").textContent = payload.travelCompanionSummary || \"No restore travel companion summary is available yet.\";", StringComparison.Ordinal), "play shell must bind restore travel-companion continuity summary from the restore projection.");
+    Assert(html.Contains("setText(\"restore-travel-companion\", payload.travelCompanionSummary, \"No restore travel companion summary is available yet.\");", StringComparison.Ordinal), "play shell must bind restore travel-companion continuity summary from the restore projection.");
     Assert(html.Contains("setList(\"restore-travel-companion-labels\", payload.travelCompanionLabels);", StringComparison.Ordinal), "play shell must bind restore travel-companion continuity labels from the restore projection.");
+    Assert(html.Contains("const artifactView = params.get(\"artifactView\") || \"\";", StringComparison.Ordinal), "play shell must preserve the requested artifact shelf view from the shell query.");
+    Assert(html.Contains("const artifactId = params.get(\"artifactId\") || \"\";", StringComparison.Ordinal), "play shell must preserve the requested recap artifact id from the shell query.");
+    Assert(html.Contains("workspaceQuery.set(\"artifactView\", artifactView);", StringComparison.Ordinal), "play shell must round-trip the requested artifact shelf view into the workspace-lite query.");
+    Assert(html.Contains("workspaceQuery.set(\"artifactId\", artifactId);", StringComparison.Ordinal), "play shell must round-trip the requested recap artifact id into the workspace-lite query.");
+    Assert(html.Contains("renderShellHero(payload, restorePayload);", StringComparison.Ordinal), "play shell must render the hero shell from workspace and restore payloads before the dense detail surfaces.");
+    Assert(html.Contains("renderWorkspace(payload, artifactId);", StringComparison.Ordinal), "play shell must render the selected recap artifact identity into the owned mobile shell.");
 }
 
 static Task VerifyBootstrapRoleShellEntryPointsAsync()
 {
+    var playerDescriptor = PlayerShellModule.CreateDescriptor();
+    var gmDescriptor = GmTacticalShellModule.CreateDescriptor();
     var playerCapabilities = PlayRouteHandlers.ResolveRoleCapabilities(
-        PlayRouteHandlers.ToSnapshot(PlayerShellModule.CreateDescriptor())
+        PlayRouteHandlers.ToSnapshot(playerDescriptor)
     );
     var gmCapabilities = PlayRouteHandlers.ResolveRoleCapabilities(
-        PlayRouteHandlers.ToSnapshot(GmTacticalShellModule.CreateDescriptor())
+        PlayRouteHandlers.ToSnapshot(gmDescriptor)
     );
     var playerActions = PlayRouteHandlers.BuildQuickActions(PlaySurfaceRole.Player, playerCapabilities);
     var gmActions = PlayRouteHandlers.BuildQuickActions(PlaySurfaceRole.GameMaster, gmCapabilities);
 
+    Assert(playerDescriptor.Summary.Contains("player table cards", StringComparison.OrdinalIgnoreCase), "player bootstrap entry points must describe the player table-card lane explicitly");
+    Assert(playerDescriptor.Summary.Contains("between-turn", StringComparison.OrdinalIgnoreCase), "player bootstrap entry points must describe between-turn affordances explicitly");
+    Assert(gmDescriptor.Summary.Contains("GM-lite continuity", StringComparison.Ordinal), "gm bootstrap entry points must describe GM-lite continuity explicitly");
     Assert(playerActions.Count > 0, "player bootstrap entry points must expose quick actions");
     Assert(gmActions.Count > 0, "gm bootstrap entry points must expose quick actions");
     Assert(playerActions.All(action => !action.ActionId.StartsWith("gm-", StringComparison.Ordinal)), "player role entry points must not expose gm quick actions");
@@ -1970,6 +2289,32 @@ static async Task VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync()
             Assert(workspace.LowNoiseGuidance.Any(item => item.Contains(expectedRoute, StringComparison.Ordinal)), $"workspace-lite guidance must include the concrete role route for {role}");
             Assert(!workspace.DisconnectRecoveryCopy.Contains("{sessionId}", StringComparison.Ordinal), $"workspace-lite disconnect copy must not expose templated placeholders for {role}");
 
+            var artifactShelfBrowseRedirect = await ExecuteRouteResponseAsync(
+                app,
+                HttpMethod.Get,
+                "/artifacts/{sessionId}",
+                $"?role={Uri.EscapeDataString(role.ToString())}&view=campaign",
+                routeValues: new Dictionary<string, string> { ["sessionId"] = sessionId }
+            );
+
+            Assert(artifactShelfBrowseRedirect.StatusCode == StatusCodes.Status302Found, $"artifact shelf browse links must redirect back into the installable shell for {role}");
+            Assert(artifactShelfBrowseRedirect.Location == $"/index.html?sessionId={Uri.EscapeDataString(sessionId)}&role={Uri.EscapeDataString(role.ToString())}&artifactView=campaign", $"artifact shelf browse links must preserve role and shelf selection for {role}");
+
+            var artifactShelfRedirect = await ExecuteRouteResponseAsync(
+                app,
+                HttpMethod.Get,
+                "/artifacts/{sessionId}/{artifactId}",
+                $"?role={Uri.EscapeDataString(role.ToString())}&view=travel",
+                routeValues: new Dictionary<string, string>
+                {
+                    ["sessionId"] = sessionId,
+                    ["artifactId"] = "artifact-recap"
+                }
+            );
+
+            Assert(artifactShelfRedirect.StatusCode == StatusCodes.Status302Found, $"artifact shelf deep links must redirect back into the installable shell for {role}");
+            Assert(artifactShelfRedirect.Location == $"/index.html?sessionId={Uri.EscapeDataString(sessionId)}&role={Uri.EscapeDataString(role.ToString())}&artifactView=travel&artifactId=artifact-recap", $"artifact shelf deep links must preserve role, travel shelf selection, and artifact identity for {role}");
+
             var restorePlan = await ExecuteRouteRequestAsync<RoamingWorkspaceRestorePlan>(
                 app,
                 HttpMethod.Get,
@@ -1983,6 +2328,12 @@ static async Task VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync()
             Assert(restorePlan.ResumeFollowThroughHref.Contains($"/play/{Uri.EscapeDataString(sessionId)}", StringComparison.Ordinal), $"restore-plan must return a concrete owner route for {role}");
             Assert(restorePlan.ResumeFollowThroughHref.Contains(expectedRoleQuery, StringComparison.Ordinal), $"restore-plan resume href must preserve the explicit role query for {role}");
             Assert(!restorePlan.ResumeFollowThroughHref.Contains("{sessionId}", StringComparison.Ordinal), $"restore-plan href must never expose templated placeholders for {role}");
+            Assert(restorePlan.StarterPrimerFollowThroughHref.Contains($"/artifacts/{Uri.EscapeDataString(sessionId)}/", StringComparison.Ordinal), $"restore-plan must expose a concrete starter-primer artifact route for {role}");
+            Assert(restorePlan.StarterPrimerFollowThroughHref.Contains(expectedRoleQuery, StringComparison.Ordinal), $"restore-plan starter-primer href must preserve the explicit role query for {role}");
+            Assert(restorePlan.StarterPrimerFollowThroughHref.Contains($"deviceId={Uri.EscapeDataString(expectedDeviceId)}", StringComparison.Ordinal), $"restore-plan starter-primer href must preserve the trusted claimed-device id for {role}");
+            Assert(restorePlan.FirstSessionBriefingFollowThroughHref.Contains($"/artifacts/{Uri.EscapeDataString(sessionId)}/", StringComparison.Ordinal), $"restore-plan must expose a concrete first-session briefing artifact route for {role}");
+            Assert(restorePlan.FirstSessionBriefingFollowThroughHref.Contains(expectedRoleQuery, StringComparison.Ordinal), $"restore-plan first-session briefing href must preserve the explicit role query for {role}");
+            Assert(restorePlan.FirstSessionBriefingFollowThroughHref.Contains("view=travel", StringComparison.Ordinal), $"restore-plan first-session briefing href must preserve the travel shelf for {role}");
 
             var onboardingRecovery = await ExecuteRouteRequestAsync<PlayEntryRecoveryProjection>(
                 app,
@@ -2012,6 +2363,8 @@ static async Task VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync()
             Assert(restorePlanTravel.TravelCompanionLabels.Any(item => item.Contains(trustedTravelDeviceId, StringComparison.OrdinalIgnoreCase)), $"restore-plan must preserve a travel sibling claimed device for {role}");
             Assert(restorePlanTravel.TravelCompanionLabels.All(item => !item.Contains(":travel:travel", StringComparison.Ordinal)), $"restore-plan claimed devices must never expand travel lineage for {role}");
             Assert(restorePlanTravel.ResumeFollowThroughHref.Contains(expectedRoleQuery, StringComparison.Ordinal), $"restore-plan trusted travel route must preserve the explicit role query for {role}");
+            Assert(restorePlanTravel.StarterPrimerFollowThroughHref.Contains($"deviceId={Uri.EscapeDataString(expectedDeviceId)}", StringComparison.Ordinal), $"restore-plan trusted travel route must keep starter-primer follow-through on the normalized claimed device for {role}");
+            Assert(restorePlanTravel.FirstSessionBriefingFollowThroughHref.Contains("view=travel", StringComparison.Ordinal), $"restore-plan trusted travel route must keep first-session briefing follow-through on the travel shelf for {role}");
 
             var onboardingRecoveryTravel = await ExecuteRouteRequestAsync<PlayEntryRecoveryProjection>(
                 app,

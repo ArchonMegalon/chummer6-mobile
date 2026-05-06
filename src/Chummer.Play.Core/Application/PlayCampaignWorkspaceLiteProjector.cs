@@ -12,6 +12,19 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string Summary,
     string CurrentSceneSummary,
     string ChangePacketSummary,
+    string PlayerTableCardsSummary,
+    IReadOnlyList<string> PlayerTableCardLabels,
+    string BetweenTurnAffordancesSummary,
+    IReadOnlyList<string> BetweenTurnAffordanceLabels,
+    string GmLiteContinuitySummary,
+    IReadOnlyList<string> GmLiteContinuityLabels,
+    string QuickExplainSummary,
+    IReadOnlyList<string> QuickExplainLabels,
+    string SourceAnchorSummary,
+    IReadOnlyList<string> SourceAnchorLabels,
+    string StaleStatePosture,
+    string GroundedFollowUpSummary,
+    IReadOnlyList<string> GroundedFollowUpLabels,
     string ServerPlaneSummary,
     string RunboardSummary,
     string RosterSummary,
@@ -36,7 +49,22 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     string ReplayNextAction,
     string ReplayPublicationHref,
     string SelectedArtifactView,
+    string ArtifactShelfSelectionSummary,
+    string SelectedRecapArtifactSummary,
+    string SelectedRecapArtifactHref,
     IReadOnlyList<PlayArtifactShelfViewLink> ArtifactShelfViews,
+    string LaunchPrimerSummary,
+    string LaunchPrimerProvenanceSummary,
+    string LaunchPrimerHref,
+    string FirstSessionBriefingSummary,
+    string FirstSessionBriefingProvenanceSummary,
+    string FirstSessionBriefingHref,
+    string StarterArtifactContinuitySummary,
+    IReadOnlyList<string> StarterArtifactContinuityLabels,
+    string RunnerGoalUpdatesSummary,
+    IReadOnlyList<string> RunnerGoalUpdateLabels,
+    string PlayerSafeConsequenceFeedSummary,
+    IReadOnlyList<string> PlayerSafeConsequenceFeedLabels,
     string CampaignMemorySummary,
     string CampaignMemoryReturnSummary,
     string ContinuityRailSummary,
@@ -45,6 +73,14 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     IReadOnlyList<string> GmOperationsLabels,
     string OfflineTruthSummary,
     IReadOnlyList<string> OfflineTruthLabels,
+    string ActionRequiredSummary,
+    IReadOnlyList<string> ActionRequiredLabels,
+    string MobileCampaignCurrentState,
+    string MobileCampaignStateSummary,
+    string MobileCampaignCachedState,
+    string MobileCampaignStaleState,
+    string MobileCampaignActionRequired,
+    IReadOnlyList<string> MobileCampaignStateLabels,
     string RolePosture,
     string RulePosture,
     string LegalRunnerSummary,
@@ -94,7 +130,10 @@ public sealed record PlayArtifactShelfViewLink(
 
 public static class PlayCampaignWorkspaceLiteProjector
 {
-    public static PlayCampaignWorkspaceLiteProjection Create(PlayResumeResponse resume)
+    public static PlayCampaignWorkspaceLiteProjection Create(
+        PlayResumeResponse resume,
+        string? artifactView = null,
+        string? artifactId = null)
     {
         ArgumentNullException.ThrowIfNull(resume);
 
@@ -120,6 +159,16 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? "No runtime bundle is cached locally yet."
             : $"Bundle {resume.RuntimeBundle.BundleTag} was validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC.";
         string changePacketSummary = BuildChangePacketSummary(resume, session, latestTimeline);
+        string playerTableCardsSummary = BuildPlayerTableCardsSummary(resume, session, latestTimeline, roleLabel);
+        string[] playerTableCardLabels = BuildPlayerTableCardLabels(resume, session, latestTimeline, roleLabel);
+        string betweenTurnAffordancesSummary = BuildBetweenTurnAffordancesSummary(resume, session, roleLabel);
+        string[] betweenTurnAffordanceLabels = BuildBetweenTurnAffordanceLabels(resume, session, roleLabel);
+        string gmLiteContinuitySummary = BuildGmLiteContinuitySummary(resume, session, serverPlane, roleLabel);
+        string[] gmLiteContinuityLabels = BuildGmLiteContinuityLabels(resume, session, serverPlane, roleLabel);
+        string quickExplainSummary = BuildQuickExplainSummary(resume, session, latestTimeline, roleLabel);
+        string[] quickExplainLabels = BuildQuickExplainLabels(resume, session, latestTimeline, roleLabel);
+        string sourceAnchorSummary = BuildSourceAnchorSummary(resume, session);
+        string[] sourceAnchorLabels = BuildSourceAnchorLabels(resume, session, latestTimeline);
         string serverPlaneSummary = $"{serverPlane.Campaign.SessionReadinessSummary} {serverPlane.Campaign.RestoreSummary}";
         string runboardSummary = $"{serverPlane.Runboard.Title}: {serverPlane.Runboard.ObjectiveSummary}";
         string rosterSummary = serverPlane.Roster.Summary;
@@ -178,8 +227,74 @@ public static class PlayCampaignWorkspaceLiteProjector
         string replayPublicationHref = string.IsNullOrWhiteSpace(replayEntry?.CreatorPublicationId)
             ? "/account/work"
             : $"/account/work/publications/{Uri.EscapeDataString(replayEntry.CreatorPublicationId!)}";
-        string selectedArtifactView = SelectArtifactShelfView(resume.Role, recapEntry);
-        PlayArtifactShelfViewLink[] artifactShelfViews = BuildArtifactShelfViews(recapEntry, selectedArtifactView);
+        string selectedArtifactView = SelectArtifactShelfView(resume.Role, recapEntry, artifactView);
+        string artifactShelfSelectionSummary = BuildArtifactShelfSelectionSummary(
+            selectedArtifactView,
+            recapEntry,
+            replayEntry,
+            offlinePrefetchSummary,
+            travelPosture);
+        string selectedRecapArtifactSummary = BuildSelectedRecapArtifactSummary(
+            selectedArtifactView,
+            artifactId,
+            recapEntry);
+        string selectedRecapArtifactHref = BuildSelectedRecapArtifactHref(
+            resume.SessionId,
+            resume.Role,
+            selectedArtifactView,
+            artifactId);
+        PlayArtifactShelfViewLink[] artifactShelfViews = BuildArtifactShelfViews(
+            resume.SessionId,
+            resume.Role,
+            recapEntry,
+            selectedArtifactView,
+            offlinePrefetchSummary,
+            travelPosture);
+        RecapShelfEntry? primerEntry = FindLeadPrimerEntry(serverPlane);
+        RecapShelfEntry? firstSessionBriefingEntry = FindLeadFirstSessionBriefingEntry(serverPlane);
+        string launchPrimerSummary = BuildStarterArtifactSummary("Starter primer", primerEntry, "No starter primer is attached to this workspace yet.");
+        string launchPrimerProvenanceSummary = primerEntry?.ProvenanceSummary
+            ?? "Starter primer provenance: no governed starter primer is attached yet.";
+        string launchPrimerHref = BuildStarterArtifactHref(resume.SessionId, resume.Role, primerEntry, selectedArtifactView);
+        string firstSessionBriefingSummary = BuildStarterArtifactSummary("First-session briefing", firstSessionBriefingEntry, "No first-session briefing is attached to this workspace yet.");
+        string firstSessionBriefingProvenanceSummary = firstSessionBriefingEntry?.ProvenanceSummary
+            ?? "First-session briefing provenance: no governed first-session briefing is attached yet.";
+        string firstSessionBriefingHref = BuildStarterArtifactHref(resume.SessionId, resume.Role, firstSessionBriefingEntry, "travel");
+        string starterArtifactContinuitySummary = BuildStarterArtifactContinuitySummary(
+            primerEntry,
+            firstSessionBriefingEntry,
+            travelPosture,
+            offlinePrefetchSummary);
+        string[] starterArtifactContinuityLabels = BuildStarterArtifactContinuityLabels(
+            primerEntry,
+            firstSessionBriefingEntry,
+            selectedArtifactView,
+            launchPrimerHref,
+            firstSessionBriefingHref);
+        string runnerGoalUpdatesSummary = BuildRunnerGoalUpdatesSummary(
+            resume,
+            session,
+            serverPlane,
+            roleLabel,
+            latestTimeline);
+        string[] runnerGoalUpdateLabels = BuildRunnerGoalUpdateLabels(
+            resume,
+            session,
+            serverPlane,
+            roleLabel,
+            latestTimeline);
+        string playerSafeConsequenceFeedSummary = BuildPlayerSafeConsequenceFeedSummary(
+            resume,
+            session,
+            serverPlane,
+            roleLabel,
+            latestTimeline);
+        string[] playerSafeConsequenceFeedLabels = BuildPlayerSafeConsequenceFeedLabels(
+            resume,
+            session,
+            serverPlane,
+            roleLabel,
+            latestTimeline);
         string campaignMemorySummary = BuildCampaignMemorySummary(resume, serverPlane, roleLabel, latestTimeline);
         string campaignMemoryReturnSummary = BuildCampaignMemoryReturnSummary(resume, serverPlane, roleLabel);
         string continuityRailSummary = BuildContinuityRailSummary(resume, session, serverPlane, roleLabel, latestTimeline);
@@ -188,6 +303,21 @@ public static class PlayCampaignWorkspaceLiteProjector
         string[] gmOperationsLabels = BuildGmOperationsLabels(resume, session, serverPlane, roleLabel);
         string offlineTruthSummary = BuildOfflineTruthSummary(resume, session);
         string[] offlineTruthLabels = BuildOfflineTruthLabels(resume, session, roleLabel);
+        string actionRequiredSummary = BuildActionRequiredSummary(resume, session, roleLabel);
+        string[] actionRequiredLabels = BuildActionRequiredLabels(resume, session, roleLabel);
+        string staleStatePosture = BuildStaleStatePosture(resume, session, roleLabel);
+        string mobileCampaignCurrentState = BuildMobileCampaignCurrentState(resume, session, roleLabel, continuityPosture, travelPosture);
+        string mobileCampaignStateSummary = BuildMobileCampaignStateSummary(resume, session, roleLabel, offlinePrefetchSummary, cachePosture);
+        string mobileCampaignCachedState = BuildMobileCampaignCachedState(resume, session, roleLabel, offlineTruthLabels);
+        string mobileCampaignStaleState = BuildMobileCampaignStaleState(resume, session, roleLabel, staleStatePosture);
+        string mobileCampaignActionRequired = BuildMobileCampaignActionRequired(resume, session, roleLabel, actionRequiredSummary);
+        string[] mobileCampaignStateLabels = BuildMobileCampaignStateLabels(
+            resume,
+            session,
+            roleLabel,
+            mobileCampaignCurrentState,
+            offlineTruthLabels,
+            actionRequiredLabels);
         string rolePosture = BuildRolePosture(resume, session);
         string legalRunnerSummary = BuildLegalRunnerSummary(resume, session);
         string understandableReturnSummary = BuildUnderstandableReturnSummary(serverPlane, continuityPosture);
@@ -205,6 +335,13 @@ public static class PlayCampaignWorkspaceLiteProjector
         string supportFollowThroughHref = BuildSupportFollowThroughHref(resume, session);
         string roleFollowThrough = BuildRoleFollowThrough(resume, session);
         string roleFollowThroughHref = BuildRoleFollowThroughHref(resume, session);
+        string groundedFollowUpSummary = BuildGroundedFollowUpSummary(
+            resume,
+            session,
+            roleLabel,
+            safeNextAction,
+            updateFollowThrough,
+            supportFollowThrough);
         string rejoinCommand = $"Rejoin {session.SceneId} on the {roleLabel}.";
         string rejoinCommandHref = resume.DeepLinkOwnerRoute;
         string continueCommand = safeNextAction;
@@ -243,6 +380,15 @@ public static class PlayCampaignWorkspaceLiteProjector
             updateFollowThrough,
             supportFollowThrough,
             roleFollowThrough);
+        string[] groundedFollowUpLabels = BuildGroundedFollowUpLabels(
+            resume,
+            session,
+            roleLabel,
+            safeNextAction,
+            updateFollowThrough,
+            supportFollowThrough,
+            roleFollowThrough,
+            followThroughLabels);
 
         List<string> attentionItems = [];
         if (resume.RuntimeBundle is null)
@@ -281,6 +427,19 @@ public static class PlayCampaignWorkspaceLiteProjector
             Summary: $"Resume {resume.SessionId} on the {roleLabel}. Scene {session.SceneId} is pinned at {session.SceneRevision}, and the latest table signal is '{latestTimeline}'.",
             CurrentSceneSummary: $"{session.SceneId} · revision {session.SceneRevision} · sequence {resume.Bootstrap.Projection.Cursor.AppliedThroughSequence}",
             ChangePacketSummary: changePacketSummary,
+            PlayerTableCardsSummary: playerTableCardsSummary,
+            PlayerTableCardLabels: playerTableCardLabels,
+            BetweenTurnAffordancesSummary: betweenTurnAffordancesSummary,
+            BetweenTurnAffordanceLabels: betweenTurnAffordanceLabels,
+            GmLiteContinuitySummary: gmLiteContinuitySummary,
+            GmLiteContinuityLabels: gmLiteContinuityLabels,
+            QuickExplainSummary: quickExplainSummary,
+            QuickExplainLabels: quickExplainLabels,
+            SourceAnchorSummary: sourceAnchorSummary,
+            SourceAnchorLabels: sourceAnchorLabels,
+            StaleStatePosture: staleStatePosture,
+            GroundedFollowUpSummary: groundedFollowUpSummary,
+            GroundedFollowUpLabels: groundedFollowUpLabels,
             ServerPlaneSummary: serverPlaneSummary,
             RunboardSummary: runboardSummary,
             RosterSummary: rosterSummary,
@@ -305,7 +464,22 @@ public static class PlayCampaignWorkspaceLiteProjector
             ReplayNextAction: replayNextAction,
             ReplayPublicationHref: replayPublicationHref,
             SelectedArtifactView: selectedArtifactView,
+            ArtifactShelfSelectionSummary: artifactShelfSelectionSummary,
+            SelectedRecapArtifactSummary: selectedRecapArtifactSummary,
+            SelectedRecapArtifactHref: selectedRecapArtifactHref,
             ArtifactShelfViews: artifactShelfViews,
+            LaunchPrimerSummary: launchPrimerSummary,
+            LaunchPrimerProvenanceSummary: launchPrimerProvenanceSummary,
+            LaunchPrimerHref: launchPrimerHref,
+            FirstSessionBriefingSummary: firstSessionBriefingSummary,
+            FirstSessionBriefingProvenanceSummary: firstSessionBriefingProvenanceSummary,
+            FirstSessionBriefingHref: firstSessionBriefingHref,
+            StarterArtifactContinuitySummary: starterArtifactContinuitySummary,
+            StarterArtifactContinuityLabels: starterArtifactContinuityLabels,
+            RunnerGoalUpdatesSummary: runnerGoalUpdatesSummary,
+            RunnerGoalUpdateLabels: runnerGoalUpdateLabels,
+            PlayerSafeConsequenceFeedSummary: playerSafeConsequenceFeedSummary,
+            PlayerSafeConsequenceFeedLabels: playerSafeConsequenceFeedLabels,
             CampaignMemorySummary: campaignMemorySummary,
             CampaignMemoryReturnSummary: campaignMemoryReturnSummary,
             ContinuityRailSummary: continuityRailSummary,
@@ -314,6 +488,14 @@ public static class PlayCampaignWorkspaceLiteProjector
             GmOperationsLabels: gmOperationsLabels,
             OfflineTruthSummary: offlineTruthSummary,
             OfflineTruthLabels: offlineTruthLabels,
+            ActionRequiredSummary: actionRequiredSummary,
+            ActionRequiredLabels: actionRequiredLabels,
+            MobileCampaignCurrentState: mobileCampaignCurrentState,
+            MobileCampaignStateSummary: mobileCampaignStateSummary,
+            MobileCampaignCachedState: mobileCampaignCachedState,
+            MobileCampaignStaleState: mobileCampaignStaleState,
+            MobileCampaignActionRequired: mobileCampaignActionRequired,
+            MobileCampaignStateLabels: mobileCampaignStateLabels,
             RolePosture: rolePosture,
             RulePosture: $"{session.RuntimeFingerprint}. {runtimeBundleSummary}",
             LegalRunnerSummary: legalRunnerSummary,
@@ -357,9 +539,18 @@ public static class PlayCampaignWorkspaceLiteProjector
             CoachHints: resume.Bootstrap.CoachHints.Select(hint => hint.Message).ToArray());
     }
 
-    private static string SelectArtifactShelfView(PlaySurfaceRole role, RecapShelfEntry? recapEntry)
+    private static string SelectArtifactShelfView(PlaySurfaceRole role, RecapShelfEntry? recapEntry, string? requestedArtifactView)
     {
         HashSet<string> availableViews = GetArtifactAudienceKinds(recapEntry?.Audience);
+        if (!string.IsNullOrWhiteSpace(requestedArtifactView))
+        {
+            string normalizedRequestedView = requestedArtifactView.Trim().ToLowerInvariant();
+            if (availableViews.Contains(normalizedRequestedView))
+            {
+                return normalizedRequestedView;
+            }
+        }
+
         string preferredView = role switch
         {
             PlaySurfaceRole.GameMaster => "campaign",
@@ -373,7 +564,7 @@ public static class PlayCampaignWorkspaceLiteProjector
             return preferredView;
         }
 
-        foreach (string fallbackView in new[] { "campaign", "personal", "creator" })
+        foreach (string fallbackView in new[] { "campaign", "travel", "personal", "creator" })
         {
             if (availableViews.Contains(fallbackView))
             {
@@ -384,7 +575,48 @@ public static class PlayCampaignWorkspaceLiteProjector
         return "campaign";
     }
 
-    private static PlayArtifactShelfViewLink[] BuildArtifactShelfViews(RecapShelfEntry? recapEntry, string selectedArtifactView)
+    private static string BuildArtifactShelfSelectionSummary(
+        string selectedArtifactView,
+        RecapShelfEntry? recapEntry,
+        RecapShelfEntry? replayEntry,
+        string offlinePrefetchSummary,
+        string travelPosture)
+        => selectedArtifactView switch
+        {
+            "travel" => $"Travel shelf: {travelPosture} {offlinePrefetchSummary}",
+            "campaign" => $"Campaign shelf: {recapEntry?.Summary ?? "No shared campaign recap packet is attached yet."} {replayEntry?.Summary ?? "No replay-safe package is attached yet."}",
+            "creator" => recapEntry?.Discoverable == true
+                ? $"Published shelf: {recapEntry.PublicationSummary}"
+                : $"Published shelf: {recapEntry?.NextSafeAction ?? "Review creator publication status before you widen the artifact audience."}",
+            _ => $"My stuff shelf: {recapEntry?.OwnershipSummary ?? "No dossier-safe return lane is attached yet, but this view stays reserved for personal artifact truth."}"
+        };
+
+    private static string BuildSelectedRecapArtifactSummary(
+        string selectedArtifactView,
+        string? artifactId,
+        RecapShelfEntry? recapEntry)
+        => string.IsNullOrWhiteSpace(artifactId)
+            ? "Selected recap artifact: no recap artifact is pinned yet."
+            : recapEntry is null
+                ? $"Selected recap artifact: {artifactId} is pinned on the {HumanizeArtifactShelfViewId(selectedArtifactView)}, but the recap-safe packet has not hydrated yet."
+                : $"Selected recap artifact: {artifactId} keeps {recapEntry.Label} on the {HumanizeArtifactShelfViewId(selectedArtifactView)}.";
+
+    private static string BuildSelectedRecapArtifactHref(
+        string sessionId,
+        PlaySurfaceRole role,
+        string selectedArtifactView,
+        string? artifactId)
+        => string.IsNullOrWhiteSpace(artifactId)
+            ? BuildArtifactShelfHref(sessionId, role, selectedArtifactView)
+            : $"/artifacts/{Uri.EscapeDataString(sessionId)}/{Uri.EscapeDataString(artifactId)}?role={Uri.EscapeDataString(role.ToString())}&view={Uri.EscapeDataString(selectedArtifactView)}";
+
+    private static PlayArtifactShelfViewLink[] BuildArtifactShelfViews(
+        string sessionId,
+        PlaySurfaceRole role,
+        RecapShelfEntry? recapEntry,
+        string selectedArtifactView,
+        string offlinePrefetchSummary,
+        string travelPosture)
     {
         HashSet<string> availableViews = GetArtifactAudienceKinds(recapEntry?.Audience);
 
@@ -396,7 +628,7 @@ public static class PlayCampaignWorkspaceLiteProjector
                 Summary: availableViews.Contains("personal")
                     ? $"Reuse the same dossier-safe return lane without duplicating records. {recapEntry?.OwnershipSummary ?? "This view keeps install-local ownership explicit."}"
                     : "No dossier-safe return lane is attached yet, but this view stays reserved for personal artifact truth.",
-                Href: "/artifacts?view=personal",
+                Href: BuildArtifactShelfHref(sessionId, role, "personal"),
                 IsSelected: string.Equals(selectedArtifactView, "personal", StringComparison.Ordinal)),
             new(
                 ViewId: "campaign",
@@ -404,8 +636,14 @@ public static class PlayCampaignWorkspaceLiteProjector
                 Summary: availableViews.Contains("campaign")
                     ? $"Browse the live campaign recap packet on the shared lane. {recapEntry?.Summary ?? "This view keeps the table-facing recap artifact attached to the current workspace."}"
                     : "No shared campaign recap packet is attached yet, but this view stays reserved for campaign artifact truth.",
-                Href: "/artifacts?view=campaign",
+                Href: BuildArtifactShelfHref(sessionId, role, "campaign"),
                 IsSelected: string.Equals(selectedArtifactView, "campaign", StringComparison.Ordinal)),
+            new(
+                ViewId: "travel",
+                Label: "Travel cache",
+                Summary: $"Keep the bounded travel shelf tied to the same claimed-device packet. {travelPosture} {offlinePrefetchSummary}",
+                Href: BuildArtifactShelfHref(sessionId, role, "travel"),
+                IsSelected: string.Equals(selectedArtifactView, "travel", StringComparison.Ordinal)),
             new(
                 ViewId: "creator",
                 Label: "Published stuff",
@@ -414,10 +652,40 @@ public static class PlayCampaignWorkspaceLiteProjector
                         ? $"Browse the governed creator packet directly from the same recap-safe artifact. {recapEntry.PublicationSummary}"
                         : $"The same creator packet is still bounded until publication clears review. {recapEntry?.NextSafeAction ?? "Review creator publication status before you widen the audience."}"
                     : "No creator-safe packet is attached yet, but this view stays reserved for published artifact truth.",
-                Href: "/artifacts?view=creator",
+                Href: BuildArtifactShelfHref(sessionId, role, "creator"),
                 IsSelected: string.Equals(selectedArtifactView, "creator", StringComparison.Ordinal))
         ];
     }
+
+    private static string HumanizeArtifactShelfView(string? audience, bool discoverable)
+    {
+        HashSet<string> availableViews = GetArtifactAudienceKinds(audience);
+        if (discoverable && availableViews.Contains("creator"))
+        {
+            return "published shelf";
+        }
+
+        if (availableViews.Contains("travel"))
+        {
+            return "travel shelf";
+        }
+
+        if (availableViews.Contains("campaign"))
+        {
+            return "campaign shelf";
+        }
+
+        return "my stuff shelf";
+    }
+
+    private static string HumanizeArtifactShelfViewId(string selectedArtifactView)
+        => selectedArtifactView switch
+        {
+            "travel" => "travel shelf",
+            "campaign" => "campaign shelf",
+            "creator" => "published shelf",
+            _ => "my stuff shelf"
+        };
 
     private static HashSet<string> GetArtifactAudienceKinds(string? audience)
     {
@@ -437,8 +705,12 @@ public static class PlayCampaignWorkspaceLiteProjector
             kinds.Add("campaign");
         }
 
+        kinds.Add("travel");
         return kinds;
     }
+
+    private static string BuildArtifactShelfHref(string sessionId, PlaySurfaceRole role, string viewId)
+        => $"/artifacts/{Uri.EscapeDataString(sessionId)}?role={Uri.EscapeDataString(role.ToString())}&view={Uri.EscapeDataString(viewId)}";
 
     private static string HumanizeAudience(string? audience)
     {
@@ -476,14 +748,77 @@ public static class PlayCampaignWorkspaceLiteProjector
     }
 
     private static RecapShelfEntry? FindLeadRecapEntry(PlayCampaignWorkspaceServerPlane serverPlane)
-        => serverPlane.RecapShelf.FirstOrDefault(static item => !IsReplayEntry(item))
+        => serverPlane.RecapShelf.FirstOrDefault(static item => IsRecapEntry(item))
             ?? serverPlane.RecapShelf.FirstOrDefault();
 
     private static RecapShelfEntry? FindLeadReplayEntry(PlayCampaignWorkspaceServerPlane serverPlane)
         => serverPlane.RecapShelf.FirstOrDefault(IsReplayEntry);
 
+    private static RecapShelfEntry? FindLeadPrimerEntry(PlayCampaignWorkspaceServerPlane serverPlane)
+        => serverPlane.RecapShelf.FirstOrDefault(static item => item.Kind.Contains("primer", StringComparison.OrdinalIgnoreCase));
+
+    private static RecapShelfEntry? FindLeadFirstSessionBriefingEntry(PlayCampaignWorkspaceServerPlane serverPlane)
+        => serverPlane.RecapShelf.FirstOrDefault(static item => item.Kind.Contains("briefing", StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsRecapEntry(RecapShelfEntry item)
+        => item.Kind.Contains("recap", StringComparison.OrdinalIgnoreCase);
+
     private static bool IsReplayEntry(RecapShelfEntry item)
         => item.Kind.Contains("replay", StringComparison.OrdinalIgnoreCase);
+
+    private static string BuildStarterArtifactSummary(string prefix, RecapShelfEntry? entry, string fallback)
+        => entry is null ? fallback : $"{prefix}: {entry.Summary}";
+
+    private static string BuildStarterArtifactHref(
+        string sessionId,
+        PlaySurfaceRole role,
+        RecapShelfEntry? entry,
+        string selectedArtifactView)
+        => string.IsNullOrWhiteSpace(entry?.ArtifactId)
+            ? BuildArtifactShelfHref(sessionId, role, selectedArtifactView)
+            : $"/artifacts/{Uri.EscapeDataString(sessionId)}/{Uri.EscapeDataString(entry.ArtifactId)}?role={Uri.EscapeDataString(role.ToString())}&view={Uri.EscapeDataString(selectedArtifactView)}";
+
+    private static string BuildStarterArtifactContinuitySummary(
+        RecapShelfEntry? primerEntry,
+        RecapShelfEntry? firstSessionBriefingEntry,
+        string travelPosture,
+        string offlinePrefetchSummary)
+    {
+        string primer = primerEntry?.NextSafeAction ?? "No starter primer follow-through is attached yet.";
+        string briefing = firstSessionBriefingEntry?.NextSafeAction ?? "No first-session briefing follow-through is attached yet.";
+        return $"Starter continuity: {travelPosture} {offlinePrefetchSummary} Primer lane: {primer} Briefing lane: {briefing}";
+    }
+
+    private static string[] BuildStarterArtifactContinuityLabels(
+        RecapShelfEntry? primerEntry,
+        RecapShelfEntry? firstSessionBriefingEntry,
+        string selectedArtifactView,
+        string launchPrimerHref,
+        string firstSessionBriefingHref)
+    {
+        List<string> labels =
+        [
+            $"Starter primer lane: {primerEntry?.Label ?? "No starter primer artifact is attached yet."}",
+            $"Starter primer provenance: {primerEntry?.ProvenanceSummary ?? "No starter primer provenance is attached yet."}",
+            $"Starter primer route: {launchPrimerHref}",
+            $"First-session briefing lane: {firstSessionBriefingEntry?.Label ?? "No first-session briefing artifact is attached yet."}",
+            $"First-session briefing provenance: {firstSessionBriefingEntry?.ProvenanceSummary ?? "No first-session briefing provenance is attached yet."}",
+            $"First-session briefing route: {firstSessionBriefingHref}",
+            $"Starter artifact shelf: selected view remains {selectedArtifactView} while primer and briefing stay on the same claimed-device shell."
+        ];
+
+        if (!string.IsNullOrWhiteSpace(primerEntry?.NextSafeAction))
+        {
+            labels.Add($"Starter primer next: {primerEntry.NextSafeAction}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(firstSessionBriefingEntry?.NextSafeAction))
+        {
+            labels.Add($"First-session briefing next: {firstSessionBriefingEntry.NextSafeAction}");
+        }
+
+        return labels.ToArray();
+    }
 
     private static string BuildChangePacketSummary(
         PlayResumeResponse resume,
@@ -497,6 +832,158 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? "No validated bundle is cached locally."
             : $"Bundle {resume.RuntimeBundle.BundleTag} is already validated.";
         return $"Scene {session.SceneId} remains pinned at {session.SceneRevision}. Latest table signal: {latestTimeline}. {checkpointSummary} {bundleSummary}";
+    }
+
+    private static string BuildPlayerTableCardsSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string latestTimeline,
+        string roleLabel)
+    {
+        string initiativeCue = resume.Bootstrap.QuickActions.FirstOrDefault()?.Label
+            ?? "Review-only posture while the next table cue is confirmed";
+        string actionBudgetCue = resume.CachePressure.BackpressureActive
+            ? "warning-only until cache pressure clears"
+            : resume.RuntimeBundle is null || resume.Checkpoint is null
+                ? "provisional until bundle proof and checkpoint truth are grounded"
+                : "grounded on the current claimed-device packet";
+        return $"Player table cards: Initiative cue: {latestTimeline}. Action budget cue: {initiativeCue}. Confidence cue: {actionBudgetCue}. This stays a mobile {roleLabel} receipt, not a second rules authority for {session.SceneId}.";
+    }
+
+    private static string[] BuildPlayerTableCardLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string latestTimeline,
+        string roleLabel)
+    {
+        string initiativeLane = $"Initiative lane: '{latestTimeline}' is the current table cue on the {roleLabel}.";
+        string actionBudgetLane = resume.Bootstrap.QuickActions.Count == 0
+            ? $"Action-budget lane: no role-safe quick actions are exposed yet, so this shell stays review-first for {session.SceneId}."
+            : $"Action-budget lane: {string.Join(", ", resume.Bootstrap.QuickActions.Select(action => action.Label))} stay visible as the next bounded table actions.";
+        string conditionLane = resume.RuntimeBundle is null
+            ? $"Condition/effect lane: reconnect {session.SceneId} once before you trust table-card condition carry-forward."
+            : $"Condition/effect lane: bundle {resume.RuntimeBundle.BundleTag} keeps visible condition/effect carry-forward grounded on this mobile shell.";
+        string receiptLane = resume.Checkpoint is null
+            ? "Receipt lane: no claimed return anchor is pinned yet."
+            : $"Receipt lane: checkpoint {resume.Checkpoint.AppliedThroughSequence} keeps the current table card attached to the install-local return anchor.";
+        return [initiativeLane, actionBudgetLane, conditionLane, receiptLane];
+    }
+
+    private static string BuildBetweenTurnAffordancesSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel)
+    {
+        string nextAction = BuildSafeNextAction(resume, session);
+        string reconnectCue = resume.Checkpoint is null
+            ? "seed a claimed return anchor first"
+            : $"return through checkpoint {resume.Checkpoint.AppliedThroughSequence}";
+        return $"Between-turn affordances: {nextAction} Rejoin cue: {reconnectCue}. Support cue: keep escalation on one install-local route if the table stalls. This keeps the between-turn lane calm for the claimed {roleLabel}.";
+    }
+
+    private static string[] BuildBetweenTurnAffordanceLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel)
+    {
+        string readyLane = resume.Bootstrap.QuickActions.Count == 0
+            ? $"Ready lane: no role-safe quick action is attached yet, so the between-turn pause stays review-first for the {roleLabel}."
+            : $"Ready lane: {resume.Bootstrap.QuickActions.First().Label} remains the next one-tap action on this claimed shell.";
+        string recapLane = $"Recap lane: keep replay-safe and recap-safe review on {resume.DeepLinkOwnerRoute}.";
+        string travelLane = resume.RuntimeBundle is null || resume.Checkpoint is null
+            ? $"Travel lane: hold safehouse handoff for {session.SceneId} until grounded continuity returns."
+            : $"Travel lane: bounded safehouse handoff is ready after the next online sync for {session.SceneId}.";
+        string supportLane = $"Support lane: {BuildSupportFollowThrough(resume, session)}";
+        return [readyLane, recapLane, travelLane, supportLane];
+    }
+
+    private static string BuildGmLiteContinuitySummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel)
+    {
+        string rosterCue = serverPlane.Roster.Summary;
+        string runboardCue = serverPlane.Runboard.ObjectiveSummary;
+        string decisionCue = serverPlane.DecisionNotices.FirstOrDefault()?.Summary
+            ?? serverPlane.NextSafeAction.Summary;
+        return $"GM-lite continuity: {rosterCue} Runboard cue: {runboardCue} Decision cue: {decisionCue} This view keeps live combat confidence visible on the {roleLabel} without turning mobile into a second GM truth source.";
+    }
+
+    private static string[] BuildGmLiteContinuityLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel)
+    {
+        string initiativeLane = $"Initiative lane: {serverPlane.Runboard.ActiveSceneSummary}";
+        string rosterLane = $"Roster lane: {serverPlane.Roster.Summary}";
+        string objectiveLane = $"Objective lane: {serverPlane.Runboard.ObjectiveSummary}";
+        string governanceLane = $"GM-lite lane: bounded to the mobile {roleLabel}; use {serverPlane.NextSafeAction.Summary.ToLowerInvariant()} before widening changes beyond {session.SceneId}.";
+        return [initiativeLane, rosterLane, objectiveLane, governanceLane];
+    }
+
+    private static string BuildQuickExplainSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string latestTimeline,
+        string roleLabel)
+    {
+        string checkpointSummary = resume.Checkpoint is null
+            ? "no local return anchor is pinned yet"
+            : $"checkpoint {resume.Checkpoint.AppliedThroughSequence} is the local return anchor";
+        string bundleSummary = resume.RuntimeBundle is null
+            ? "runtime bundle proof is still pending"
+            : $"bundle {resume.RuntimeBundle.BundleTag} grounds the visible runtime values";
+        return $"Quick explain: scene {session.SceneId}, revision {session.SceneRevision}, and '{latestTimeline}' are visible because the current scene packet, {checkpointSummary}, and {bundleSummary} are aligned for the {roleLabel}.";
+    }
+
+    private static string[] BuildQuickExplainLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string latestTimeline,
+        string roleLabel)
+    {
+        string sceneValue = $"Scene value: {session.SceneId} comes from the active scene packet at revision {session.SceneRevision}.";
+        string timelineValue = $"Latest signal: '{latestTimeline}' is the newest replay-safe timeline event on this shell.";
+        string checkpointValue = resume.Checkpoint is null
+            ? "Return anchor value: no checkpoint is pinned yet, so the shell stays review-first until this device seeds one."
+            : $"Return anchor value: checkpoint {resume.Checkpoint.AppliedThroughSequence} is the install-local continuity anchor for this {roleLabel}.";
+        string bundleValue = resume.RuntimeBundle is null
+            ? $"Bundle value: runtime {session.RuntimeFingerprint} is loaded, but grounded bundle proof is still pending."
+            : $"Bundle value: {resume.RuntimeBundle.BundleTag} is the grounded bundle proof for runtime {session.RuntimeFingerprint}.";
+        return [sceneValue, timelineValue, checkpointValue, bundleValue];
+    }
+
+    private static string BuildSourceAnchorSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+    {
+        string checkpointSummary = resume.Checkpoint is null
+            ? "checkpoint pending"
+            : $"checkpoint {resume.Checkpoint.AppliedThroughSequence}";
+        string bundleSummary = resume.RuntimeBundle is null
+            ? "bundle proof pending"
+            : $"bundle {resume.RuntimeBundle.BundleTag}";
+        string route = string.IsNullOrWhiteSpace(resume.DeepLinkOwnerRoute)
+            ? $"/play?sessionId={Uri.EscapeDataString(resume.SessionId)}&role={Uri.EscapeDataString(resume.Role.ToString())}"
+            : resume.DeepLinkOwnerRoute!;
+        return $"Source anchors: packet {session.SceneId}/{session.SceneRevision}, sequence {resume.Bootstrap.Projection.Cursor.AppliedThroughSequence}, {checkpointSummary}, {bundleSummary}, and owner route {route}.";
+    }
+
+    private static string[] BuildSourceAnchorLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string latestTimeline)
+    {
+        string scenePacket = $"Scene packet anchor: {session.SceneId} · {session.SceneRevision}.";
+        string timelinePacket = $"Replay anchor: '{latestTimeline}' stays attached to applied sequence {resume.Bootstrap.Projection.Cursor.AppliedThroughSequence}.";
+        string runtimeAnchor = $"Runtime anchor: {session.RuntimeFingerprint}.";
+        string returnAnchor = resume.Checkpoint is null
+            ? "Return anchor: pending until this device captures its first local checkpoint."
+            : $"Return anchor: checkpoint {resume.Checkpoint.AppliedThroughSequence} on {resume.Checkpoint.SceneRevision}.";
+        string bundleAnchor = resume.RuntimeBundle is null
+            ? "Bundle anchor: reconnect once to ground a local runtime bundle."
+            : $"Bundle anchor: {resume.RuntimeBundle.BundleTag} validated at {resume.RuntimeBundle.LastValidatedAtUtc:yyyy-MM-dd HH:mm} UTC.";
+        return [scenePacket, timelinePacket, runtimeAnchor, returnAnchor, bundleAnchor];
     }
 
     private static string BuildRolePosture(PlayResumeResponse resume, EngineSessionEnvelope session)
@@ -608,6 +1095,68 @@ public static class PlayCampaignWorkspaceLiteProjector
             : $"checkpoint {resume.Checkpoint.AppliedThroughSequence}";
         string aftermathLabel = BuildAftermathCoverageSummary(serverPlane);
         return $"Campaign memory: {serverPlane.Workspace.CampaignName}, {checkpointSummary}, '{latestTimeline}', and {aftermathLabel} stay on one governed memory lane for the {roleLabel}.";
+    }
+
+    private static string BuildRunnerGoalUpdatesSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel,
+        string latestTimeline)
+    {
+        string checkpointSummary = resume.Checkpoint is null
+            ? "checkpoint pending"
+            : $"checkpoint {resume.Checkpoint.AppliedThroughSequence}";
+        string supportCue = serverPlane.SupportClosures.FirstOrDefault()?.NextSafeAction
+            ?? "support follow-through remains available if goal-return posture drifts";
+        return $"Runner goal updates: {serverPlane.Workspace.CampaignName} keeps one goal-update lane on '{latestTimeline}' with {checkpointSummary} for the {roleLabel}. Return moments stay player-safe, install-local, and tied to {supportCue}.";
+    }
+
+    private static string[] BuildRunnerGoalUpdateLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel,
+        string latestTimeline)
+    {
+        string checkpointLane = resume.Checkpoint is null
+            ? $"Goal checkpoint lane: {session.SceneId} still needs a local checkpoint before you trust a goal-update return moment."
+            : $"Goal checkpoint lane: checkpoint {resume.Checkpoint.AppliedThroughSequence} anchors goal-update return posture for the {roleLabel}.";
+        string signalLane = $"Goal signal lane: '{latestTimeline}' is the newest replay-safe cue attached to the runner-goal return moment.";
+        string routeLane = $"Goal route lane: {serverPlane.Workspace.ReturnSummary}";
+        string boundaryLane = resume.RuntimeBundle is null
+            ? "Goal boundary lane: reconnect once before you trust goal-update follow-through beyond review-only posture."
+            : $"Goal boundary lane: bundle {resume.RuntimeBundle.BundleTag} keeps goal-update copy grounded without inventing a second campaign authority.";
+        return [checkpointLane, signalLane, routeLane, boundaryLane];
+    }
+
+    private static string BuildPlayerSafeConsequenceFeedSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel,
+        string latestTimeline)
+    {
+        string consequenceSource = resume.RuntimeBundle is null
+            ? "player-safe consequence copy is still review-first until bundle proof is grounded"
+            : $"bundle {resume.RuntimeBundle.BundleTag} keeps the visible consequence feed grounded on this shell";
+        return $"Player-safe consequence feed: {serverPlane.Workspace.CampaignName} turns '{latestTimeline}' into one bounded consequence cue for the {roleLabel}. {consequenceSource}, spoilers stay bounded, and the feed remains a view instead of BLACK LEDGER world truth.";
+    }
+
+    private static string[] BuildPlayerSafeConsequenceFeedLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel,
+        string latestTimeline)
+    {
+        string feedLane = $"Consequence lane: '{latestTimeline}' is the visible player-safe feed item for {serverPlane.Workspace.CampaignName}.";
+        string spoilerLane = "Spoiler lane: only player-safe consequence copy is shown here; approval, world-state authority, and operator-only detail stay outside mobile.";
+        string returnLane = $"Return lane: {serverPlane.NextSafeAction.Summary}";
+        string trustLane = resume.RuntimeBundle is null
+            ? $"Trust lane: reconnect {session.SceneId} before you treat this consequence feed as a grounded return cue."
+            : $"Trust lane: {roleLabel} consequence copy stays grounded by bundle {resume.RuntimeBundle.BundleTag} and checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"}.";
+        return [feedLane, spoilerLane, returnLane, trustLane];
     }
 
     private static string BuildCampaignMemoryReturnSummary(
@@ -748,6 +1297,141 @@ public static class PlayCampaignWorkspaceLiteProjector
             ? $"Needs-online lane: reconnect {session.SceneId} for grounded bundle and checkpoint truth."
             : "Needs-online lane: publish promotion, safehouse handoff propagation, cross-device propagation, and final mutation sync remain online-only.";
         return [cached, stale, action, canDoNow, needsOnline];
+    }
+
+    private static string BuildStaleStatePosture(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel)
+    {
+        if (resume.CachePressure.BackpressureActive)
+        {
+            return $"Stale-state posture: warning for the {roleLabel} because cache pressure is active ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota}) and already touched {resume.CachePressure.EvictedEntryCount} session(s).";
+        }
+
+        if (resume.RuntimeBundle is null || resume.Checkpoint is null)
+        {
+            return $"Stale-state posture: reconnect-first for the {roleLabel}; this shell still needs {(resume.RuntimeBundle is null ? "grounded bundle proof" : "a local checkpoint")} before stale-safe continuity can be trusted on {session.SceneId}.";
+        }
+
+        return $"Stale-state posture: green for the {roleLabel}; checkpoint {resume.Checkpoint.AppliedThroughSequence} and bundle {resume.RuntimeBundle.BundleTag} keep stale-safe continuity grounded on {session.SceneId}.";
+    }
+
+    private static string BuildActionRequiredSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel)
+    {
+        if (resume.RuntimeBundle is null && resume.Checkpoint is null)
+        {
+            return $"Action required: reconnect {session.SceneId} to ground both bundle proof and a local checkpoint before this {roleLabel} can carry continuity-critical campaign state.";
+        }
+
+        if (resume.RuntimeBundle is null)
+        {
+            return $"Action required: reconnect {session.SceneId} so this {roleLabel} caches grounded bundle proof before you trust stale-safe campaign mutations.";
+        }
+
+        if (resume.Checkpoint is null)
+        {
+            return $"Action required: seed a local checkpoint for {session.SceneId} before you trust this {roleLabel} as the return anchor for travel or safehouse continuity.";
+        }
+
+        if (resume.CachePressure.BackpressureActive)
+        {
+            return $"Action required: clear cache pressure on this {roleLabel} before you trust stale campaign state or pin more travel continuity on {session.SceneId}.";
+        }
+
+        return $"Action required: keep mutations on the claimed {roleLabel}, then finish the next online sync before you widen {session.SceneId} beyond bounded install-local continuity.";
+    }
+
+    private static string[] BuildActionRequiredLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel)
+    {
+        string grounding = resume.RuntimeBundle is null && resume.Checkpoint is null
+            ? $"Action-required lane: reconnect {session.SceneId} to ground bundle proof plus checkpoint truth on this {roleLabel}."
+            : resume.RuntimeBundle is null
+                ? $"Action-required lane: cache grounded bundle proof for {session.SceneId} before you trust continuity-critical state."
+                : resume.Checkpoint is null
+                    ? $"Action-required lane: seed a local checkpoint before this {roleLabel} becomes the return anchor."
+                    : $"Action-required lane: keep continuity mutations on the claimed {roleLabel} and sync them before cross-device fan-out.";
+        string staleHandling = resume.CachePressure.BackpressureActive
+            ? $"Stale-action lane: clear cache pressure ({resume.CachePressure.RuntimeBundleCount}/{resume.CachePressure.RuntimeBundleQuota}) before you trust stale campaign state on this device."
+            : "Stale-action lane: no extra stale-state remediation is required right now.";
+        string travelHandling = resume.RuntimeBundle is null || resume.Checkpoint is null
+            ? $"Travel-action lane: hold travel and safehouse propagation for {session.SceneId} until this device regrounds continuity."
+            : "Travel-action lane: bounded travel continuity is ready, but final handoff propagation still stays online-only.";
+
+        return [grounding, staleHandling, travelHandling];
+    }
+
+    private static string BuildMobileCampaignCurrentState(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string continuityPosture,
+        string travelPosture)
+        => $"Current continuity posture: {continuityPosture} Travel lane: {travelPosture} This mobile shell stays the claimed {roleLabel} for {session.SceneId}.";
+
+    private static string BuildMobileCampaignStateSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string offlinePrefetchSummary,
+        string cachePosture)
+        => $"Cached state: {cachePosture} {offlinePrefetchSummary} This keeps stale-safe campaign continuity explicit on the claimed {roleLabel} for {session.SceneId}.";
+
+    private static string BuildMobileCampaignCachedState(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        IReadOnlyList<string> offlineTruthLabels)
+    {
+        string cachedLabel = offlineTruthLabels.FirstOrDefault(static item => item.Contains("Cached lane:", StringComparison.Ordinal))
+            ?? $"Cached lane: no bounded cached campaign packet is attached to {session.SceneId} yet.";
+        return $"Cached state: {cachedLabel} Mobile shell owner: {roleLabel}.";
+    }
+
+    private static string BuildMobileCampaignStaleState(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string staleStatePosture)
+        => $"Stale state: {staleStatePosture} This keeps stale campaign posture explicit before {roleLabel} mutations continue on {session.SceneId}.";
+
+    private static string BuildMobileCampaignActionRequired(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string actionRequiredSummary)
+    {
+        string normalized = actionRequiredSummary.StartsWith("Action required:", StringComparison.Ordinal)
+            ? actionRequiredSummary
+            : $"Action required: {actionRequiredSummary}";
+        return $"{normalized} Mobile shell owner: {roleLabel}. Session: {session.SceneId}.";
+    }
+
+    private static string[] BuildMobileCampaignStateLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string mobileCampaignCurrentState,
+        IReadOnlyList<string> offlineTruthLabels,
+        IReadOnlyList<string> actionRequiredLabels)
+    {
+        List<string> labels =
+        [
+            $"Current lane: {mobileCampaignCurrentState}",
+            .. offlineTruthLabels,
+            .. actionRequiredLabels
+        ];
+
+        return labels
+            .Where(static item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static string BuildSupportPosture(PlayResumeResponse resume, PlayCampaignWorkspaceServerPlane serverPlane)
@@ -951,6 +1635,41 @@ public static class PlayCampaignWorkspaceLiteProjector
         }
 
         return labels.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+
+    private static string BuildGroundedFollowUpSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string safeNextAction,
+        string updateFollowThrough,
+        string supportFollowThrough)
+    {
+        string route = string.IsNullOrWhiteSpace(resume.DeepLinkOwnerRoute)
+            ? $"/play?sessionId={Uri.EscapeDataString(resume.SessionId)}&role={Uri.EscapeDataString(resume.Role.ToString())}"
+            : resume.DeepLinkOwnerRoute!;
+        return $"Grounded follow-up: stay on {route} for the next stale-protected {roleLabel} step. Next: {safeNextAction} Text-first fallback stays bounded to update posture ({updateFollowThrough}) and support posture ({supportFollowThrough}) instead of widening into a new control surface for {session.SceneId}.";
+    }
+
+    private static string[] BuildGroundedFollowUpLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string safeNextAction,
+        string updateFollowThrough,
+        string supportFollowThrough,
+        string roleFollowThrough,
+        IReadOnlyList<string> followThroughLabels)
+    {
+        string continueLane = $"Continue lane: {safeNextAction}";
+        string roleLane = $"Role lane: {roleFollowThrough}";
+        string updateLane = $"Update lane: {updateFollowThrough}";
+        string supportLane = $"Support lane: {supportFollowThrough}";
+        string boundaryLane = $"Boundary lane: keep follow-up text-first, packet-backed, and bounded to {session.SceneId} on the claimed {roleLabel}.";
+        return new[] { continueLane, roleLane, updateLane, supportLane, boundaryLane }
+            .Concat(followThroughLabels.Take(2))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static string[] BuildLongRunningDecisionReceipts(

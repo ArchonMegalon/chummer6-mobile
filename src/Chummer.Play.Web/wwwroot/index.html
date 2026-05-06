@@ -7,23 +7,217 @@
   <title>Chummer Play Shell</title>
   <link rel="manifest" href="/manifest.webmanifest" />
   <style>
-    body { font-family: sans-serif; margin: 0; padding: 16px; background: #0f1b26; color: #f5f7fa; }
-    main { max-width: 720px; margin: 0 auto; }
-    .card { background: #162634; border: 1px solid #2c4256; border-radius: 12px; padding: 16px; margin: 0 0 16px; }
+    :root {
+      --bg-top: #08111c;
+      --bg-bottom: #132739;
+      --panel: rgba(17, 33, 48, 0.92);
+      --panel-strong: rgba(9, 19, 30, 0.96);
+      --border: #2c4256;
+      --text: #f5f7fa;
+      --muted: #b7c7d6;
+      --accent: #82d4b0;
+      --warning: #ffd08a;
+      --critical: #ffb5b5;
+      --cool: #a8d0ff;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+      margin: 0;
+      padding: 16px;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(129, 201, 255, 0.12), transparent 38%),
+        radial-gradient(circle at top right, rgba(130, 212, 176, 0.14), transparent 32%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      color: var(--text);
+    }
+    main { max-width: 1080px; margin: 0 auto; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin: 0 0 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .hero-card {
+      background:
+        linear-gradient(145deg, rgba(8, 18, 28, 0.96), rgba(19, 39, 57, 0.95)),
+        linear-gradient(90deg, rgba(130, 212, 176, 0.12), rgba(168, 208, 255, 0.08));
+      overflow: hidden;
+    }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -8% -35% auto;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(130, 212, 176, 0.18), transparent 68%);
+      pointer-events: none;
+    }
+    .hero-card { position: relative; }
+    .hero-grid, .grid-two, .grid-three {
+      display: grid;
+      gap: 16px;
+    }
+    .hero-grid { grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.9fr); }
+    .grid-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .panel-stack > * + * { margin-top: 14px; }
+    .continuity-state-card[data-tone="warning"] { border-color: #b07a1f; background: #2b2414; }
+    .continuity-state-card[data-tone="reconnect"] { border-color: #8e4b4b; background: #2b1d22; }
+    .continuity-state-card[data-tone="ready"] { border-color: #2f7d58; background: #183128; }
     .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; color: #8da7bf; margin: 0 0 8px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 8px; font-size: clamp(2rem, 3vw, 2.6rem); }
     h2 { margin: 0 0 8px; font-size: 1.15rem; }
+    h3 { margin: 0 0 8px; font-size: 1rem; color: #dce8f2; }
     ul { margin: 0; padding-left: 18px; }
     li + li { margin-top: 6px; }
     details { margin-top: 16px; }
     pre { overflow-x: auto; padding: 12px; border-radius: 8px; background: #1a2c3a; }
-    .hint { color: #b7c7d6; }
+    .hint { color: var(--muted); }
+    .continuity-field[data-kind="cached"] { color: #a8d0ff; }
+    .continuity-field[data-kind="stale"] { color: #ffd08a; }
+    .continuity-field[data-kind="action-required"] { color: #ffb5b5; }
+    .headline { max-width: 12ch; line-height: 1.02; }
+    .hero-copy { font-size: 1rem; color: #dce8f2; max-width: 58ch; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 18px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      border: 1px solid rgba(168, 208, 255, 0.22);
+      background: rgba(10, 20, 32, 0.55);
+      color: #e7f0f8;
+      font-size: 0.92rem;
+    }
+    .chip[data-tone="ready"] { border-color: rgba(130, 212, 176, 0.45); color: #d4f2e3; }
+    .chip[data-tone="warning"] { border-color: rgba(255, 208, 138, 0.5); color: #ffe6bf; }
+    .chip[data-tone="reconnect"] { border-color: rgba(255, 181, 181, 0.45); color: #ffd4d4; }
+    .chip-label { color: #9bb0c4; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+    .action-link, .action-button {
+      appearance: none;
+      border: 1px solid rgba(168, 208, 255, 0.25);
+      background: rgba(10, 20, 32, 0.72);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 12px 16px;
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .action-link[data-kind="primary"], .action-button[data-kind="primary"] {
+      background: linear-gradient(135deg, rgba(130, 212, 176, 0.92), rgba(112, 184, 255, 0.92));
+      color: #08111c;
+      border-color: transparent;
+    }
+    .action-button[hidden] { display: none; }
+    .status-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .status-stack { display: grid; gap: 12px; }
+    .status-block {
+      border: 1px solid rgba(168, 208, 255, 0.14);
+      background: rgba(6, 12, 20, 0.46);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .status-block p:last-child { margin-bottom: 0; }
+    .section-kicker { color: #dce8f2; font-size: 1rem; margin-bottom: 6px; }
+    .section-copy { color: var(--muted); margin-bottom: 0; }
+    .dense-copy p:last-child { margin-bottom: 0; }
+    .shell-column { display: grid; gap: 16px; align-content: start; }
+    @media (max-width: 900px) {
+      .hero-grid, .grid-two, .grid-three { grid-template-columns: 1fr; }
+      body { padding: 12px; }
+      .headline { max-width: none; }
+    }
   </style>
 </head>
 <body>
 <main>
   <h1>Chummer Play</h1>
-  <p class="hint">Installable play shell with deep-link resume ownership.</p>
+  <p class="hint">Installable play shell with deep-link resume ownership, claimed-device restore, and table-safe continuity proof.</p>
   <section id="workspace-shell" hidden>
+    <section class="card hero-card" aria-labelledby="shell-headline">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">Dedicated player, GM, and observer shell</div>
+          <h2 id="shell-headline" class="headline">Resume the table without losing trust.</h2>
+          <p id="shell-subhead" class="hero-copy">Loading live role, continuity, and claimed-device posture.</p>
+          <div class="chip-row" aria-label="Current shell posture">
+            <div class="chip" id="shell-role-chip" data-tone="ready"><span class="chip-label">Role</span><span id="shell-role-chip-value">Loading</span></div>
+            <div class="chip" id="shell-session-chip"><span class="chip-label">Session</span><span id="shell-session-chip-value">Loading</span></div>
+            <div class="chip" id="shell-network-chip"><span class="chip-label">Network</span><span id="shell-network-chip-value">Checking</span></div>
+            <div class="chip" id="shell-install-chip"><span class="chip-label">Install</span><span id="shell-install-chip-value">Checking</span></div>
+          </div>
+          <p id="shell-status" class="hint">The shell is grounding continuity and quick recovery lanes.</p>
+          <div class="hero-actions">
+            <a id="shell-primary-action-link" class="action-link" data-kind="primary" href="/play">Open safe next step</a>
+            <a id="shell-secondary-action-link" class="action-link" href="/contact">Open support route</a>
+            <button id="shell-install-button" class="action-button" type="button" hidden>Install on this device</button>
+          </div>
+        </div>
+        <aside class="shell-column" aria-label="Continuity readiness">
+          <div class="status-block">
+            <div class="eyebrow">Continuity confidence</div>
+            <p id="shell-continuity-status" class="section-kicker">Loading continuity confidence.</p>
+            <p id="shell-continuity-detail" class="section-copy">Checking cached, stale, and action-required lanes.</p>
+          </div>
+          <div class="status-block">
+            <div class="eyebrow">Claimed-device restore</div>
+            <p id="shell-restore-status" class="section-kicker">Loading restore readiness.</p>
+            <p id="shell-restore-detail" class="section-copy">Preparing the next claimed-device route and local boundary notes.</p>
+          </div>
+          <div class="status-block">
+            <div class="eyebrow">Cross-device continuity</div>
+            <p id="shell-continuity-claim-status" class="section-kicker">Checking continuity handoff posture.</p>
+            <p id="shell-continuity-claim-detail" class="section-copy">Preparing the owner route and continuity token for this device.</p>
+            <div class="status-actions">
+              <a id="shell-owner-route-link" class="action-link" href="/play">Open owner route</a>
+              <button id="shell-continuity-claim-button" class="action-button" type="button" data-kind="primary">Claim this device</button>
+            </div>
+          </div>
+          <div class="status-block">
+            <div class="eyebrow">Installable posture</div>
+            <p id="shell-install-status" class="section-kicker">Checking whether this shell is already installed.</p>
+            <p id="shell-install-detail" class="section-copy">Service worker and offline shell posture are still being verified.</p>
+            <p id="shell-service-worker-detail" class="section-copy">Service worker cache control is still being verified.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+    <section class="grid-three" aria-label="Immediate play lanes">
+      <div class="card dense-copy">
+        <div class="eyebrow">Role focus</div>
+        <h2 id="shell-role-focus-heading">Role-specific live view</h2>
+        <p id="shell-role-focus-copy" class="hint">Loading role-specific lane guidance.</p>
+      </div>
+      <div class="card dense-copy">
+        <div class="eyebrow">Reconnect confidence</div>
+        <h2 id="shell-reconnect-heading">Continuity under stress</h2>
+        <p id="shell-reconnect-copy" class="hint">Loading reconnect posture.</p>
+        <p id="shell-continuity-safety" class="hint">Loading claimed-device safety posture.</p>
+        <ul id="shell-network-state-list"></ul>
+      </div>
+      <div class="card dense-copy">
+        <div class="eyebrow">Offline boundary</div>
+        <h2 id="shell-offline-heading">What stays safe offline</h2>
+        <p id="shell-offline-copy" class="hint">Loading offline action boundary.</p>
+      </div>
+    </section>
+    <section class="grid-two" aria-label="Core shell surfaces">
     <div class="card">
       <div class="eyebrow">Entry onboarding and recovery</div>
       <p id="entry-state-summary" class="hint"></p>
@@ -38,6 +232,46 @@
       <h2 id="workspace-summary"></h2>
       <p id="workspace-safe-action" class="hint"></p>
     </div>
+    </section>
+    <section class="grid-three" aria-label="Live combat confidence surfaces">
+    <div class="card">
+      <div class="eyebrow">Player table cards</div>
+      <p id="workspace-player-table-cards" class="hint"></p>
+      <ul id="workspace-player-table-cards-list"></ul>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Between-turn affordances</div>
+      <p id="workspace-between-turn-affordances" class="hint"></p>
+      <ul id="workspace-between-turn-affordances-list"></ul>
+    </div>
+    <div class="card">
+      <div class="eyebrow">GM-lite continuity</div>
+      <p id="workspace-gm-lite-continuity" class="hint"></p>
+      <ul id="workspace-gm-lite-continuity-list"></ul>
+    </div>
+    </section>
+    <section class="grid-two" aria-label="Continuity and explain surfaces">
+    <div class="card">
+      <div class="eyebrow">Quick explain</div>
+      <p id="workspace-quick-explain" class="hint"></p>
+      <ul id="workspace-quick-explain-list"></ul>
+      <p id="workspace-source-anchor" class="hint"></p>
+      <ul id="workspace-source-anchor-list"></ul>
+      <p id="workspace-stale-posture" class="hint"></p>
+      <p id="workspace-grounded-follow-up" class="hint"></p>
+      <ul id="workspace-grounded-follow-up-list"></ul>
+    </div>
+    <div class="card continuity-state-card" id="workspace-mobile-campaign-card" data-tone="info">
+      <div class="eyebrow">Mobile campaign continuity</div>
+      <p id="workspace-mobile-campaign-current-state" class="hint"></p>
+      <p id="workspace-mobile-campaign-state" class="hint"></p>
+      <p id="workspace-mobile-campaign-cached-state" class="hint continuity-field"></p>
+      <p id="workspace-mobile-campaign-stale-state" class="hint continuity-field"></p>
+      <p id="workspace-mobile-campaign-action-required" class="hint continuity-field"></p>
+      <ul id="workspace-mobile-campaign-state-list"></ul>
+    </div>
+    </section>
+    <section class="grid-two" aria-label="Action and recovery surfaces">
     <div class="card">
       <div class="eyebrow">Critical actions</div>
       <p id="critical-rejoin" class="hint"></p>
@@ -56,6 +290,8 @@
       <p id="recover-role-change" class="hint"></p>
       <p id="recover-observer-transition" class="hint"></p>
     </div>
+    </section>
+    <section class="grid-two" aria-label="Current state and campaign server plane">
     <div class="card">
       <div class="eyebrow">Current state</div>
       <p id="workspace-scene"></p>
@@ -108,16 +344,70 @@
       <ul id="workspace-gm-ops-list"></ul>
       <p id="workspace-offline-truth" class="hint"></p>
       <ul id="workspace-offline-truth-list"></ul>
+      <p id="workspace-action-required" class="hint"></p>
+      <ul id="workspace-action-required-list"></ul>
       <p id="workspace-decision-notice" class="hint"></p>
       <p><a id="workspace-decision-notice-link" class="hint" href="/">Decision notice follow-through</a></p>
     </div>
+    </section>
+    <section class="grid-three" aria-label="Artifact and campaign memory surfaces">
+    <div class="card">
+      <div class="eyebrow">Artifact shelf</div>
+      <p id="workspace-artifact-shelf-summary" class="hint"></p>
+      <p id="workspace-artifact-selection" class="hint"></p>
+      <p><a id="workspace-artifact-selection-link" class="hint" href="/artifacts">Open selected recap artifact</a></p>
+      <p><a id="workspace-artifact-shelf-link" class="hint" href="/artifacts">Open selected artifact shelf view</a></p>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Starter continuity</div>
+      <p id="workspace-launch-primer" class="hint"></p>
+      <p id="workspace-launch-primer-provenance" class="hint"></p>
+      <p><a id="workspace-launch-primer-link" class="hint" href="/artifacts">Open starter primer</a></p>
+      <p id="workspace-first-session-briefing" class="hint"></p>
+      <p id="workspace-first-session-briefing-provenance" class="hint"></p>
+      <p><a id="workspace-first-session-briefing-link" class="hint" href="/artifacts">Open first-session briefing</a></p>
+      <p id="workspace-starter-artifact-continuity" class="hint"></p>
+      <ul id="workspace-starter-artifact-continuity-list"></ul>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Attention</div>
+      <ul id="attention-list"></ul>
+    </div>
+    </section>
+    <section class="grid-two" aria-label="Campaign return moment surfaces">
+    <div class="card">
+      <div class="eyebrow">Runner-goal updates</div>
+      <p id="workspace-runner-goal-updates" class="hint"></p>
+      <ul id="workspace-runner-goal-update-list"></ul>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Player-safe consequence feed</div>
+      <p id="workspace-player-safe-consequence-feed" class="hint"></p>
+      <ul id="workspace-player-safe-consequence-feed-list"></ul>
+    </div>
+    </section>
+    <section class="grid-two" aria-label="Change packet and claimed-device onboarding artifacts">
     <div class="card">
       <div class="eyebrow">Change packet</div>
       <ul id="change-packet-list"></ul>
     </div>
     <div class="card">
-      <div class="eyebrow">Attention</div>
-      <ul id="attention-list"></ul>
+      <div class="eyebrow">Travel starter follow-through</div>
+      <p id="restore-starter-primer-follow-through" class="hint"></p>
+      <p><a id="restore-starter-primer-follow-through-link" class="hint" href="/artifacts">Open travel starter primer</a></p>
+      <p id="restore-first-session-briefing-follow-through" class="hint"></p>
+      <p><a id="restore-first-session-briefing-follow-through-link" class="hint" href="/artifacts">Open travel first-session briefing</a></p>
+    </div>
+    </section>
+    <section class="grid-two" aria-label="Claimed-device restore surfaces">
+    <div class="card continuity-state-card" id="restore-travel-campaign-card" data-tone="info">
+      <div class="eyebrow">Travel campaign continuity</div>
+      <p id="restore-travel-campaign-current-state" class="hint"></p>
+      <p id="restore-travel-campaign-state" class="hint"></p>
+      <p id="restore-travel-campaign-cached-state" class="hint continuity-field"></p>
+      <p id="restore-travel-campaign-stale-state" class="hint continuity-field"></p>
+      <p id="restore-travel-campaign-action-required" class="hint continuity-field"></p>
+      <ul id="restore-travel-campaign-state-labels"></ul>
     </div>
     <div class="card">
       <div class="eyebrow">Device recovery</div>
@@ -127,6 +417,7 @@
       <p id="restore-prefetch" class="hint"></p>
       <p id="restore-local-boundary" class="hint"></p>
       <p id="restore-offline-truth" class="hint"></p>
+      <p id="restore-action-required" class="hint"></p>
       <p id="restore-travel-companion" class="hint"></p>
       <p id="restore-return-target" class="hint"></p>
       <p id="restore-device-role" class="hint"></p>
@@ -135,6 +426,7 @@
       <p id="restore-support-follow-through" class="hint"></p>
       <p><a id="restore-support-follow-through-link" class="hint" href="/contact">Restore support follow-through</a></p>
       <ul id="restore-offline-truth-labels"></ul>
+      <ul id="restore-action-required-labels"></ul>
       <ul id="restore-travel-companion-labels"></ul>
       <ul id="restore-prefetch-labels"></ul>
     </div>
@@ -163,6 +455,7 @@
       <p style="margin-top: 12px;"><strong>Coach hints</strong></p>
       <ul id="coach-hints"></ul>
     </div>
+    </section>
   </section>
   <details>
     <summary>Workspace payload</summary>
@@ -170,6 +463,18 @@
   </details>
 </main>
 <script>
+  let deferredInstallPrompt = null;
+  let lastWorkspacePayload = null;
+  let lastRestorePayload = null;
+  let lastObservePayload = null;
+  let serviceWorkerDetail = "Service worker state: verification is still pending.";
+  let activeShellIdentity = {
+    sessionId: "",
+    role: "Player",
+    deviceId: "",
+    observerId: ""
+  };
+
   function setList(id, items) {
     const list = document.getElementById(id);
     list.replaceChildren();
@@ -194,89 +499,450 @@
     }
   }
 
-  function renderWorkspace(payload) {
-    document.getElementById("workspace-summary").textContent = payload.summary || "No campaign workspace summary is available yet.";
-    document.getElementById("workspace-safe-action").textContent = payload.safeNextAction || "No safe next action is available yet.";
-    document.getElementById("critical-rejoin").textContent = payload.rejoinCommand || "No rejoin command is available yet.";
-    document.getElementById("critical-rejoin-link").href = payload.rejoinCommandHref || "/play";
-    document.getElementById("critical-rejoin-link").textContent = payload.rejoinCommand || "Rejoin";
-    document.getElementById("critical-continue").textContent = payload.continueCommand || "No continue command is available yet.";
-    document.getElementById("critical-continue-link").href = payload.continueCommandHref || "/play";
-    document.getElementById("critical-continue-link").textContent = payload.continueCommand || "Continue";
-    document.getElementById("critical-support").textContent = payload.supportCommand || "No support command is available yet.";
-    document.getElementById("critical-support-link").href = payload.supportCommandHref || "/contact";
-    document.getElementById("critical-support-link").textContent = payload.supportCommand || "Support";
-    document.getElementById("critical-decision-receipt-summary").textContent = payload.longRunningDecisionReceiptSummary || "Decision receipts are not available yet.";
+  function setText(id, value, fallback) {
+    document.getElementById(id).textContent = value || fallback;
+  }
+
+  function setLink(id, href, text, fallbackHref, fallbackText) {
+    const link = document.getElementById(id);
+    link.href = href || fallbackHref;
+    link.textContent = text || fallbackText;
+  }
+
+  function makeStableId(prefix) {
+    if (window.crypto?.randomUUID) {
+      return `${prefix}-${window.crypto.randomUUID().slice(0, 8)}`;
+    }
+
+    return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  function readStoredValue(key) {
+    try {
+      return window.localStorage?.getItem(key) || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function writeStoredValue(key, value) {
+    try {
+      window.localStorage?.setItem(key, value);
+    } catch (error) {
+      // Ignore storage failures and keep the shell usable in private/locked-down browsers.
+    }
+  }
+
+  function devicePrefixForRole(roleText) {
+    const lowered = (roleText || "").toLowerCase();
+    if (lowered.includes("gm")) {
+      return "gm-shell";
+    }
+    if (lowered.includes("observer")) {
+      return "observer-shell";
+    }
+    return "player-shell";
+  }
+
+  function resolveStableDeviceId(roleText, explicitDeviceId) {
+    if (explicitDeviceId) {
+      writeStoredValue("chummer-play-shell-device-id", explicitDeviceId);
+      return explicitDeviceId;
+    }
+
+    const stored = readStoredValue("chummer-play-shell-device-id");
+    if (stored) {
+      return stored;
+    }
+
+    const generated = makeStableId(devicePrefixForRole(roleText));
+    writeStoredValue("chummer-play-shell-device-id", generated);
+    return generated;
+  }
+
+  function resolveObserverId() {
+    const stored = readStoredValue("chummer-play-shell-observer-id");
+    if (stored) {
+      return stored;
+    }
+
+    const generated = makeStableId("observer");
+    writeStoredValue("chummer-play-shell-observer-id", generated);
+    return generated;
+  }
+
+  function setContinuityFieldKind(fieldId, kind) {
+    const field = document.getElementById(fieldId);
+    field.dataset.kind = kind;
+    field.classList.add("continuity-field");
+  }
+
+  function inferContinuityTone(text) {
+    const lowered = (text || "").toLowerCase();
+    if (lowered.includes("action required") || lowered.includes("action-required")) {
+      return "reconnect";
+    }
+    if (lowered.includes("warning") || lowered.includes("stale")) {
+      return "warning";
+    }
+    if (lowered.includes("reconnect") || lowered.includes("claim") || lowered.includes("pending")) {
+      return "reconnect";
+    }
+    if (lowered.includes("green") || lowered.includes("allowed") || lowered.includes("aligned")) {
+      return "ready";
+    }
+    return "info";
+  }
+
+  function roleTone(roleText) {
+    const lowered = (roleText || "").toLowerCase();
+    if (lowered.includes("observer")) {
+      return "warning";
+    }
+    if (lowered.includes("gm")) {
+      return "reconnect";
+    }
+    return "ready";
+  }
+
+  function describeRoleFocus(roleText) {
+    const lowered = (roleText || "").toLowerCase();
+    if (lowered.includes("observer")) {
+      return {
+        heading: "Observer lane",
+        copy: "Stay read-mostly, keep replay context intact, and watch for role-change recovery before taking action."
+      };
+    }
+    if (lowered.includes("gm")) {
+      return {
+        heading: "GM tactical lane",
+        copy: "Keep runboard, roster movement, and contested-turn recovery visible without collapsing back into a workbench view."
+      };
+    }
+    return {
+      heading: "Player lane",
+      copy: "Keep the next legal action, explain packet, and session-return path obvious enough to trust under table pressure."
+    };
+  }
+
+  function installStateLabel() {
+    if (window.matchMedia("(display-mode: standalone)").matches || navigator.standalone) {
+      return { label: "Installed", detail: "This shell already runs as an installable app on this device." };
+    }
+    if (deferredInstallPrompt) {
+      return { label: "Ready to install", detail: "This device can install the play shell for faster return and calmer offline use." };
+    }
+    return { label: "Browser mode", detail: "Install becomes available only when the browser allows an install prompt for this shell." };
+  }
+
+  function updateInstallSurface() {
+    const installButton = document.getElementById("shell-install-button");
+    const state = installStateLabel();
+    const tone = state.label === "Installed" ? "ready" : state.label === "Ready to install" ? "warning" : "info";
+    document.getElementById("shell-install-chip").dataset.tone = tone;
+    document.getElementById("shell-install-chip-value").textContent = state.label;
+    document.getElementById("shell-install-status").textContent = state.label;
+    document.getElementById("shell-install-detail").textContent = state.label === "Installed"
+      ? `${state.detail} Resume and replay should reopen in the same claimed shell instead of a generic browser tab.`
+      : deferredInstallPrompt
+        ? `${state.detail} Install before the next handoff so this device keeps a stable icon, calmer resume route, and local cache boundary.`
+        : `${state.detail} The shell still keeps claimed-device recovery visible even without a one-tap install prompt.`;
+    document.getElementById("shell-service-worker-detail").textContent = serviceWorkerDetail;
+    installButton.hidden = !deferredInstallPrompt || state.label === "Installed";
+  }
+
+  function buildNetworkStateLabels() {
+    const labels = [];
+    labels.push(navigator.onLine
+      ? "Network lane: live reconnect and bundle validation are available now."
+      : "Network lane: reconnect is unavailable now; trust only cached continuity, replay-safe packets, and claimed-device recovery.");
+    labels.push(window.matchMedia("(display-mode: standalone)").matches || navigator.standalone
+      ? "Install lane: standalone shell is active on this device."
+      : deferredInstallPrompt
+        ? "Install lane: one-tap install is ready in this browser."
+        : "Install lane: browser-mode fallback is active until install becomes available.");
+
+    if (lastWorkspacePayload?.actionRequiredSummary) {
+      labels.push(`Continuity lane: ${lastWorkspacePayload.actionRequiredSummary}`);
+    } else if (lastRestorePayload?.actionRequiredSummary) {
+      labels.push(`Continuity lane: ${lastRestorePayload.actionRequiredSummary}`);
+    }
+
+    if (lastWorkspacePayload?.supportStatus) {
+      labels.push(`Support lane: ${lastWorkspacePayload.supportStatus}`);
+    }
+
+    return labels;
+  }
+
+  function updateNetworkStatus() {
+    const online = navigator.onLine;
+    const label = online ? "Connected" : "Offline";
+    const detail = online
+      ? "Live routes are reachable, but the shell still keeps local-first continuity visible."
+      : "Network is down. Use cached truth, replay-safe receipts, and claimed-device guidance until reconnection.";
+    document.getElementById("shell-network-chip").dataset.tone = online ? "ready" : "warning";
+    document.getElementById("shell-network-chip-value").textContent = label;
+    document.getElementById("shell-reconnect-copy").textContent = detail;
+    document.getElementById("shell-continuity-safety").textContent = lastWorkspacePayload?.actionRequiredSummary
+      || lastRestorePayload?.actionRequiredSummary
+      || "No explicit claimed-device safety warning is attached yet.";
+    setList("shell-network-state-list", buildNetworkStateLabels());
+  }
+
+  function continuityClaimStatus(observePayload) {
+    if (observePayload?.continuity?.continuityToken) {
+      const roleLabel = observePayload.continuity.role || activeShellIdentity.role || "current";
+      return {
+        status: `Claimed on ${observePayload.continuity.deviceId}`,
+        detail: `Continuity token ${observePayload.continuity.continuityToken} tracks ${roleLabel} through sequence ${observePayload.continuity.observedThroughSequence}.`
+      };
+    }
+
+    return {
+      status: `Not claimed on ${activeShellIdentity.deviceId || "this device"}`,
+      detail: `Claim this device before the next handoff so the owner route and replay-safe sequence stay attached to one install-local shell.`
+    };
+  }
+
+  function renderContinuityClaimStatus(observePayload, ownerRouteOverride) {
+    lastObservePayload = observePayload;
+    const claimState = continuityClaimStatus(observePayload);
+    const ownerRoute = ownerRouteOverride
+      || observePayload?.continuityOwnerRoute
+      || observePayload?.continuity?.deepLinkOwnerRoute
+      || lastWorkspacePayload?.roleFollowThroughHref
+      || lastRestorePayload?.resumeFollowThroughHref
+      || "/play";
+    const ownerRouteLabel = ownerRoute.includes("/play/")
+      ? "Open claimed owner route"
+      : "Open owner route";
+    const claimButton = document.getElementById("shell-continuity-claim-button");
+    document.getElementById("shell-continuity-claim-status").textContent = claimState.status;
+    document.getElementById("shell-continuity-claim-detail").textContent = claimState.detail;
+    setLink("shell-owner-route-link", ownerRoute, ownerRouteLabel, "/play", "Open owner route");
+    claimButton.disabled = !lastObservePayload?.projection?.cursor;
+    claimButton.textContent = observePayload?.continuity?.deviceId === activeShellIdentity.deviceId
+      ? "Refresh this device claim"
+      : "Claim this device";
+  }
+
+  function syncContinuityCardTone(cardId, currentStateId, summaryId, currentStateText, actionId) {
+    const card = document.getElementById(cardId);
+    const currentState = document.getElementById(currentStateId).textContent || "";
+    const summary = document.getElementById(summaryId).textContent || "";
+    const actionState = actionId ? (document.getElementById(actionId).textContent || "") : "";
+    card.dataset.tone = inferContinuityTone(actionState || currentStateText || currentState || summary);
+  }
+
+  function syncContinuityStateBreakdown(cachedId, staleId, staleText, actionId) {
+    setContinuityFieldKind(cachedId, "cached");
+    setContinuityFieldKind(staleId, "stale");
+    setContinuityFieldKind(actionId, "action-required");
+
+    const staleField = document.getElementById(staleId);
+    staleField.dataset.tone = inferContinuityTone(staleText || staleField.textContent || "");
+  }
+
+  function renderShellHero(payload, restorePayload) {
+    lastWorkspacePayload = payload;
+    lastRestorePayload = restorePayload;
+    const roleFocus = describeRoleFocus(payload.rolePosture || "");
+    const continuityTone = inferContinuityTone(`${payload.mobileCampaignActionRequired || ""} ${payload.mobileCampaignStaleState || ""}`);
+    const roleText = payload.rolePosture || "Loading role posture.";
+    const sessionText = payload.sessionId || "session";
+    const primaryActionText = payload.safeNextAction || payload.continueCommand || "Open safe next step";
+    const primaryActionHref = payload.continueCommandHref || payload.rejoinCommandHref || "/play";
+    const secondaryActionText = payload.supportFollowThrough || payload.supportCommand || "Open support route";
+    const secondaryActionHref = payload.supportFollowThroughHref || payload.supportCommandHref || "/contact";
+
+    document.getElementById("shell-role-chip").dataset.tone = roleTone(roleText);
+    document.getElementById("shell-role-chip-value").textContent = roleText;
+    document.getElementById("shell-session-chip-value").textContent = sessionText;
+    document.getElementById("shell-headline").textContent = roleFocus.heading;
+    document.getElementById("shell-subhead").textContent = payload.summary || "No workspace-lite summary is available yet.";
+    document.getElementById("shell-status").textContent = payload.currentSceneSummary || "No current scene summary is available yet.";
+    document.getElementById("shell-continuity-status").textContent = payload.mobileCampaignCurrentState || "No mobile continuity posture is available yet.";
+    document.getElementById("shell-continuity-detail").textContent = payload.mobileCampaignStateSummary || "No mobile continuity summary is available yet.";
+    document.getElementById("shell-continuity-status").dataset.tone = continuityTone;
+    document.getElementById("shell-restore-status").textContent = restorePayload.resumeSummary || "No claimed-device recovery summary is available yet.";
+    document.getElementById("shell-restore-detail").textContent = restorePayload.safeNextAction || "No claimed-device safe next action is available yet.";
+    document.getElementById("shell-role-focus-heading").textContent = roleFocus.heading;
+    document.getElementById("shell-role-focus-copy").textContent = roleFocus.copy;
+    document.getElementById("shell-offline-copy").textContent = payload.offlineTruthSummary || "No offline truth summary is available yet.";
+    setLink("shell-primary-action-link", primaryActionHref, primaryActionText, "/play", "Open safe next step");
+    setLink("shell-secondary-action-link", secondaryActionHref, secondaryActionText, "/contact", "Open support route");
+  }
+
+  async function claimContinuityOnThisDevice() {
+    if (!lastObservePayload?.projection?.cursor) {
+      return;
+    }
+
+    const claimButton = document.getElementById("shell-continuity-claim-button");
+    claimButton.disabled = true;
+    claimButton.textContent = "Claiming this device...";
+
+    try {
+      const response = await fetch("/api/play/continuity/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cursor: lastObservePayload.projection.cursor,
+          role: activeShellIdentity.role,
+          deviceId: activeShellIdentity.deviceId,
+          observerId: activeShellIdentity.observerId
+        })
+      });
+      const claimPayload = await response.json();
+      const claimStatus = claimPayload.reason
+        ? `${claimPayload.reason}. ${claimPayload.continuity?.continuityToken || ""}`.trim()
+        : "Continuity claim updated.";
+      renderContinuityClaimStatus(
+        {
+          ...lastObservePayload,
+          continuity: claimPayload.continuity || lastObservePayload.continuity,
+          continuityOwnerRoute: claimPayload.deepLinkOwnerRoute || lastWorkspacePayload?.roleFollowThroughHref || "/play"
+        },
+        claimPayload.deepLinkOwnerRoute
+      );
+      document.getElementById("shell-status").textContent = claimStatus;
+      updateNetworkStatus();
+    } catch (error) {
+      document.getElementById("shell-continuity-claim-status").textContent = "Claim refresh failed";
+      document.getElementById("shell-continuity-claim-detail").textContent = `Cross-device continuity could not be refreshed on ${activeShellIdentity.deviceId}. Keep using the current owner route until this shell reconnects cleanly.`;
+    } finally {
+      renderContinuityClaimStatus(lastObservePayload);
+    }
+  }
+
+  function renderWorkspace(payload, artifactId) {
+    setText("workspace-summary", payload.summary, "No campaign workspace summary is available yet.");
+    setText("workspace-safe-action", payload.safeNextAction, "No safe next action is available yet.");
+    setText("workspace-player-table-cards", payload.playerTableCardsSummary, "No player table-card summary is available yet.");
+    setList("workspace-player-table-cards-list", payload.playerTableCardLabels);
+    setText("workspace-between-turn-affordances", payload.betweenTurnAffordancesSummary, "No between-turn affordance summary is available yet.");
+    setList("workspace-between-turn-affordances-list", payload.betweenTurnAffordanceLabels);
+    setText("workspace-gm-lite-continuity", payload.gmLiteContinuitySummary, "No GM-lite continuity summary is available yet.");
+    setList("workspace-gm-lite-continuity-list", payload.gmLiteContinuityLabels);
+    setText("workspace-quick-explain", payload.quickExplainSummary, "No quick explain summary is available yet.");
+    setList("workspace-quick-explain-list", payload.quickExplainLabels);
+    setText("workspace-source-anchor", payload.sourceAnchorSummary, "No source-anchor context is available yet.");
+    setList("workspace-source-anchor-list", payload.sourceAnchorLabels);
+    setText("workspace-stale-posture", payload.staleStatePosture, "No stale-state posture is available yet.");
+    setText("workspace-grounded-follow-up", payload.groundedFollowUpSummary, "No grounded follow-up summary is available yet.");
+    setList("workspace-grounded-follow-up-list", payload.groundedFollowUpLabels);
+    setText("workspace-mobile-campaign-current-state", payload.mobileCampaignCurrentState, "No mobile campaign continuity posture is available yet.");
+    setText("workspace-mobile-campaign-state", payload.mobileCampaignStateSummary, "No mobile campaign-state summary is available yet.");
+    setText("workspace-mobile-campaign-cached-state", payload.mobileCampaignCachedState, "No mobile cached campaign state is available yet.");
+    setText("workspace-mobile-campaign-stale-state", payload.mobileCampaignStaleState, "No mobile stale campaign state is available yet.");
+    setText("workspace-mobile-campaign-action-required", payload.mobileCampaignActionRequired, "No mobile campaign action-required posture is available yet.");
+    setList("workspace-mobile-campaign-state-list", payload.mobileCampaignStateLabels);
+    syncContinuityCardTone(
+      "workspace-mobile-campaign-card",
+      "workspace-mobile-campaign-current-state",
+      "workspace-mobile-campaign-state",
+      `${payload.mobileCampaignStaleState || ""} ${payload.mobileCampaignCurrentState || ""}`,
+      "workspace-mobile-campaign-action-required");
+    syncContinuityStateBreakdown(
+      "workspace-mobile-campaign-cached-state",
+      "workspace-mobile-campaign-stale-state",
+      payload.mobileCampaignStaleState,
+      "workspace-mobile-campaign-action-required");
+    setText("critical-rejoin", payload.rejoinCommand, "No rejoin command is available yet.");
+    setLink("critical-rejoin-link", payload.rejoinCommandHref, payload.rejoinCommand, "/play", "Rejoin");
+    setText("critical-continue", payload.continueCommand, "No continue command is available yet.");
+    setLink("critical-continue-link", payload.continueCommandHref, payload.continueCommand, "/play", "Continue");
+    setText("critical-support", payload.supportCommand, "No support command is available yet.");
+    setLink("critical-support-link", payload.supportCommandHref, payload.supportCommand, "/contact", "Support");
+    setText("critical-decision-receipt-summary", payload.longRunningDecisionReceiptSummary, "Decision receipts are not available yet.");
     setList("critical-decision-receipts", payload.longRunningDecisionReceipts);
     setList("critical-low-noise-guidance", payload.lowNoiseGuidance);
-    document.getElementById("recover-disconnect").textContent = payload.disconnectRecoveryCopy || "Disconnect recovery copy is not available yet.";
-    document.getElementById("recover-role-change").textContent = payload.roleChangeRecoveryCopy || "Role-change recovery copy is not available yet.";
-    document.getElementById("recover-observer-transition").textContent = payload.observerTransitionRecoveryCopy || "Observer-transition recovery copy is not available yet.";
-    document.getElementById("workspace-scene").textContent = payload.currentSceneSummary || "No current scene summary is available yet.";
-    document.getElementById("change-packet-summary").textContent = payload.changePacketSummary || "No change packet is available yet.";
-    document.getElementById("workspace-role").textContent = payload.rolePosture || "No role posture is available yet.";
-    document.getElementById("workspace-rule-posture").textContent = payload.rulePosture || "No rule posture is available yet.";
-    document.getElementById("workspace-legal-runner").textContent = payload.legalRunnerSummary || "No legal-runner summary is available yet.";
-    document.getElementById("workspace-understandable-return").textContent = payload.understandableReturnSummary || "No understandable-return summary is available yet.";
-    document.getElementById("workspace-campaign-ready").textContent = payload.campaignReadySummary || "No campaign-ready summary is available yet.";
-    document.getElementById("workspace-continuity").textContent = payload.continuityPosture || "No continuity posture is available yet.";
-    document.getElementById("workspace-cache").textContent = payload.cachePosture || "No cache posture is available yet.";
-    document.getElementById("workspace-travel").textContent = payload.travelPosture || "No travel posture is available yet.";
-    document.getElementById("workspace-prefetch").textContent = payload.offlinePrefetchSummary || "No offline prefetch summary is available yet.";
-    document.getElementById("workspace-update").textContent = payload.updatePosture || "No update posture is available yet.";
-    document.getElementById("workspace-server-plane").textContent = payload.serverPlaneSummary || "No campaign server-plane summary is available yet.";
-    document.getElementById("workspace-roster").textContent = payload.rosterSummary || "No roster readiness summary is available yet.";
-    document.getElementById("workspace-runboard").textContent = payload.runboardSummary || "No runboard summary is available yet.";
-    document.getElementById("workspace-recap").textContent = payload.recapSummary || "No recap-safe packet summary is available yet.";
-    document.getElementById("workspace-recap-audience").textContent = payload.recapAudienceSummary || "No artifact audience summary is available yet.";
-    document.getElementById("workspace-recap-ownership").textContent = payload.recapOwnershipSummary || "No artifact ownership summary is available yet.";
-    document.getElementById("workspace-recap-publication").textContent = payload.recapPublicationSummary || "No artifact publication summary is available yet.";
-    document.getElementById("workspace-recap-provenance").textContent = payload.recapProvenanceSummary || "No artifact provenance summary is available yet.";
-    document.getElementById("workspace-recap-audit").textContent = payload.recapAuditSummary || "No artifact audit summary is available yet.";
-    document.getElementById("workspace-recap-lineage").textContent = payload.recapLineageSummary || "No artifact lineage summary is available yet.";
-    document.getElementById("workspace-recap-next").textContent = payload.recapNextAction || "No artifact next step is available yet.";
+    setText("recover-disconnect", payload.disconnectRecoveryCopy, "Disconnect recovery copy is not available yet.");
+    setText("recover-role-change", payload.roleChangeRecoveryCopy, "Role-change recovery copy is not available yet.");
+    setText("recover-observer-transition", payload.observerTransitionRecoveryCopy, "Observer-transition recovery copy is not available yet.");
+    setText("workspace-scene", payload.currentSceneSummary, "No current scene summary is available yet.");
+    setText("change-packet-summary", payload.changePacketSummary, "No change packet is available yet.");
+    setText("workspace-role", payload.rolePosture, "No role posture is available yet.");
+    setText("workspace-rule-posture", payload.rulePosture, "No rule posture is available yet.");
+    setText("workspace-legal-runner", payload.legalRunnerSummary, "No legal-runner summary is available yet.");
+    setText("workspace-understandable-return", payload.understandableReturnSummary, "No understandable-return summary is available yet.");
+    setText("workspace-campaign-ready", payload.campaignReadySummary, "No campaign-ready summary is available yet.");
+    setText("workspace-continuity", payload.continuityPosture, "No continuity posture is available yet.");
+    setText("workspace-cache", payload.cachePosture, "No cache posture is available yet.");
+    setText("workspace-travel", payload.travelPosture, "No travel posture is available yet.");
+    setText("workspace-prefetch", payload.offlinePrefetchSummary, "No offline prefetch summary is available yet.");
+    setText("workspace-update", payload.updatePosture, "No update posture is available yet.");
+    setText("workspace-server-plane", payload.serverPlaneSummary, "No campaign server-plane summary is available yet.");
+    setText("workspace-roster", payload.rosterSummary, "No roster readiness summary is available yet.");
+    setText("workspace-runboard", payload.runboardSummary, "No runboard summary is available yet.");
+    setText("workspace-recap", payload.recapSummary, "No recap-safe packet summary is available yet.");
+    setText("workspace-recap-audience", payload.recapAudienceSummary, "No artifact audience summary is available yet.");
+    setText("workspace-recap-ownership", payload.recapOwnershipSummary, "No artifact ownership summary is available yet.");
+    setText("workspace-recap-publication", payload.recapPublicationSummary, "No artifact publication summary is available yet.");
+    setText("workspace-recap-provenance", payload.recapProvenanceSummary, "No artifact provenance summary is available yet.");
+    setText("workspace-recap-audit", payload.recapAuditSummary, "No artifact audit summary is available yet.");
+    setText("workspace-recap-lineage", payload.recapLineageSummary, "No artifact lineage summary is available yet.");
+    setText("workspace-recap-next", payload.recapNextAction, "No artifact next step is available yet.");
     const selectedArtifactView = (payload.artifactShelfViews || []).find((item) => item.isSelected);
     document.getElementById("workspace-recap-view").textContent = selectedArtifactView
       ? `Artifact shelf view: ${selectedArtifactView.label}`
       : "Artifact shelf view: no browse lane is selected yet.";
     setLinkList("workspace-recap-views", payload.artifactShelfViews);
-    document.getElementById("workspace-recap-publication-link").href = payload.recapPublicationHref || "/account/work";
-    document.getElementById("workspace-recap-publication-link").textContent = payload.recapNextAction || "Artifact shelf follow-through";
-    document.getElementById("workspace-replay").textContent = payload.replaySummary || "No replay-safe package summary is available yet.";
-    document.getElementById("workspace-replay-audience").textContent = payload.replayAudienceSummary || "No replay artifact audience summary is available yet.";
-    document.getElementById("workspace-replay-ownership").textContent = payload.replayOwnershipSummary || "No replay artifact ownership summary is available yet.";
-    document.getElementById("workspace-replay-publication").textContent = payload.replayPublicationSummary || "No replay artifact publication summary is available yet.";
-    document.getElementById("workspace-replay-provenance").textContent = payload.replayProvenanceSummary || "No replay artifact provenance summary is available yet.";
-    document.getElementById("workspace-replay-audit").textContent = payload.replayAuditSummary || "No replay artifact audit summary is available yet.";
-    document.getElementById("workspace-replay-lineage").textContent = payload.replayLineageSummary || "No replay artifact lineage summary is available yet.";
-    document.getElementById("workspace-replay-next").textContent = payload.replayNextAction || "No replay artifact next step is available yet.";
-    document.getElementById("workspace-replay-publication-link").href = payload.replayPublicationHref || "/account/work";
-    document.getElementById("workspace-replay-publication-link").textContent = payload.replayNextAction || "Replay artifact follow-through";
-    document.getElementById("workspace-memory").textContent = payload.campaignMemorySummary || "No campaign-memory summary is available yet.";
-    document.getElementById("workspace-memory-return").textContent = payload.campaignMemoryReturnSummary || "No campaign-memory return cue is available yet.";
-    document.getElementById("workspace-continuity-rail").textContent = payload.continuityRailSummary || "No continuity rail summary is available yet.";
+    setText("workspace-artifact-shelf-summary", payload.artifactShelfSelectionSummary, "No mobile artifact shelf summary is available yet.");
+    setText("workspace-artifact-selection", payload.selectedRecapArtifactSummary, "Selected recap artifact: no recap artifact is pinned yet.");
+    setLink("workspace-artifact-selection-link", payload.selectedRecapArtifactHref || selectedArtifactView?.href, artifactId
+      ? `Open recap artifact ${artifactId}`
+      : "Open selected recap artifact", "/artifacts", "Open selected recap artifact");
+    document.getElementById("workspace-artifact-shelf-link").href = selectedArtifactView?.href || "/artifacts";
+    document.getElementById("workspace-artifact-shelf-link").textContent = selectedArtifactView
+      ? `Browse ${selectedArtifactView.label}`
+      : "Open selected artifact shelf view";
+    setText("workspace-launch-primer", payload.launchPrimerSummary, "No starter primer summary is available yet.");
+    setText("workspace-launch-primer-provenance", payload.launchPrimerProvenanceSummary, "No starter primer provenance is available yet.");
+    setLink("workspace-launch-primer-link", payload.launchPrimerHref, "Open starter primer", "/artifacts", "Open starter primer");
+    setText("workspace-first-session-briefing", payload.firstSessionBriefingSummary, "No first-session briefing summary is available yet.");
+    setText("workspace-first-session-briefing-provenance", payload.firstSessionBriefingProvenanceSummary, "No first-session briefing provenance is available yet.");
+    setLink("workspace-first-session-briefing-link", payload.firstSessionBriefingHref, "Open first-session briefing", "/artifacts", "Open first-session briefing");
+    setText("workspace-starter-artifact-continuity", payload.starterArtifactContinuitySummary, "No starter artifact continuity summary is available yet.");
+    setList("workspace-starter-artifact-continuity-list", payload.starterArtifactContinuityLabels);
+    setText("workspace-runner-goal-updates", payload.runnerGoalUpdatesSummary, "No runner-goal update summary is available yet.");
+    setList("workspace-runner-goal-update-list", payload.runnerGoalUpdateLabels);
+    setText("workspace-player-safe-consequence-feed", payload.playerSafeConsequenceFeedSummary, "No player-safe consequence feed summary is available yet.");
+    setList("workspace-player-safe-consequence-feed-list", payload.playerSafeConsequenceFeedLabels);
+    setLink("workspace-recap-publication-link", payload.recapPublicationHref, payload.recapNextAction, "/account/work", "Artifact shelf follow-through");
+    setText("workspace-replay", payload.replaySummary, "No replay-safe package summary is available yet.");
+    setText("workspace-replay-audience", payload.replayAudienceSummary, "No replay artifact audience summary is available yet.");
+    setText("workspace-replay-ownership", payload.replayOwnershipSummary, "No replay artifact ownership summary is available yet.");
+    setText("workspace-replay-publication", payload.replayPublicationSummary, "No replay artifact publication summary is available yet.");
+    setText("workspace-replay-provenance", payload.replayProvenanceSummary, "No replay artifact provenance summary is available yet.");
+    setText("workspace-replay-audit", payload.replayAuditSummary, "No replay artifact audit summary is available yet.");
+    setText("workspace-replay-lineage", payload.replayLineageSummary, "No replay artifact lineage summary is available yet.");
+    setText("workspace-replay-next", payload.replayNextAction, "No replay artifact next step is available yet.");
+    setLink("workspace-replay-publication-link", payload.replayPublicationHref, payload.replayNextAction, "/account/work", "Replay artifact follow-through");
+    setText("workspace-memory", payload.campaignMemorySummary, "No campaign-memory summary is available yet.");
+    setText("workspace-memory-return", payload.campaignMemoryReturnSummary, "No campaign-memory return cue is available yet.");
+    setText("workspace-continuity-rail", payload.continuityRailSummary, "No continuity rail summary is available yet.");
     setList("workspace-continuity-rail-list", payload.continuityRailLabels);
-    document.getElementById("workspace-gm-ops").textContent = payload.gmOperationsSummary || "No GM operations summary is available yet.";
+    setText("workspace-gm-ops", payload.gmOperationsSummary, "No GM operations summary is available yet.");
     setList("workspace-gm-ops-list", payload.gmOperationsLabels);
-    document.getElementById("workspace-offline-truth").textContent = payload.offlineTruthSummary || "No offline truth summary is available yet.";
+    setText("workspace-offline-truth", payload.offlineTruthSummary, "No offline truth summary is available yet.");
     setList("workspace-offline-truth-list", payload.offlineTruthLabels);
-    document.getElementById("workspace-decision-notice").textContent = payload.decisionNotice || "No campaign decision notice is available yet.";
-    document.getElementById("workspace-decision-notice-link").href = payload.decisionNoticeHref || "/";
-    document.getElementById("workspace-decision-notice-link").textContent = payload.decisionNotice || "Decision notice follow-through";
-    document.getElementById("workspace-support").textContent = payload.supportPosture || "No support posture is available yet.";
-    document.getElementById("workspace-support-status").textContent = payload.supportStatus || "No support status is available yet.";
-    document.getElementById("workspace-known-issue").textContent = payload.knownIssueSummary || "No known issue summary is available yet.";
-    document.getElementById("workspace-fix-state").textContent = payload.fixAvailabilitySummary || "No fix-availability summary is available yet.";
+    setText("workspace-action-required", payload.actionRequiredSummary, "No action-required summary is available yet.");
+    setList("workspace-action-required-list", payload.actionRequiredLabels);
+    setText("workspace-decision-notice", payload.decisionNotice, "No campaign decision notice is available yet.");
+    setLink("workspace-decision-notice-link", payload.decisionNoticeHref, payload.decisionNotice, "/", "Decision notice follow-through");
+    setText("workspace-support", payload.supportPosture, "No support posture is available yet.");
+    setText("workspace-support-status", payload.supportStatus, "No support status is available yet.");
+    setText("workspace-known-issue", payload.knownIssueSummary, "No known issue summary is available yet.");
+    setText("workspace-fix-state", payload.fixAvailabilitySummary, "No fix-availability summary is available yet.");
     setList("change-packet-list", payload.changePacketLabels);
-    document.getElementById("follow-through-update").textContent = payload.updateFollowThrough || "No update follow-through is available yet.";
-    document.getElementById("follow-through-update-link").href = payload.updateFollowThroughHref || "/downloads";
-    document.getElementById("follow-through-update-link").textContent = payload.updateFollowThrough || "Update follow-through";
-    document.getElementById("follow-through-support").textContent = payload.supportFollowThrough || "No support follow-through is available yet.";
-    document.getElementById("follow-through-support-link").href = payload.supportFollowThroughHref || "/contact";
-    document.getElementById("follow-through-support-link").textContent = payload.supportFollowThrough || "Support follow-through";
-    document.getElementById("follow-through-role").textContent = payload.roleFollowThrough || "No role follow-through is available yet.";
-    document.getElementById("follow-through-role-link").href = payload.roleFollowThroughHref || "/";
-    document.getElementById("follow-through-role-link").textContent = payload.roleFollowThrough || "Role follow-through";
+    setLink("follow-through-update-link", payload.updateFollowThroughHref, payload.updateFollowThrough, "/downloads", "Update follow-through");
+    setText("follow-through-update", payload.updateFollowThrough, "No update follow-through is available yet.");
+    setLink("follow-through-support-link", payload.supportFollowThroughHref, payload.supportFollowThrough, "/contact", "Support follow-through");
+    setText("follow-through-support", payload.supportFollowThrough, "No support follow-through is available yet.");
+    setLink("follow-through-role-link", payload.roleFollowThroughHref, payload.roleFollowThrough, "/", "Role follow-through");
+    setText("follow-through-role", payload.roleFollowThrough, "No role follow-through is available yet.");
     setList("attention-list", payload.attentionItems);
     setList("quick-actions", payload.quickActionLabels);
     setList("follow-through", payload.followThroughLabels);
@@ -285,39 +951,56 @@
   }
 
   function renderEntryRecovery(payload) {
-    document.getElementById("entry-state-summary").textContent = payload.entryStateSummary || "Entry onboarding and recovery state is not available yet.";
-    document.getElementById("entry-recommended-link").href = payload.recommendedActionHref || "/play";
-    document.getElementById("entry-recommended-link").textContent = payload.recommendedActionLabel || "Recommended next step";
-    document.getElementById("entry-retry-link").href = payload.retryActionHref || "/play";
-    document.getElementById("entry-retry-link").textContent = payload.retryActionLabel || "Retry recovery";
-    document.getElementById("entry-cancel-link").href = payload.cancelActionHref || "/";
-    document.getElementById("entry-cancel-link").textContent = payload.cancelActionLabel || "Cancel and stay read-only";
-    document.getElementById("entry-restore-link").href = payload.restoreActionHref || "/play";
-    document.getElementById("entry-restore-link").textContent = payload.restoreActionLabel || "Restore claimed-device plan";
+    setText("entry-state-summary", payload.entryStateSummary, "Entry onboarding and recovery state is not available yet.");
+    setLink("entry-recommended-link", payload.recommendedActionHref, payload.recommendedActionLabel, "/play", "Recommended next step");
+    setLink("entry-retry-link", payload.retryActionHref, payload.retryActionLabel, "/play", "Retry recovery");
+    setLink("entry-cancel-link", payload.cancelActionHref, payload.cancelActionLabel, "/", "Cancel and stay read-only");
+    setLink("entry-restore-link", payload.restoreActionHref, payload.restoreActionLabel, "/play", "Restore claimed-device plan");
     setList("entry-recovery-actions", payload.recoveryActions);
   }
 
   function renderRestorePlan(payload) {
-    document.getElementById("restore-summary").textContent = payload.resumeSummary || "No claimed-device recovery summary is available yet.";
-    document.getElementById("restore-safe-action").textContent = payload.safeNextAction || "No recovery-safe action is available yet.";
-    document.getElementById("restore-rule-environment").textContent = payload.ruleEnvironmentSummary || "No rule-environment recovery posture is available yet.";
-    document.getElementById("restore-prefetch").textContent = payload.prefetchReadinessSummary || "No offline prefetch readiness is available yet.";
-    document.getElementById("restore-local-boundary").textContent = payload.localCacheBoundarySummary || "No install-local cache boundary summary is available yet.";
-    document.getElementById("restore-offline-truth").textContent = payload.offlineTruthSummary || "No restore offline truth summary is available yet.";
-    document.getElementById("restore-travel-companion").textContent = payload.travelCompanionSummary || "No restore travel companion summary is available yet.";
+    setText("restore-travel-campaign-current-state", payload.travelCampaignCurrentState, "No restore travel campaign continuity posture is available yet.");
+    setText("restore-travel-campaign-state", payload.travelCampaignStateSummary, "No restore travel campaign-state summary is available yet.");
+    setText("restore-travel-campaign-cached-state", payload.travelCampaignCachedState, "No restore travel cached campaign state is available yet.");
+    setText("restore-travel-campaign-stale-state", payload.travelCampaignStaleState, "No restore travel stale campaign state is available yet.");
+    setText("restore-travel-campaign-action-required", payload.travelCampaignActionRequired, "No restore travel action-required posture is available yet.");
+    setList("restore-travel-campaign-state-labels", payload.travelCampaignStateLabels);
+    syncContinuityCardTone(
+      "restore-travel-campaign-card",
+      "restore-travel-campaign-current-state",
+      "restore-travel-campaign-state",
+      `${payload.travelCampaignStaleState || ""} ${payload.travelCampaignCurrentState || ""}`,
+      "restore-travel-campaign-action-required");
+    syncContinuityStateBreakdown(
+      "restore-travel-campaign-cached-state",
+      "restore-travel-campaign-stale-state",
+      payload.travelCampaignStaleState,
+      "restore-travel-campaign-action-required");
+    setText("restore-summary", payload.resumeSummary, "No claimed-device recovery summary is available yet.");
+    setText("restore-safe-action", payload.safeNextAction, "No recovery-safe action is available yet.");
+    setText("restore-starter-primer-follow-through", payload.starterPrimerFollowThrough, "No travel starter-primer follow-through is available yet.");
+    setLink("restore-starter-primer-follow-through-link", payload.starterPrimerFollowThroughHref, payload.starterPrimerFollowThrough, "/artifacts", "Open travel starter primer");
+    setText("restore-first-session-briefing-follow-through", payload.firstSessionBriefingFollowThrough, "No travel first-session briefing follow-through is available yet.");
+    setLink("restore-first-session-briefing-follow-through-link", payload.firstSessionBriefingFollowThroughHref, payload.firstSessionBriefingFollowThrough, "/artifacts", "Open travel first-session briefing");
+    setText("restore-rule-environment", payload.ruleEnvironmentSummary, "No rule-environment recovery posture is available yet.");
+    setText("restore-prefetch", payload.prefetchReadinessSummary, "No offline prefetch readiness is available yet.");
+    setText("restore-local-boundary", payload.localCacheBoundarySummary, "No install-local cache boundary summary is available yet.");
+    setText("restore-offline-truth", payload.offlineTruthSummary, "No restore offline truth summary is available yet.");
+    setText("restore-action-required", payload.actionRequiredSummary, "No restore action-required summary is available yet.");
+    setText("restore-travel-companion", payload.travelCompanionSummary, "No restore travel companion summary is available yet.");
     document.getElementById("restore-return-target").textContent = payload.returnTargetCampaignName
       ? `Return target: ${payload.returnTargetCampaignName}`
       : "Return target: no campaign return target is attached yet.";
     document.getElementById("restore-device-role").textContent = payload.deviceRole
       ? `Target role: ${payload.deviceRole} on ${payload.targetDeviceId}`
       : "Target role is not available yet.";
-    document.getElementById("restore-follow-through").textContent = payload.resumeFollowThrough || "No claimed-device follow-through is available yet.";
-    document.getElementById("restore-follow-through-link").href = payload.resumeFollowThroughHref || "/play";
-    document.getElementById("restore-follow-through-link").textContent = payload.resumeFollowThrough || "Claimed-device follow-through";
-    document.getElementById("restore-support-follow-through").textContent = payload.supportFollowThrough || "No restore-support follow-through is available yet.";
-    document.getElementById("restore-support-follow-through-link").href = payload.supportFollowThroughHref || "/contact";
-    document.getElementById("restore-support-follow-through-link").textContent = payload.supportFollowThrough || "Restore support follow-through";
+    setText("restore-follow-through", payload.resumeFollowThrough, "No claimed-device follow-through is available yet.");
+    setLink("restore-follow-through-link", payload.resumeFollowThroughHref, payload.resumeFollowThrough, "/play", "Claimed-device follow-through");
+    setText("restore-support-follow-through", payload.supportFollowThrough, "No restore-support follow-through is available yet.");
+    setLink("restore-support-follow-through-link", payload.supportFollowThroughHref, payload.supportFollowThrough, "/contact", "Restore support follow-through");
     setList("restore-offline-truth-labels", payload.offlineTruthLabels);
+    setList("restore-action-required-labels", payload.actionRequiredLabels);
     setList("restore-travel-companion-labels", payload.travelCompanionLabels);
     setList("restore-prefetch-labels", payload.prefetchLabels);
     setList("restore-attention", payload.attentionItems);
@@ -329,31 +1012,92 @@
     if ("serviceWorker" in navigator) {
       try {
         await navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
+        serviceWorkerDetail = navigator.serviceWorker.controller
+          ? "Service worker state: shell cache control is active on this device."
+          : "Service worker state: registered now; cache control takes over after the next shell load.";
       } catch (error) {
         console.error("service worker registration failed", error);
+        serviceWorkerDetail = "Service worker state: registration failed, so install-local cache trust is reduced until this shell reloads cleanly.";
       }
+    } else {
+      serviceWorkerDetail = "Service worker state: this browser cannot register the play-shell cache boundary.";
     }
 
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("sessionId") || "session-main";
     const role = params.get("role") || "Player";
-    const deviceId = params.get("deviceId") || "";
+    const explicitDeviceId = params.get("deviceId") || "";
+    const resolvedDeviceId = resolveStableDeviceId(role, explicitDeviceId);
+    const observerId = resolveObserverId();
+    const artifactView = params.get("artifactView") || "";
+    const artifactId = params.get("artifactId") || "";
+    activeShellIdentity = {
+      sessionId,
+      role,
+      deviceId: resolvedDeviceId,
+      observerId
+    };
 
     try {
-      const response = await fetch(`/api/play/workspace-lite/${encodeURIComponent(sessionId)}?role=${encodeURIComponent(role)}`);
+      const workspaceQuery = new URLSearchParams({ role });
+      if (artifactView) {
+        workspaceQuery.set("artifactView", artifactView);
+      }
+      if (artifactId) {
+        workspaceQuery.set("artifactId", artifactId);
+      }
+      const response = await fetch(`/api/play/workspace-lite/${encodeURIComponent(sessionId)}?${workspaceQuery.toString()}`);
       const payload = await response.json();
-      const restoreResponse = await fetch(`/api/play/restore-plan/${encodeURIComponent(sessionId)}?role=${encodeURIComponent(role)}&deviceId=${encodeURIComponent(deviceId)}`);
+      const observeResponse = await fetch(`/api/play/observe/${encodeURIComponent(sessionId)}`);
+      const observePayload = await observeResponse.json();
+      const restoreResponse = await fetch(`/api/play/restore-plan/${encodeURIComponent(sessionId)}?role=${encodeURIComponent(role)}&deviceId=${encodeURIComponent(resolvedDeviceId)}`);
       const restorePayload = await restoreResponse.json();
-      const entryResponse = await fetch(`/api/play/onboarding-recovery/${encodeURIComponent(sessionId)}?role=${encodeURIComponent(role)}&deviceId=${encodeURIComponent(deviceId)}`);
+      const entryResponse = await fetch(`/api/play/onboarding-recovery/${encodeURIComponent(sessionId)}?role=${encodeURIComponent(role)}&deviceId=${encodeURIComponent(resolvedDeviceId)}`);
       const entryPayload = await entryResponse.json();
-      renderWorkspace(payload);
+      renderShellHero(payload, restorePayload);
+      renderContinuityClaimStatus({
+        ...observePayload,
+        continuityOwnerRoute: payload.roleFollowThroughHref || restorePayload.resumeFollowThroughHref || "/play"
+      });
+      renderWorkspace(payload, artifactId);
       renderRestorePlan(restorePayload);
       renderEntryRecovery(entryPayload);
-      document.getElementById("output").textContent = JSON.stringify({ workspace: payload, restorePlan: restorePayload, onboardingRecovery: entryPayload }, null, 2);
+      updateInstallSurface();
+      updateNetworkStatus();
+      document.getElementById("output").textContent = JSON.stringify({ workspace: payload, observe: observePayload, restorePlan: restorePayload, onboardingRecovery: entryPayload }, null, 2);
     } catch (error) {
       document.getElementById("output").textContent = `Resume failed: ${String(error)}`;
     }
   }
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    updateInstallSurface();
+    updateNetworkStatus();
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    updateInstallSurface();
+    updateNetworkStatus();
+  });
+
+  window.addEventListener("online", updateNetworkStatus);
+  window.addEventListener("offline", updateNetworkStatus);
+
+  document.getElementById("shell-install-button").addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+      return;
+    }
+
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    updateInstallSurface();
+    updateNetworkStatus();
+  });
+  document.getElementById("shell-continuity-claim-button").addEventListener("click", claimContinuityOnThisDevice);
 
   boot();
 </script>

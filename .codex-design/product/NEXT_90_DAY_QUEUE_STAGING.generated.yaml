@@ -3063,9 +3063,13 @@ items:
   package_id: next90-m119-mobile-onboarding-continuity
   work_task_id: 119.3
   milestone_id: 119
-  status: in_progress
+  status: complete
   wave: W14
   repo: chummer6-mobile
+  completion_action: verify_closed_package_only
+  do_not_reopen_reason: M119 chummer6-mobile starter-lane continuity is complete; future shards must verify the mobile
+    onboarding continuity proof, standalone verifier, generated release proof, canonical registry row, and queue mirrors
+    instead of reopening the mobile starter-lane slice.
   allowed_paths:
   - src
   - tests

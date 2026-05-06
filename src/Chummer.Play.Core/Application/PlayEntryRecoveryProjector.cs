@@ -45,21 +45,21 @@ public static class PlayEntryRecoveryProjector
         if (isNoSession)
         {
             entryState = "no_session";
-            entryStateSummary = "No session state is cached on this device yet, so onboarding should start from a single role-owned entry point.";
-            recommendedActionLabel = "Start role-safe session bootstrap";
-            recommendedActionHref = resume.DeepLinkOwnerRoute;
+            entryStateSummary = "No session state is cached on this device yet, so onboarding should start from the starter primer on the same claimed-device continuity lane.";
+            recommendedActionLabel = "Open starter primer";
+            recommendedActionHref = restorePlan.StarterPrimerFollowThroughHref;
         }
         else if (isNoCampaign)
         {
             entryState = "no_campaign";
-            entryStateSummary = "A session exists but no campaign return target is attached yet, so onboarding should create one bounded return lane.";
-            recommendedActionLabel = "Create campaign return target";
-            recommendedActionHref = "/campaigns/new?source=mobile-play";
+            entryStateSummary = "A session exists but no campaign return target is attached yet, so onboarding should reopen the starter primer before the first-session briefing widens beyond this claimed lane.";
+            recommendedActionLabel = "Open starter primer";
+            recommendedActionHref = restorePlan.StarterPrimerFollowThroughHref;
         }
         else if (isPostFailure)
         {
             entryState = "post_failure";
-            entryStateSummary = "Recovery is in a post-failure lane, so the next action should be explicit and one-tap with no silent rollback.";
+            entryStateSummary = "Recovery is in a post-failure lane, so cached, stale, and action-required travel continuity stays explicit before any one-tap resume.";
             recommendedActionLabel = restorePlan.SafeNextAction;
             recommendedActionHref = restorePlan.ResumeFollowThroughHref;
         }
@@ -75,6 +75,22 @@ public static class PlayEntryRecoveryProjector
             CancelActionHref: "/",
             RestoreActionLabel: "Restore claimed-device plan",
             RestoreActionHref: restorePlan.ResumeFollowThroughHref,
-            RecoveryActions: recoveryActions);
+            RecoveryActions:
+            [
+                .. recoveryActions,
+                BuildRecoveryContinuityLine("cached state", restorePlan.TravelCampaignCachedState, "Cached state:"),
+                BuildRecoveryContinuityLine("stale state", restorePlan.TravelCampaignStaleState, "Stale state:"),
+                BuildRecoveryContinuityLine("action required", restorePlan.TravelCampaignActionRequired, "Action required:"),
+                $"Starter primer lane: {restorePlan.StarterPrimerFollowThrough}",
+                $"First-session briefing lane: {restorePlan.FirstSessionBriefingFollowThrough}"
+            ]);
+    }
+
+    private static string BuildRecoveryContinuityLine(string label, string value, string expectedPrefix)
+    {
+        string detail = value.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase)
+            ? value[expectedPrefix.Length..].Trim()
+            : value.Trim();
+        return $"Travel continuity {label}: {detail}";
     }
 }

@@ -26,6 +26,11 @@ test -f docs/sync-model.md
 test -f docs/offline-storage.md
 test -f docs/migration-map.md
 test -f docs/PLAY_RELEASE_SIGNOFF.md
+test -f docs/next90-m112-mobile-campaign-continuity.proof.md
+test -f docs/next90-m119-mobile-onboarding-continuity.proof.md
+test -f docs/next90-m121-mobile-live-combat-confidence.proof.md
+test -f docs/next90-m122-mobile-runner-goal-updates-and-consequence-feed.proof.md
+test -f docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md
 test -f feedback/2026-03-10-public-repo-graph-audit.md
 test -f src/Chummer.Play.Web/Program.cs
 test -f src/Chummer.Play.Web/PlayWebApplication.cs
@@ -49,6 +54,11 @@ test -f src/Chummer.Play.Web/wwwroot/service-worker.js
 test -f src/Chummer.Play.Web/wwwroot/icons/icon-192.svg
 test -f src/Chummer.Play.Web/wwwroot/icons/icon-512.svg
 test -f scripts/materialize_mobile_local_release_proof.py
+test -f scripts/verify_next90_m112_mobile_campaign_continuity.py
+test -f scripts/verify_next90_m119_mobile_onboarding_continuity.py
+test -f scripts/verify_next90_m121_mobile_live_combat_confidence.py
+test -f scripts/verify_next90_m122_mobile_runner_goal_updates.py
+test -f scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py
 test -f scripts/ai/with-package-plane.sh
 test -f scripts/ai/verify_design_mirror.py
 test -f src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj
@@ -233,6 +243,7 @@ rg -n 'Publication-safe projection boundary' docs/chummer6-mobile.design.v1.md >
 rg -n 'show recap-safe and replay-safe artifact shelf summaries' docs/chummer6-mobile.design.v1.md >/dev/null
 rg -n 'deep-link into Hub-owned creator publication status or support follow-through' docs/chummer6-mobile.design.v1.md >/dev/null
 rg -n 'own publication review state transitions|own moderation decisions or admin tooling|second creator-publication truth' docs/chummer6-mobile.design.v1.md >/dev/null
+rg -n 'next90-m117-mobile-artifact-shelf' docs/next90-m117-mobile-artifact-shelf.proof.md >/dev/null
 rg -n 'published-feed cutover for `Chummer.Play.Contracts` and `Chummer.Ui.Kit`' docs/chummer-play.design.v1.md >/dev/null
 rg -n 'Milestone 4 dedicated play API ownership: `WL-004` aligns the contract family and `WL-012` owns the executable `/api/play/projection`, `/api/play/reconnect`, and `/api/play/sync` route surface' docs/chummer-play.design.v1.md >/dev/null
 rg -n 'Milestone 6 offline cache and local-first replay ownership: `WL-005` remains the sync/storage umbrella, `WL-011` owns browser-backed event-ledger persistence, and `WL-013` owns runtime bundle lineage, replay checkpoints, and resume metadata in browser storage' docs/chummer-play.design.v1.md >/dev/null
@@ -249,6 +260,7 @@ rg -n 'PlayApiRoutes\.Resume' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayApiRoutes\.CachePressure' src/Chummer.Play.Web >/dev/null
 rg -n 'PlayCampaignWorkspaceLiteProjector|PlayCampaignWorkspaceLiteProjection' src/Chummer.Play.Core src/Chummer.Play.Web >/dev/null
 rg -n '/api/play/workspace-lite/\{sessionId\}' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
+rg -n '"/artifacts/\{sessionId\}"' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'AddSingleton<IRoamingWorkspaceSyncPlanner, RoamingWorkspaceSyncPlanner>' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'RoamingWorkspaceRestorePlan|CreatePlan\(WorkspaceRestoreProjection restore, string targetDeviceId\)|ResumeSummary|SafeNextAction|RuleEnvironmentSummary|ReturnTargetCampaignName|AttentionItems' src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs >/dev/null
 rg -n 'ResumeSummary|SafeNextAction|RuleEnvironmentSummary|ReturnTargetCampaignName|AttentionItems' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
@@ -258,6 +270,9 @@ if rg -n 'DeepLinkOwnerRoute:\s*"/play/\{sessionId\}"|PlayContinuityClaimRespons
   echo "templated owner routes are not allowed in live resume/workspace responses" >&2
   exit 1
 fi
+python3 scripts/verify_next90_m117_mobile_artifact_shelf.py >/dev/null
+python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
+python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
 rg -n 'SelectShell\(bootstrapRequest\.Role, playerShell, gmShell\)' src/Chummer.Play.Web >/dev/null
 rg -n '\[activeShell\]' src/Chummer.Play.Web >/dev/null
 rg -n 'BuildQuickActions\(bootstrapRequest\.Role, roleCapabilities\)|BuildQuickActions\(request\.Role, roleCapabilities\)' src/Chummer.Play.Web >/dev/null
@@ -361,6 +376,11 @@ bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.cspro
 bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo >/dev/null
 bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
 python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
+python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
+python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
+python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
+python3 scripts/verify_next90_m122_mobile_runner_goal_updates.py >/dev/null
+python3 scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py >/dev/null
 test -f .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json
 rg -n '"contract_name": "chummer6-mobile.local_release_proof"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"status": "passed"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
@@ -370,6 +390,11 @@ rg -n '"campaign_session_recover_recap"' .codex-studio/published/MOBILE_LOCAL_RE
 rg -n '"recover_from_sync_conflict"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"quality_release_hardening"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"migration_boundary_evidence"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"mobile_campaign_continuity"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"mobile_onboarding_continuity"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"mobile_live_combat_confidence"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"mobile_runner_goal_updates"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"quick_explain_follow_up"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"required_markers": \{' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
@@ -406,6 +431,11 @@ if [[ -n "${published_feed_sources}" ]]; then
   bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
   python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
+  python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
+  python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
+  python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
+  python3 scripts/verify_next90_m122_mobile_runner_goal_updates.py >/dev/null
+  python3 scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py >/dev/null
 else
   echo "published-feed compatibility restore/build checks skipped (set CHUMMER_PUBLISHED_FEED_SOURCES to enable)"
   echo "running local owner-package compatibility smoke check"
@@ -423,6 +453,11 @@ else
   bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
   python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
+  python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
+  python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
+  python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
+  python3 scripts/verify_next90_m122_mobile_runner_goal_updates.py >/dev/null
+  python3 scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py >/dev/null
 fi
 
 echo "chummer6-mobile verify ok"

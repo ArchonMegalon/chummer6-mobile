@@ -178,7 +178,41 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
                 CreatorPublicationId: $"publication:{resume.SessionId}:replay",
                 NextSafeAction: BuildReplayNextSafeAction(resume, session),
                 ProvenanceSummary: BuildReplayProvenanceSummary(resume, session),
-                AuditSummary: BuildReplayAuditSummary(resume, session))
+                AuditSummary: BuildReplayAuditSummary(resume, session)),
+            new(
+                EntryId: $"primer:{resume.SessionId}",
+                Kind: "campaign_primer",
+                Label: $"{session.SceneId} starter primer",
+                Summary: BuildPrimerSummary(resume, session, roleLabel),
+                ArtifactId: $"artifact:{resume.SessionId}:starter-primer",
+                UpdatedAtUtc: updatedAtUtc,
+                Audience: "personal,campaign",
+                OwnershipSummary: $"{session.SceneId} keeps the same starter primer on the claimed mobile return lane so travel onboarding does not fork into a browser-only copy.",
+                PublicationState: resume.RuntimeBundle is null ? "travel_pending" : "travel_ready",
+                TrustBand: resume.RuntimeBundle is null ? "draft" : "grounded",
+                Discoverable: false,
+                PublicationSummary: BuildPrimerPublicationSummary(resume, session),
+                CreatorPublicationId: $"publication:{resume.SessionId}:starter-primer",
+                NextSafeAction: BuildPrimerNextSafeAction(resume, session),
+                ProvenanceSummary: BuildPrimerProvenanceSummary(resume, session),
+                AuditSummary: BuildPrimerAuditSummary(resume, session)),
+            new(
+                EntryId: $"briefing:{resume.SessionId}",
+                Kind: "mission_briefing",
+                Label: $"{session.SceneId} first-session briefing",
+                Summary: BuildBriefingSummary(resume, session, roleLabel),
+                ArtifactId: $"artifact:{resume.SessionId}:first-session-briefing",
+                UpdatedAtUtc: updatedAtUtc,
+                Audience: "campaign,creator",
+                OwnershipSummary: $"{session.SceneId} keeps the same first-session briefing on the governed mobile continuity lane so table briefing follow-through stays inspectable without a second handoff.",
+                PublicationState: resume.RuntimeBundle is null ? "travel_pending" : "travel_ready",
+                TrustBand: resume.RuntimeBundle is null ? "draft" : "grounded",
+                Discoverable: false,
+                PublicationSummary: BuildBriefingPublicationSummary(resume, session),
+                CreatorPublicationId: $"publication:{resume.SessionId}:first-session-briefing",
+                NextSafeAction: BuildBriefingNextSafeAction(resume, session),
+                ProvenanceSummary: BuildBriefingProvenanceSummary(resume, session),
+                AuditSummary: BuildBriefingAuditSummary(resume, session))
         ];
 
     private static string ResolveRoleLabel(PlaySurfaceRole role)
@@ -262,6 +296,36 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
             ? $"Reconnect {session.SceneId} once, then reopen creator publication status before you widen the replay timeline audience."
             : $"Open creator publication status for {session.SceneId}, then keep contested-turn review on the same replay timeline.";
 
+    private static string BuildPrimerSummary(PlayResumeResponse resume, EngineSessionEnvelope session, string roleLabel)
+        => resume.RuntimeBundle is null
+            ? $"Starter primer stays bounded to the {roleLabel}, but reconnect once before you trust travel-safe primer follow-through for {session.SceneId}."
+            : $"Starter primer stays grounded on bundle {resume.RuntimeBundle.BundleTag} so the claimed {roleLabel} can reopen first-session context before live play.";
+
+    private static string BuildPrimerPublicationSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Starter primer is cached locally for {session.SceneId}, but travel-safe launch still needs grounded bundle proof before you trust it as the first-session continuity anchor."
+            : $"Starter primer is grounded on bundle {resume.RuntimeBundle.BundleTag}, so the same artifact can reopen mobile and travel onboarding without another export step.";
+
+    private static string BuildPrimerNextSafeAction(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Reconnect {session.SceneId} once, then reopen the starter primer on the claimed device before you trust travel-safe onboarding."
+            : $"Open the starter primer for {session.SceneId}, then keep the next first-session follow-through on the same claimed-device shell.";
+
+    private static string BuildBriefingSummary(PlayResumeResponse resume, EngineSessionEnvelope session, string roleLabel)
+        => resume.RuntimeBundle is null
+            ? $"First-session briefing stays bounded to the {roleLabel}, but reconnect once before you trust mission-briefing continuity for {session.SceneId}."
+            : $"First-session briefing stays grounded on bundle {resume.RuntimeBundle.BundleTag} so the claimed {roleLabel} can reopen the same table-ready cue without a browser detour.";
+
+    private static string BuildBriefingPublicationSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"First-session briefing is cached locally for {session.SceneId}, but the shell still needs grounded bundle proof before wider table follow-through is trustworthy."
+            : $"First-session briefing is grounded on bundle {resume.RuntimeBundle.BundleTag}, so mobile and travel shells share the same inspectable briefing lane.";
+
+    private static string BuildBriefingNextSafeAction(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Reconnect {session.SceneId} once, then reopen the first-session briefing before you trust shared launch or travel follow-through."
+            : $"Open the first-session briefing for {session.SceneId}, then keep the next live-play action on the same claimed-device shell.";
+
     private static string BuildRecapProvenanceSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
         => resume.RuntimeBundle is null
             ? $"{session.RuntimeFingerprint} + {session.SceneId} + checkpoint pending keep the recap-safe packet bounded to the claimed-device return lane."
@@ -272,6 +336,16 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
             ? $"{session.RuntimeFingerprint} + {session.SceneId} + checkpoint pending keep the replay timeline bounded to the claimed-device contested-turn review lane."
             : $"{session.RuntimeFingerprint} + {session.SceneId} + checkpoint {resume.Checkpoint?.AppliedThroughSequence.ToString() ?? "pending"} keep the replay timeline grounded on the same contested-turn review lane.";
 
+    private static string BuildPrimerProvenanceSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"Starter primer provenance: {session.RuntimeFingerprint} is loaded for {session.SceneId}, but grounded bundle proof is still pending on this shell."
+            : $"Starter primer provenance: bundle {resume.RuntimeBundle.BundleTag} plus {session.RuntimeFingerprint} keep the claimed-device primer aligned to {session.SceneId}.";
+
+    private static string BuildBriefingProvenanceSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.RuntimeBundle is null
+            ? $"First-session briefing provenance: {session.RuntimeFingerprint} is loaded, but grounded bundle proof is still pending for {session.SceneId}."
+            : $"First-session briefing provenance: bundle {resume.RuntimeBundle.BundleTag} plus {session.RuntimeFingerprint} keep the current briefing aligned to {session.SceneId}.";
+
     private static string BuildRecapAuditSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
         => resume.Checkpoint is null
             ? $"Reconnect {session.SceneId} once so this claimed device records its first governed recap receipt."
@@ -281,6 +355,16 @@ public static class PlayCampaignWorkspaceServerPlaneProjector
         => resume.Checkpoint is null
             ? $"Reconnect {session.SceneId} once so this claimed device records its first governed replay receipt."
             : $"Checkpoint {resume.Checkpoint.AppliedThroughSequence} was captured at {resume.Checkpoint.CapturedAtUtc:yyyy-MM-dd HH:mm} UTC and remains reviewable on artifact artifact:{resume.SessionId}:replay.";
+
+    private static string BuildPrimerAuditSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.Checkpoint is null
+            ? $"Starter primer audit: no local checkpoint is pinned yet for {session.SceneId}, so travel-safe primer review is still provisional."
+            : $"Starter primer audit: checkpoint {resume.Checkpoint.AppliedThroughSequence} keeps primer review aligned to {session.SceneId} on this shell.";
+
+    private static string BuildBriefingAuditSummary(PlayResumeResponse resume, EngineSessionEnvelope session)
+        => resume.Checkpoint is null
+            ? $"First-session briefing audit: no local checkpoint is pinned yet for {session.SceneId}, so travel-safe briefing review is still provisional."
+            : $"First-session briefing audit: checkpoint {resume.Checkpoint.AppliedThroughSequence} keeps the first-session briefing aligned to {session.SceneId} on this shell.";
 
     private static string BuildRosterSummary(
         PlayResumeResponse resume,
