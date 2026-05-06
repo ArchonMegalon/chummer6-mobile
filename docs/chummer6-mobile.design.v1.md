@@ -34,6 +34,20 @@ It must not:
 - own moderation decisions or admin tooling
 - invent a second creator-publication truth outside the Hub/registry boundary
 
+## Return-moment projection boundary
+
+This repo may project runner-goal updates and player-safe consequence feed views when they keep campaign return moments understandable on the claimed mobile shell.
+
+That means `chummer6-mobile` may:
+
+- show replay-safe runner-goal update cues tied to install-local checkpoints and return routes
+- show bounded consequence-feed copy that keeps spoilers and next-safe-action posture visible for players
+
+It must not:
+
+- publish BLACK LEDGER world-truth changes or approval state
+- expose operator-only consequence detail or widen mobile into campaign authority
+
 ## Package-only rule
 
 This repo consumes:

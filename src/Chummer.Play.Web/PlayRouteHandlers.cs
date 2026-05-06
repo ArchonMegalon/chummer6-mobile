@@ -4,6 +4,7 @@ using Chummer.Play.Core.PlayApi;
 using Chummer.Play.Core.Sync;
 using Chummer.Play.Web.BrowserState;
 using Microsoft.AspNetCore.Http;
+using System.Text;
 
 namespace Chummer.Play.Web;
 

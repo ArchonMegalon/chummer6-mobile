@@ -9,7 +9,7 @@ public static class PlayerShellModule
         new(
             PlaySurfaceRole.Player,
             "Player Shell",
-            "Narrow play-mode surface for trackers, quick actions, notes, and grounded coaching.",
+            "Narrow play-mode surface for player table cards, between-turn quick actions, notes, and grounded coaching.",
             new[] { "play.session.read", "play.session.sync", "play.notes.write" }
         );
 }

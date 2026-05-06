@@ -55,6 +55,21 @@ pack_owner_package() {
     -p:PackageVersion="${package_version}" >/dev/null
 }
 
+pack_stub_package() {
+  local project_path="$1"
+  local package_id="$2"
+  local package_version="$3"
+
+  dotnet pack "${project_path}" \
+    --nologo \
+    -c Release \
+    -o "${local_feed}" \
+    -p:PackageId="${package_id}" \
+    -p:PackageVersion="${package_version}" \
+    -p:AssemblyName="${package_id}" \
+    -p:RootNamespace="${package_id}" >/dev/null
+}
+
 if [[ -n "${published_feed_sources}" ]]; then
   restore_args+=(-p:RestoreSources="${published_feed_sources}" -p:RestoreIgnoreFailedSources=false)
 else
@@ -67,19 +82,19 @@ else
     find "${repo_root}/eng/package-stubs" -path "*/obj/project.assets.json" -delete
     find "${repo_root}/eng/package-stubs" -path "*/obj/project.nuget.cache" -delete
     if ! pack_owner_package "${engine_contracts_project}" "Chummer.Engine.Contracts" "${published_engine_contracts_version:-0.1.0-preview}"; then
-      dotnet pack "${repo_root}/eng/package-stubs/EngineContractsStub/EngineContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
+      pack_stub_package "${repo_root}/eng/package-stubs/EngineContractsStub/EngineContractsStub.csproj" "Chummer.Engine.Contracts" "${published_engine_contracts_version:-0.1.0-preview}"
     fi
     if ! pack_owner_package "${campaign_contracts_project}" "Chummer.Campaign.Contracts" "${published_campaign_contracts_version:-0.1.0-preview}"; then
-      dotnet pack "${repo_root}/eng/package-stubs/CampaignContractsStub/CampaignContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
+      pack_stub_package "${repo_root}/eng/package-stubs/CampaignContractsStub/CampaignContractsStub.csproj" "Chummer.Campaign.Contracts" "${published_campaign_contracts_version:-0.1.0-preview}"
     fi
     if ! pack_owner_package "${control_contracts_project}" "Chummer.Control.Contracts" "${published_control_contracts_version:-0.1.0-preview}"; then
-      dotnet pack "${repo_root}/eng/package-stubs/ControlContractsStub/ControlContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
+      pack_stub_package "${repo_root}/eng/package-stubs/ControlContractsStub/ControlContractsStub.csproj" "Chummer.Control.Contracts" "${published_control_contracts_version:-0.1.0-preview}"
     fi
     if ! pack_owner_package "${play_contracts_project}" "Chummer.Play.Contracts" "${published_play_contracts_version:-0.1.0-preview}"; then
-      dotnet pack "${repo_root}/eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
+      pack_stub_package "${repo_root}/eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj" "Chummer.Play.Contracts" "${published_play_contracts_version:-0.1.0-preview}"
     fi
     if ! pack_owner_package "${ui_kit_project}" "Chummer.Ui.Kit" "${published_ui_kit_version:-0.1.0-preview}"; then
-      dotnet pack "${repo_root}/eng/package-stubs/UiKitStub/UiKitStub.csproj" --nologo -c Release -o "${local_feed}" >/dev/null
+      pack_stub_package "${repo_root}/eng/package-stubs/UiKitStub/UiKitStub.csproj" "Chummer.Ui.Kit" "${published_ui_kit_version:-0.1.0-preview}"
     fi
   fi
   restore_args+=(-p:RestoreSources="${local_feed}" -p:RestoreIgnoreFailedSources=true)

@@ -9,7 +9,7 @@ public static class GmTacticalShellModule
         new(
             PlaySurfaceRole.GameMaster,
             "GM Tactical Shell",
-            "Tactical cards, approvals, reveal controls, and stale-protected session actions for live play.",
+            "Tactical cards, GM-lite continuity, approvals, reveal controls, and stale-protected session actions for live play.",
             new[] { "play.session.read", "play.session.sync", "play.spider.cards", "play.gm.actions" }
         );
 }

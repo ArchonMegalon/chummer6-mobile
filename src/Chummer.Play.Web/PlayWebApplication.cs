@@ -217,6 +217,8 @@ public static class PlayWebApplication
             async (
                 string sessionId,
                 PlaySurfaceRole role,
+                string? artifactView,
+                string? artifactId,
                 IPlayEventLogStore eventLogStore,
                 IPlayOfflineCacheService offlineCacheService,
                 CancellationToken cancellationToken
@@ -231,7 +233,7 @@ public static class PlayWebApplication
                     gmShell,
                     cancellationToken
                 );
-                return Results.Json(PlayCampaignWorkspaceLiteProjector.Create(response));
+                return Results.Json(PlayCampaignWorkspaceLiteProjector.Create(response, artifactView, artifactId));
             }
         );
         app.MapGet(
@@ -313,6 +315,22 @@ public static class PlayWebApplication
                 var pressure = await offlineCacheService.GetCachePressureAsync(cancellationToken);
                 return Results.Json(pressure);
             }
+        );
+        app.MapGet(
+            "/artifacts/{sessionId}",
+            (string sessionId, string? deviceId, string? view, PlaySurfaceRole role = PlaySurfaceRole.Player) =>
+                Results.Redirect(
+                    BuildPlayIndexHref(sessionId, deviceId, role, artifactView: view),
+                    permanent: false
+                )
+        );
+        app.MapGet(
+            "/artifacts/{sessionId}/{artifactId}",
+            (string sessionId, string artifactId, string? deviceId, string? view, PlaySurfaceRole role = PlaySurfaceRole.Player) =>
+                Results.Redirect(
+                    BuildPlayIndexHref(sessionId, deviceId, role, artifactView: view, artifactId: artifactId),
+                    permanent: false
+                )
         );
         app.MapGet(
             "/play",
@@ -703,7 +721,12 @@ public static class PlayWebApplication
         return new EngineSessionEnvelope(sessionId, "scene-main", "scene-r1", "runtime-local");
     }
 
-    private static string BuildPlayIndexHref(string? sessionId, string? deviceId, PlaySurfaceRole role)
+    private static string BuildPlayIndexHref(
+        string? sessionId,
+        string? deviceId,
+        PlaySurfaceRole role,
+        string? artifactView = null,
+        string? artifactId = null)
     {
         List<string> queryParts =
         [
@@ -718,6 +741,16 @@ public static class PlayWebApplication
         if (!string.IsNullOrWhiteSpace(deviceId))
         {
             queryParts.Add($"deviceId={Uri.EscapeDataString(deviceId)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(artifactView))
+        {
+            queryParts.Add($"artifactView={Uri.EscapeDataString(artifactView)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(artifactId))
+        {
+            queryParts.Add($"artifactId={Uri.EscapeDataString(artifactId)}");
         }
 
         return $"/index.html?{string.Join("&", queryParts)}";
