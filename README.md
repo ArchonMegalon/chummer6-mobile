@@ -49,6 +49,12 @@ Run the local fast-path verification:
 bash scripts/ai/verify.sh
 ```
 
+If the local design mirror drifts from canon, repair only this repo mirror bundle with:
+
+```bash
+bash scripts/ai/repair_design_mirror.sh
+```
+
 Run ad hoc `dotnet` restore/build/run commands through the repo package-plane helper so the shared package feed resolves the same way as verification:
 
 ```bash

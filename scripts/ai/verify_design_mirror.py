@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DESIGN_ROOT = Path("/docker/chummercomplete/chummer-design")
 MANIFEST_PATH = DESIGN_ROOT / "products" / "chummer" / "sync" / "sync-manifest.yaml"
 TARGET_REPO = "chummer6-mobile"
+LOCAL_REPAIR_SCRIPT = REPO_ROOT / "scripts" / "ai" / "repair_design_mirror.sh"
 
 
 def load_manifest() -> dict[str, object]:
@@ -106,6 +107,8 @@ def main() -> int:
         print("design mirror drift detected for chummer6-mobile:", file=sys.stderr)
         for problem in problems:
             print(f"  {problem}", file=sys.stderr)
+        if LOCAL_REPAIR_SCRIPT.is_file():
+            print(f"repair with: bash {LOCAL_REPAIR_SCRIPT.relative_to(REPO_ROOT)}", file=sys.stderr)
         print(
             "repair with: python3 /docker/chummercomplete/chummer-design/scripts/ai/publish_local_mirrors.py",
             file=sys.stderr,

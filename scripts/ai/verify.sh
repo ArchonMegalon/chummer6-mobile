@@ -59,6 +59,7 @@ test -f scripts/verify_next90_m119_mobile_onboarding_continuity.py
 test -f scripts/verify_next90_m121_mobile_live_combat_confidence.py
 test -f scripts/verify_next90_m122_mobile_runner_goal_updates.py
 test -f scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py
+test -f scripts/ai/repair_design_mirror.sh
 test -f scripts/ai/with-package-plane.sh
 test -f scripts/ai/verify_design_mirror.py
 test -f src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj
@@ -270,6 +271,7 @@ if rg -n 'DeepLinkOwnerRoute:\s*"/play/\{sessionId\}"|PlayContinuityClaimRespons
   echo "templated owner routes are not allowed in live resume/workspace responses" >&2
   exit 1
 fi
+python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
 python3 scripts/verify_next90_m117_mobile_artifact_shelf.py >/dev/null
 python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
 python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null

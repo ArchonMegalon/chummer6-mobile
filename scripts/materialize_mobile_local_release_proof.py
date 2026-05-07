@@ -285,6 +285,9 @@ REQUIRED_MARKERS = {
     "mobile_live_combat_confidence": [
         "Mobile live combat confidence criteria (M121)",
         "next90-m121-mobile-add-player-table-cards-between-turn-affordances-and-gm-l",
+        'Assert(playerDescriptor.Summary.Contains("player table cards", StringComparison.OrdinalIgnoreCase)',
+        'Assert(playerDescriptor.Summary.Contains("between-turn", StringComparison.OrdinalIgnoreCase)',
+        'Assert(gmDescriptor.Summary.Contains("GM-lite continuity", StringComparison.Ordinal)',
         'Assert(projection.PlayerTableCardsSummary.Contains("Player table cards:", StringComparison.Ordinal)',
         'Assert(projection.PlayerTableCardLabels.Any(item => item.Contains("Initiative lane:", StringComparison.Ordinal))',
         'Assert(projection.BetweenTurnAffordancesSummary.Contains("Between-turn affordances:", StringComparison.Ordinal)',
