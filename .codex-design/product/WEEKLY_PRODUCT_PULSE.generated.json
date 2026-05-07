@@ -1,7 +1,7 @@
 {
   "contract_name": "chummer.weekly_product_pulse",
   "contract_version": 3,
-  "generated_at": "2026-05-07T02:38:42Z",
+  "generated_at": "2026-05-07T03:21:37Z",
   "as_of": "2026-05-07",
   "scorecard_source": "products/chummer/PRODUCT_HEALTH_SCORECARD.yaml",
   "progress_report_source": "products/chummer/PROGRESS_REPORT.generated.json",
@@ -42,7 +42,7 @@
   },
   "flagship_readiness": {
     "state": "watch",
-    "reason": "Published flagship readiness proof is fail. Coverage gaps remain: desktop_client. Readiness-plane gaps remain: flagship_ready, veteran_deep_workflow_ready, dense_workbench_ready, public_shelf_ready, recovery_trust_ready, sr6_parity_ready.",
+    "reason": "Published flagship readiness proof is fail. Coverage gaps remain: desktop_client. Readiness-plane gaps remain: flagship_ready, veteran_deep_workflow_ready, dense_workbench_ready, public_shelf_ready, recovery_trust_ready, sr4_parity_ready, sr6_parity_ready.",
     "proof_status": "fail",
     "coverage_gap_keys": [
       "desktop_client"
@@ -53,6 +53,7 @@
       "dense_workbench_ready",
       "public_shelf_ready",
       "recovery_trust_ready",
+      "sr4_parity_ready",
       "sr6_parity_ready"
     ]
   },
@@ -145,7 +146,7 @@
     },
     "flagship_readiness": {
       "state": "watch",
-      "reason": "Published flagship readiness proof is fail. Coverage gaps remain: desktop_client. Readiness-plane gaps remain: flagship_ready, veteran_deep_workflow_ready, dense_workbench_ready, public_shelf_ready, recovery_trust_ready, sr6_parity_ready.",
+      "reason": "Published flagship readiness proof is fail. Coverage gaps remain: desktop_client. Readiness-plane gaps remain: flagship_ready, veteran_deep_workflow_ready, dense_workbench_ready, public_shelf_ready, recovery_trust_ready, sr4_parity_ready, sr6_parity_ready.",
       "proof_status": "fail",
       "coverage_gap_keys": [
         "desktop_client"
@@ -156,6 +157,7 @@
         "dense_workbench_ready",
         "public_shelf_ready",
         "recovery_trust_ready",
+        "sr4_parity_ready",
         "sr6_parity_ready"
       ]
     },
