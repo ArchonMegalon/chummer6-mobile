@@ -4,7 +4,6 @@ from __future__ import annotations
 import datetime as dt
 import json
 import sys
-from copy import deepcopy
 from pathlib import Path
 
 
@@ -503,25 +502,6 @@ def iso_now() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def strip_generated_timestamps(payload: dict[str, object]) -> dict[str, object]:
-    normalized = deepcopy(payload)
-    normalized.pop("generated_at", None)
-    normalized.pop("generatedAt", None)
-    return normalized
-
-
-def load_existing_payload(path: Path) -> dict[str, object] | None:
-    if not path.is_file():
-        return None
-
-    try:
-        loaded = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
-
-    return loaded if isinstance(loaded, dict) else None
-
-
 def main() -> int:
     if not REGRESSION_SOURCE.is_file():
         print(f"missing regression source: {REGRESSION_SOURCE}", file=sys.stderr)
@@ -623,7 +603,6 @@ def main() -> int:
             print(f"mobile_local_release_proof_missing: {item}", file=sys.stderr)
         return 1
 
-    existing_payload = load_existing_payload(OUT)
     payload = {
         "contract_name": "chummer6-mobile.local_release_proof",
         "status": "passed",
@@ -649,16 +628,10 @@ def main() -> int:
         "journeys_passed": journeys_passed,
         "required_markers": REQUIRED_MARKERS,
         "package_receipts": PACKAGE_RECEIPTS,
+        # Fleet freshness gates key off this timestamp, so reruns must renew it
+        # even when the proof payload is otherwise unchanged.
+        "generated_at": iso_now(),
     }
-
-    existing_generated_at = existing_payload.get("generated_at") if isinstance(existing_payload, dict) else None
-    if (
-        isinstance(existing_generated_at, str)
-        and strip_generated_timestamps(existing_payload) == strip_generated_timestamps(payload)
-    ):
-        payload["generated_at"] = existing_generated_at
-    else:
-        payload["generated_at"] = iso_now()
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     serialized = json.dumps(payload, indent=2) + "\n"
