@@ -20,6 +20,8 @@ skillsneeded.txt
 day1.prompt.txt
 aider_output.txt
 *.binlog
+*.bin
+*.exe
 build*.log
 solution*.log
 err.log
