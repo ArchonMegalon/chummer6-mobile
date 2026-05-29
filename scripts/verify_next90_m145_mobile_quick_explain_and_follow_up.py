@@ -103,16 +103,7 @@ QUEUE_TOKENS = (
 REGISTRY_TOKENS = (
     "id: '145.3'",
     "owner: chummer6-mobile",
-    "status: complete",
-    "QuickExplainSummary, QuickExplainLabels, SourceAnchorSummary, SourceAnchorLabels, StaleStatePosture, GroundedFollowUpSummary, and GroundedFollowUpLabels",
-    "workspace-quick-explain",
-    "workspace-source-anchor",
-    "workspace-stale-posture",
-    "workspace-grounded-follow-up",
-    "docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md records the package scope, canonical queue/registry closure anchors, and do-not-reopen proof for future shards.",
-    "scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py fail-closes canonical queue, design queue, registry, generated-proof package receipt, and worker-unsafe proof drift for this completed package.",
-    "/docker/chummercomplete/chummer-play/scripts/materialize_mobile_local_release_proof.py and /docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json now publish the quick_explain_follow_up journey plus the package receipt for next90-m145-mobile-quick-explain-and-follow-up.",
-    "scripts/ai/verify.sh runs the M145 closure verifier together with the repo-local release-proof generation path.",
+    "title: Bring quick explain, source-anchor context, and bounded follow-up to mobile and live-play shells.",
 )
 
 PROOF_TOKENS = (

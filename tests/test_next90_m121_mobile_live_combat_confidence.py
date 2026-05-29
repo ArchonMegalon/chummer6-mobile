@@ -8,6 +8,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = ROOT / "scripts" / "verify_next90_m121_mobile_live_combat_confidence.py"
@@ -60,13 +61,16 @@ class VerifyNext90M121MobileLiveCombatConfidenceTests(unittest.TestCase):
     def test_verifier_fails_closed_when_queue_row_claims_completion(self) -> None:
         original_fleet_queue = self.module.FLEET_QUEUE
         original_design_queue = self.module.DESIGN_QUEUE
-        queue_text = original_fleet_queue.read_text(encoding="utf-8")
-        drifted_row = self.module.EXPECTED_QUEUE_ROW.replace("status: not_started", "status: complete") + "\n  landed_commit: deadbeef"
-        poisoned_queue = queue_text.replace(self.module.EXPECTED_QUEUE_ROW, drifted_row, 1)
+        queue_payload = yaml.safe_load(original_fleet_queue.read_text(encoding="utf-8"))
+        for row in queue_payload["items"]:
+            if row.get("package_id") == self.module.PACKAGE_ID:
+                row["status"] = "complete"
+                row["landed_commit"] = "deadbeef"
+                break
 
         with tempfile.TemporaryDirectory() as temp_dir:
             queue_override = Path(temp_dir) / original_fleet_queue.name
-            queue_override.write_text(poisoned_queue, encoding="utf-8")
+            queue_override.write_text(yaml.safe_dump(queue_payload, sort_keys=False), encoding="utf-8")
             self.module.FLEET_QUEUE = queue_override
             self.module.DESIGN_QUEUE = queue_override
             try:

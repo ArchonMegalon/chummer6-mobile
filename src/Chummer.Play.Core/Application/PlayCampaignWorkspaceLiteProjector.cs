@@ -67,6 +67,21 @@ public sealed record PlayCampaignWorkspaceLiteProjection(
     IReadOnlyList<string> PlayerSafeConsequenceFeedLabels,
     string CampaignMemorySummary,
     string CampaignMemoryReturnSummary,
+    string TablePulseSummary,
+    string TablePulseHeatSummary,
+    string TablePulseNotificationSummary,
+    string TablePulseRemoteReactionSummary,
+    string TablePulseSignalDeckSummary,
+    string RunnerPassportSummary,
+    string TablePulseAdjudicationSummary,
+    string TablePulseLivingNewsroomSummary,
+    string TablePulseLivingNewsroomHref,
+    string TablePulseAftermathSummary,
+    string TablePulseAftermathHref,
+    string TablePulseFollowThroughSummary,
+    string TablePulseFollowThroughHref,
+    string TablePulseEntryHref,
+    IReadOnlyList<string> TablePulseLabels,
     string ContinuityRailSummary,
     IReadOnlyList<string> ContinuityRailLabels,
     string GmOperationsSummary,
@@ -297,6 +312,26 @@ public static class PlayCampaignWorkspaceLiteProjector
             latestTimeline);
         string campaignMemorySummary = BuildCampaignMemorySummary(resume, serverPlane, roleLabel, latestTimeline);
         string campaignMemoryReturnSummary = BuildCampaignMemoryReturnSummary(resume, serverPlane, roleLabel);
+        string tablePulseSummary = BuildTablePulseSummary(resume, session, roleLabel, latestTimeline);
+        string tablePulseHeatSummary = BuildTablePulseHeatSummary(resume, session, roleLabel);
+        string tablePulseNotificationSummary = BuildTablePulseNotificationSummary(resume, roleLabel);
+        string tablePulseRemoteReactionSummary = BuildTablePulseRemoteReactionSummary(resume, roleLabel);
+        string tablePulseSignalDeckSummary = BuildTablePulseSignalDeckSummary(resume, roleLabel);
+        string runnerPassportSummary = BuildRunnerPassportSummary(resume, roleLabel);
+        string tablePulseAdjudicationSummary = BuildTablePulseAdjudicationSummary(serverPlane, roleLabel);
+        string tablePulseLivingNewsroomSummary = BuildTablePulseLivingNewsroomSummary(resume, session, serverPlane, roleLabel, latestTimeline);
+        string tablePulseLivingNewsroomHref = BuildTablePulseLivingNewsroomHref();
+        string tablePulseAftermathSummary = BuildTablePulseAftermathSummary(serverPlane, roleLabel);
+        string tablePulseAftermathHref = BuildTablePulseAftermathHref();
+        string tablePulseFollowThroughSummary = BuildTablePulseFollowThroughSummary(serverPlane, roleLabel);
+        string tablePulseFollowThroughHref = BuildTablePulseFollowThroughHref(serverPlane);
+        string tablePulseEntryHref = BuildTablePulseEntryHref(resume);
+        string[] tablePulseLabels = BuildTablePulseLabels(
+            resume,
+            session,
+            roleLabel,
+            latestTimeline,
+            tablePulseEntryHref);
         string continuityRailSummary = BuildContinuityRailSummary(resume, session, serverPlane, roleLabel, latestTimeline);
         string[] continuityRailLabels = BuildContinuityRailLabels(resume, session, serverPlane, roleLabel, latestTimeline);
         string gmOperationsSummary = BuildGmOperationsSummary(resume, session, serverPlane, roleLabel);
@@ -482,6 +517,21 @@ public static class PlayCampaignWorkspaceLiteProjector
             PlayerSafeConsequenceFeedLabels: playerSafeConsequenceFeedLabels,
             CampaignMemorySummary: campaignMemorySummary,
             CampaignMemoryReturnSummary: campaignMemoryReturnSummary,
+            TablePulseSummary: tablePulseSummary,
+            TablePulseHeatSummary: tablePulseHeatSummary,
+            TablePulseNotificationSummary: tablePulseNotificationSummary,
+            TablePulseRemoteReactionSummary: tablePulseRemoteReactionSummary,
+            TablePulseSignalDeckSummary: tablePulseSignalDeckSummary,
+            RunnerPassportSummary: runnerPassportSummary,
+            TablePulseAdjudicationSummary: tablePulseAdjudicationSummary,
+            TablePulseLivingNewsroomSummary: tablePulseLivingNewsroomSummary,
+            TablePulseLivingNewsroomHref: tablePulseLivingNewsroomHref,
+            TablePulseAftermathSummary: tablePulseAftermathSummary,
+            TablePulseAftermathHref: tablePulseAftermathHref,
+            TablePulseFollowThroughSummary: tablePulseFollowThroughSummary,
+            TablePulseFollowThroughHref: tablePulseFollowThroughHref,
+            TablePulseEntryHref: tablePulseEntryHref,
+            TablePulseLabels: tablePulseLabels,
             ContinuityRailSummary: continuityRailSummary,
             ContinuityRailLabels: continuityRailLabels,
             GmOperationsSummary: gmOperationsSummary,
@@ -537,6 +587,94 @@ public static class PlayCampaignWorkspaceLiteProjector
             QuickActionLabels: resume.Bootstrap.QuickActions.Select(action => action.Label).ToArray(),
             FollowThroughLabels: followThroughLabels,
             CoachHints: resume.Bootstrap.CoachHints.Select(hint => hint.Message).ToArray());
+    }
+
+    private static string BuildTablePulseSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string latestTimeline)
+        => $"Table Pulse is live for {session.SceneId}: '{latestTimeline}' is the current heat-facing cue, remote reactions stay packet-backed, and this {roleLabel} shell only exposes bounded follow-through.";
+
+    private static string BuildTablePulseHeatSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel)
+    {
+        if (resume.CachePressure.BackpressureActive)
+        {
+            return $"Heat lane: degraded on this {roleLabel} shell until cache pressure clears, so only notification-safe summaries should be trusted for {session.SceneId}.";
+        }
+
+        return $"Heat lane: stable on this {roleLabel} shell. Route back through the claimed-device packet before you widen consequences beyond {session.SceneId}.";
+    }
+
+    private static string BuildTablePulseNotificationSummary(PlayResumeResponse resume, string roleLabel)
+        => resume.Checkpoint is null
+            ? $"Notification rail: no claimed-device anchor is pinned yet, so delivery stays inbox-safe and review-first for the {roleLabel}."
+            : $"Notification rail: checkpoint {resume.Checkpoint.AppliedThroughSequence} keeps the inbox, push handoff, and rejoin route attached to one claimed-device packet.";
+
+    private static string BuildTablePulseRemoteReactionSummary(PlayResumeResponse resume, string roleLabel)
+        => $"Remote reactions: Intercept, Cover Story, Scramble, Temptation, and Shadow Reply stay advisory-only on the {roleLabel} shell until the GM adjudication route accepts them.";
+
+    private static string BuildTablePulseSignalDeckSummary(PlayResumeResponse resume, string roleLabel)
+        => $"Signal Deck: use the mobile shell as the low-noise dispatch rail for heat, rumors, and faction prompts instead of scattering alerts across unrelated surfaces. This stays bounded to the {roleLabel}.";
+
+    private static string BuildRunnerPassportSummary(PlayResumeResponse resume, string roleLabel)
+        => $"Runner Passport: keep return posture, participation proof, and cross-table trust visible on the {roleLabel} shell without turning identity into a public ranking surface.";
+
+    private static string BuildTablePulseAdjudicationSummary(PlayCampaignWorkspaceServerPlane serverPlane, string roleLabel)
+        => $"Adjudication lane: {serverPlane.Campaign.SessionReadinessSummary} Governed consequences and next-safe action stay attached to the {roleLabel} instead of splitting into a side-channel minigame log.";
+
+    private static string BuildTablePulseLivingNewsroomSummary(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        PlayCampaignWorkspaceServerPlane serverPlane,
+        string roleLabel,
+        string latestTimeline)
+        => $"Living Newsroom: '{latestTimeline}' is the current public-safe bulletin cue for {session.SceneId}, and the {roleLabel} shell keeps it tied to the same governed consequence rail instead of splitting command mood from watchable fallout.";
+
+    private static string BuildTablePulseLivingNewsroomHref()
+        => "/ledger/turns/1";
+
+    private static string BuildTablePulseAftermathSummary(PlayCampaignWorkspaceServerPlane serverPlane, string roleLabel)
+        => $"Aftermath lane: {serverPlane.AftermathPackages.Count} governed package(s) currently sit behind the {roleLabel} shell, so remote reactions can return as receipts and next-safe action instead of vanishing after adjudication.";
+
+    private static string BuildTablePulseAftermathHref()
+        => "/account/work#aftermath-packages";
+
+    private static string BuildTablePulseFollowThroughSummary(PlayCampaignWorkspaceServerPlane serverPlane, string roleLabel)
+        => $"Follow-through lane: {serverPlane.NextSafeAction.Summary} Signal Deck, Runner Passport, and aftermath packages stay on one bounded {roleLabel} rail.";
+
+    private static string BuildTablePulseFollowThroughHref(PlayCampaignWorkspaceServerPlane serverPlane)
+        => "/account/work";
+
+    private static string BuildTablePulseEntryHref(PlayResumeResponse resume)
+        => $"/play/{Uri.EscapeDataString(resume.SessionId)}?role={Uri.EscapeDataString(resume.Role.ToString())}&view=table-pulse";
+
+    private static string[] BuildTablePulseLabels(
+        PlayResumeResponse resume,
+        EngineSessionEnvelope session,
+        string roleLabel,
+        string latestTimeline,
+        string tablePulseEntryHref)
+    {
+        string checkpointLabel = resume.Checkpoint is null
+            ? "No claimed-device checkpoint is pinned yet, so reactions stay review-only."
+            : $"Claimed-device checkpoint {resume.Checkpoint.AppliedThroughSequence} governs return and delivery truth.";
+        string bundleLabel = resume.RuntimeBundle is null
+            ? "Runtime bundle proof is still pending, so heat should be treated as advisory."
+            : $"Runtime bundle {resume.RuntimeBundle.BundleTag} keeps Table Pulse copy grounded on this shell.";
+        return
+        [
+            $"Heat cue: {latestTimeline}",
+            $"Remote reactions: Intercept, Cover Story, Scramble, Temptation, Shadow Reply",
+            $"Signal Deck route: {tablePulseEntryHref}",
+            $"Runner Passport lane: private trust posture only for {roleLabel}",
+            $"Session boundary: {session.SceneId}",
+            checkpointLabel,
+            bundleLabel
+        ];
     }
 
     private static string SelectArtifactShelfView(PlaySurfaceRole role, RecapShelfEntry? recapEntry, string? requestedArtifactView)

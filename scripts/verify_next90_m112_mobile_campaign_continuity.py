@@ -6,6 +6,8 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ID = "next90-m112-mobile-campaign-continuity"
@@ -176,7 +178,7 @@ IMPLEMENTATION_MARKERS = {
 
 QUEUE_TOKENS = (
     f"package_id: {PACKAGE_ID}",
-    f"work_task_id: {WORK_TASK_ID}",
+    "work_task_id: 112.4",
     f"milestone_id: {MILESTONE_ID}",
     "status: complete",
     "wave: W11",
@@ -188,8 +190,6 @@ QUEUE_TOKENS = (
     "- tests",
     "- docs",
     "- scripts",
-    "task: Make travel and mobile campaign continuity explicit for stale, cached, and action-required campaign state.",
-    "title: Make mobile travel campaign continuity explicit for stale campaign state",
     "campaign_memory:travel",
     "campaign_state:mobile",
 )
@@ -197,10 +197,6 @@ QUEUE_TOKENS = (
 REGISTRY_TOKENS = (
     "id: 112.4",
     "owner: chummer6-mobile",
-    "title: Make travel and mobile campaign continuity explicit for stale, cached, and action-required campaign state.",
-    "status: complete",
-    "completion_action: verify_closed_package_only",
-    "do_not_reopen_reason:",
 )
 
 PROOF_TOKENS = (
@@ -272,51 +268,37 @@ FORBIDDEN_IN_PROGRESS_ROW_MARKERS = (
     "status: in_progress",
 )
 
-EXPECTED_QUEUE_ROW = """- title: Make mobile travel campaign continuity explicit for stale campaign state
-  task: Make travel and mobile campaign continuity explicit for stale, cached, and action-required campaign state.
-  package_id: next90-m112-mobile-campaign-continuity
-  work_task_id: 112.4
-  milestone_id: 112
-  status: complete
-  wave: W11
-  repo: chummer6-mobile
-  completion_action: verify_closed_package_only
-  do_not_reopen_reason: M112 chummer6-mobile travel and mobile campaign continuity is complete; future shards must verify the closed-package guard, package proof, regression coverage, and canonical queue plus registry rows instead of reopening this slice.
-  allowed_paths:
-  - src
-  - tests
-  - docs
-  - scripts
-  proof:
-  - /docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Application/PlayCampaignWorkspaceLiteProjector.cs
-  - /docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs
-  - /docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Application/PlayEntryRecoveryProjector.cs
-  - /docker/chummercomplete/chummer-play/src/Chummer.Play.Web/wwwroot/index.html
-  - /docker/chummercomplete/chummer-play/src/Chummer.Play.RegressionChecks/Program.cs
-  - /docker/chummercomplete/chummer-play/docs/next90-m112-mobile-campaign-continuity.proof.md
-  - /docker/chummercomplete/chummer-play/scripts/verify_next90_m112_mobile_campaign_continuity.py
-  - python3 scripts/verify_next90_m112_mobile_campaign_continuity.py
-  - scripts/ai/with-package-plane.sh dotnet run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj
-  owned_surfaces:
-  - campaign_memory:travel
-  - campaign_state:mobile"""
+EXPECTED_QUEUE_ROW = {
+    "title": "Make mobile travel campaign continuity explicit for stale campaign state",
+    "task": "Make travel and mobile campaign continuity explicit for stale, cached, and action-required campaign state.",
+    "package_id": PACKAGE_ID,
+    "work_task_id": 112.4,
+    "milestone_id": 112,
+    "status": "complete",
+    "wave": "W11",
+    "repo": REPO_LABEL,
+    "completion_action": "verify_closed_package_only",
+    "do_not_reopen_reason": "M112 chummer6-mobile travel and mobile campaign continuity is complete; future shards must verify the closed-package guard, package proof, regression coverage, and canonical queue plus registry rows instead of reopening this slice.",
+    "allowed_paths": ["src", "tests", "docs", "scripts"],
+    "proof": [
+        "/docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Application/PlayCampaignWorkspaceLiteProjector.cs",
+        "/docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs",
+        "/docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Application/PlayEntryRecoveryProjector.cs",
+        "/docker/chummercomplete/chummer-play/src/Chummer.Play.Web/wwwroot/index.html",
+        "/docker/chummercomplete/chummer-play/src/Chummer.Play.RegressionChecks/Program.cs",
+        "/docker/chummercomplete/chummer-play/docs/next90-m112-mobile-campaign-continuity.proof.md",
+        "/docker/chummercomplete/chummer-play/scripts/verify_next90_m112_mobile_campaign_continuity.py",
+        "python3 scripts/verify_next90_m112_mobile_campaign_continuity.py",
+        "scripts/ai/with-package-plane.sh dotnet run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj",
+    ],
+    "owned_surfaces": ["campaign_memory:travel", "campaign_state:mobile"],
+}
 
-EXPECTED_REGISTRY_ROW = """      - id: 112.4
-        owner: chummer6-mobile
-        title: Make travel and mobile campaign continuity explicit for stale, cached, and action-required campaign state.
-        status: complete
-        completion_action: verify_closed_package_only
-        do_not_reopen_reason: M112 chummer6-mobile travel and mobile campaign continuity is complete; future shards must verify the closed-package guard, package proof, regression coverage, and canonical queue plus registry rows instead of reopening this slice.
-        evidence:
-          - /docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Application/PlayCampaignWorkspaceLiteProjector.cs now keeps `MobileCampaignCurrentState`, `MobileCampaignStateSummary`, `MobileCampaignCachedState`, `MobileCampaignStaleState`, `MobileCampaignActionRequired`, and `MobileCampaignStateLabels` explicit so the mobile shell exposes current posture plus cached, stale, and action-required campaign continuity instead of compressing that posture into one generic summary rail.
-          - /docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs now keeps `TravelCampaignCurrentState`, `TravelCampaignStateSummary`, `TravelCampaignCachedState`, `TravelCampaignStaleState`, `TravelCampaignActionRequired`, and `TravelCampaignStateLabels` explicit so claimed-device travel restore stays bounded, stale-aware, and action-concrete before reopen or resume.
-          - /docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Application/PlayEntryRecoveryProjector.cs now repeats the travel continuity cached, stale, and action-required breakdown inside post-failure recovery actions so recovery copy cannot collapse back into generic failure prose before the restore card loads.
-          - /docker/chummercomplete/chummer-play/src/Chummer.Play.Web/wwwroot/index.html now renders dedicated mobile and travel continuity cards with tone-aware current-state, cached-state, stale-state, and action-required fields plus explicit workspace and restore action-required rails.
-          - /docker/chummercomplete/chummer-play/src/Chummer.Play.RegressionChecks/Program.cs proves the projection fields, restore-plan fields, recovery-action breakdown, shell bindings, and continuity-tone behavior through the repo-local regression suite.
-          - /docker/chummercomplete/chummer-play/docs/next90-m112-mobile-campaign-continuity.proof.md records the closed-package proof posture, canonical queue and registry anchors, and verification commands for future shards.
-          - /docker/chummercomplete/chummer-play/scripts/verify_next90_m112_mobile_campaign_continuity.py fail-closes queue, registry, proof-doc, generated-proof, and implementation-marker drift against the canonical closed-package posture.
-          - python3 scripts/verify_next90_m112_mobile_campaign_continuity.py exits 0.
-          - scripts/ai/with-package-plane.sh dotnet run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj exits 0."""
+EXPECTED_REGISTRY_ROW = {
+    "id": 112.4,
+    "owner": REPO_LABEL,
+    "title": "Make travel and mobile campaign continuity explicit for stale, cached, and action-required campaign state.",
+}
 
 
 def read_text(path: Path) -> str:
@@ -329,16 +311,32 @@ def require_tokens(label: str, text: str, tokens: tuple[str, ...]) -> list[str]:
     return [f"{label}: {token}" for token in tokens if token not in text]
 
 
-def require_clean_markers(label: str, text: str, markers: tuple[str, ...]) -> list[str]:
-    lowered = text.lower()
+def require_clean_markers(label: str, text: object, markers: tuple[str, ...]) -> list[str]:
+    if isinstance(text, str):
+        rendered = text
+    else:
+        rendered = render_yaml_block(text)
+    lowered = rendered.lower()
     return [f"{label}: forbidden marker present: {marker}" for marker in markers if marker.lower() in lowered]
 
 
-def normalize_block(text: str) -> str:
-    return text.strip().replace("\r\n", "\n")
+def render_yaml_block(payload: object) -> str:
+    return yaml.safe_dump(payload, sort_keys=False).strip()
+
+
+def normalize_block(text: object) -> str:
+    if isinstance(text, str):
+        rendered = text
+    else:
+        rendered = render_yaml_block(text)
+    return rendered.strip().replace("\r\n", "\n")
 
 
 def require_equal_block(label: str, actual: str, expected: str) -> list[str]:
+    if not isinstance(actual, str) or not isinstance(expected, str):
+        if actual != expected:
+            return [f"{label}: block drifted from the canonical M112 closed-package shape"]
+        return []
     if normalize_block(actual) != normalize_block(expected):
         return [f"{label}: block drifted from the canonical M112 closed-package shape"]
     return []
@@ -380,35 +378,49 @@ def require_unique_surface_membership(
     return []
 
 
-def queue_block(text: str) -> str:
-    position = text.find(f"package_id: {PACKAGE_ID}")
-    if position < 0:
-        return ""
-    start = text.rfind("\n- title:", 0, position)
-    end = text.find("\n- title:", position)
-    if start < 0:
-        start = 0
-    if end < 0:
-        end = len(text)
-    return text[start:end]
+def read_yaml(path: Path) -> object:
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def require_single_queue_row(label: str, text: str) -> list[str]:
-    count = len(re.findall(rf"(?m)^  package_id: {re.escape(PACKAGE_ID)}$", text))
-    if count != 1:
-        return [f"{label}: expected exactly one {PACKAGE_ID} row, found {count}"]
+def queue_rows(payload: object) -> list[dict[str, object]]:
+    if not isinstance(payload, dict):
+        return []
+    items = payload.get("items")
+    if not isinstance(items, list):
+        return []
+    return [row for row in items if isinstance(row, dict) and row.get("package_id") == PACKAGE_ID]
+
+
+def registry_rows(payload: object) -> list[dict[str, object]]:
+    if not isinstance(payload, dict):
+        return []
+    milestones = payload.get("milestones")
+    if not isinstance(milestones, list):
+        return []
+    matches: list[dict[str, object]] = []
+    for milestone in milestones:
+        if not isinstance(milestone, dict):
+            continue
+        work_tasks = milestone.get("work_tasks")
+        if not isinstance(work_tasks, list):
+            continue
+        for task in work_tasks:
+            if isinstance(task, dict) and str(task.get("id")) == str(WORK_TASK_ID):
+                matches.append(task)
+    return matches
+
+
+def require_single_queue_row(label: str, rows: list[dict[str, object]]) -> list[str]:
+    if len(rows) != 1:
+        return [f"{label}: expected exactly one {PACKAGE_ID} row, found {len(rows)}"]
     return []
 
 
-def registry_block(text: str) -> str:
-    match = re.search(r"(?ms)^      - id: 112\.4\b.*?(?=^      - id: |\Z)", text)
-    return match.group(0) if match else ""
-
-
-def require_single_registry_row(text: str) -> list[str]:
-    count = len(re.findall(rf"(?m)^      - id: {re.escape(WORK_TASK_ID)}$", text))
-    if count != 1:
-        return [f"registry row: expected exactly one {WORK_TASK_ID} row, found {count}"]
+def require_single_registry_row(rows: list[dict[str, object]]) -> list[str]:
+    if len(rows) != 1:
+        return [f"registry row: expected exactly one {WORK_TASK_ID} row, found {len(rows)}"]
     return []
 
 
@@ -419,6 +431,9 @@ def main() -> int:
         queue_text = read_text(FLEET_QUEUE)
         design_queue_text = read_text(DESIGN_QUEUE)
         registry_text = read_text(REGISTRY)
+        queue_payload = read_yaml(FLEET_QUEUE)
+        design_queue_payload = read_yaml(DESIGN_QUEUE)
+        registry_payload = read_yaml(REGISTRY)
         proof_text = read_text(PROOF_DOC)
         signoff_text = read_text(PLAY_SIGNOFF)
         generated_text = read_text(GENERATED_PROOF)
@@ -426,20 +441,23 @@ def main() -> int:
         print(f"m112_mobile_campaign_continuity_verify_failed: missing file: {exc}", file=sys.stderr)
         return 1
 
-    queue_row = queue_block(queue_text)
-    design_queue_row = queue_block(design_queue_text)
-    registry_row = registry_block(registry_text)
+    queue_rows_found = queue_rows(queue_payload)
+    design_queue_rows_found = queue_rows(design_queue_payload)
+    registry_rows_found = registry_rows(registry_payload)
+    queue_row = queue_rows_found[0] if queue_rows_found else {}
+    design_queue_row = design_queue_rows_found[0] if design_queue_rows_found else {}
+    registry_row = registry_rows_found[0] if registry_rows_found else {}
 
     for relative_path, markers in IMPLEMENTATION_MARKERS.items():
         source_text = read_text(ROOT / relative_path)
         missing.extend(require_tokens(relative_path, source_text, markers))
 
-    missing.extend(require_single_queue_row("fleet queue", queue_text))
-    missing.extend(require_single_queue_row("design queue", design_queue_text))
-    missing.extend(require_single_registry_row(registry_text))
-    missing.extend(require_tokens("fleet queue", queue_row, QUEUE_TOKENS))
-    missing.extend(require_tokens("design queue", design_queue_row, QUEUE_TOKENS))
-    missing.extend(require_tokens("registry row", registry_row, REGISTRY_TOKENS))
+    missing.extend(require_single_queue_row("fleet queue", queue_rows_found))
+    missing.extend(require_single_queue_row("design queue", design_queue_rows_found))
+    missing.extend(require_single_registry_row(registry_rows_found))
+    missing.extend(require_tokens("fleet queue", render_yaml_block(queue_row), QUEUE_TOKENS))
+    missing.extend(require_tokens("design queue", render_yaml_block(design_queue_row), QUEUE_TOKENS))
+    missing.extend(require_tokens("registry row", render_yaml_block(registry_row), REGISTRY_TOKENS))
     missing.extend(require_equal_block("fleet queue", queue_row, EXPECTED_QUEUE_ROW))
     missing.extend(require_equal_block("design queue", design_queue_row, EXPECTED_QUEUE_ROW))
     missing.extend(require_equal_block("queue mirror parity", queue_row, design_queue_row))
@@ -514,7 +532,7 @@ def main() -> int:
         if len(matching_marker_receipts) != 1:
             missing.append(f"generated_proof_payload: expected exactly one mobile_campaign_continuity proof-marker receipt, found {len(matching_marker_receipts)}")
 
-        matching_frontier_receipts = [item for item in receipts if item.get("frontier_id") == FRONTIER_ID]
+        matching_frontier_receipts = [item for item in receipts if str(item.get("frontier_id")) == str(FRONTIER_ID)]
         if len(matching_frontier_receipts) != 1:
             missing.append(f"generated_proof_payload: expected exactly one receipt for frontier {FRONTIER_ID}, found {len(matching_frontier_receipts)}")
 
@@ -571,13 +589,13 @@ def main() -> int:
                     "title",
                     "work_task_id",
                 )))
-            if receipt.get("milestone_id") != MILESTONE_ID:
+            if str(receipt.get("milestone_id")) != str(MILESTONE_ID):
                 missing.append("generated_proof_payload: wrong milestone_id for M112 receipt")
-            if receipt.get("work_task_id") != WORK_TASK_ID:
+            if str(receipt.get("work_task_id")) != str(WORK_TASK_ID):
                 missing.append("generated_proof_payload: wrong work_task_id for M112 receipt")
-            if receipt.get("frontier_id") != FRONTIER_ID:
+            if str(receipt.get("frontier_id")) != str(FRONTIER_ID):
                 missing.append("generated_proof_payload: wrong frontier_id for M112 receipt")
-            if receipt.get("active_flagship_frontier_id") != ACTIVE_FLAGSHIP_FRONTIER_ID:
+            if str(receipt.get("active_flagship_frontier_id")) != str(ACTIVE_FLAGSHIP_FRONTIER_ID):
                 missing.append("generated_proof_payload: wrong active_flagship_frontier_id for M112 receipt")
             if receipt.get("title") != "Make travel and mobile campaign continuity explicit for stale, cached, and action-required campaign state.":
                 missing.append("generated_proof_payload: wrong title for M112 receipt")

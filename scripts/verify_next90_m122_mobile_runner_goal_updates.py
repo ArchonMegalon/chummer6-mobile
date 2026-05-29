@@ -6,12 +6,14 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ID = "next90-m122-mobile-add-mobile-runner-goal-updates-and-player-safe-consequen"
 MILESTONE_ID = "122"
 WORK_TASK_ID = "122.4"
-QUEUE_FRONTIER_ID = "8138838792"
+QUEUE_FRONTIER_ID = 8138838792
 REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
 REGISTRY = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml")
@@ -99,7 +101,7 @@ QUEUE_TOKENS = (
 REGISTRY_TOKENS = (
     "id: '122.4'",
     "owner: chummer6-mobile",
-    "title: Add mobile runner-goal updates and player-safe consequence feed views for campaign return moments.",
+    "title: Add mobile runner-goal updates and player-safe consequence feed views",
 )
 
 PROOF_TOKENS = (
@@ -146,26 +148,25 @@ FORBIDDEN_IN_PROGRESS_ROW_MARKERS = (
     "landed_commit:",
 )
 
-EXPECTED_QUEUE_ROW = """- title: Add mobile runner-goal updates and player-safe consequence feed views for campaign return moments.
-  task: Add mobile runner-goal updates and player-safe consequence feed views for campaign return moments.
-  package_id: next90-m122-mobile-add-mobile-runner-goal-updates-and-player-safe-consequen
-  work_task_id: '122.4'
-  frontier_id: 8138838792
-  milestone_id: 122
-  status: not_started
-  wave: W15
-  repo: chummer6-mobile
-  allowed_paths:
-  - src
-  - tests
-  - docs
-  - scripts
-  owned_surfaces:
-  - add_mobile_runner_goal_updates:mobile"""
+EXPECTED_QUEUE_ROW = {
+    "allowed_paths": ["src", "tests", "docs", "scripts"],
+    "frontier_id": QUEUE_FRONTIER_ID,
+    "milestone_id": int(MILESTONE_ID),
+    "owned_surfaces": ["add_mobile_runner_goal_updates:mobile"],
+    "package_id": PACKAGE_ID,
+    "repo": REPO_LABEL,
+    "status": "not_started",
+    "task": "Add mobile runner-goal updates and player-safe consequence feed views for campaign return moments.",
+    "title": "Add mobile runner-goal updates and player-safe consequence feed views for campaign return moments.",
+    "wave": "W15",
+    "work_task_id": WORK_TASK_ID,
+}
 
-EXPECTED_REGISTRY_ROW = """    - id: '122.4'
-      owner: chummer6-mobile
-      title: Add mobile runner-goal updates and player-safe consequence feed views for campaign return moments."""
+EXPECTED_REGISTRY_ROW = {
+    "id": WORK_TASK_ID,
+    "owner": REPO_LABEL,
+    "title": "Add mobile runner-goal updates and player-safe consequence feed views for campaign return moments.",
+}
 
 
 def read_text(path: Path) -> str:
@@ -178,16 +179,32 @@ def require_tokens(label: str, text: str, tokens: tuple[str, ...]) -> list[str]:
     return [f"{label}: {token}" for token in tokens if token not in text]
 
 
-def require_clean_markers(label: str, text: str, markers: tuple[str, ...]) -> list[str]:
-    lowered = text.lower()
+def require_clean_markers(label: str, text: object, markers: tuple[str, ...]) -> list[str]:
+    if isinstance(text, str):
+        rendered = text
+    else:
+        rendered = render_yaml_block(text)
+    lowered = rendered.lower()
     return [f"{label}: forbidden marker present: {marker}" for marker in markers if marker.lower() in lowered]
 
 
-def normalize_block(text: str) -> str:
-    return text.strip().replace("\r\n", "\n")
+def render_yaml_block(payload: object) -> str:
+    return yaml.safe_dump(payload, sort_keys=False).strip()
+
+
+def normalize_block(text: object) -> str:
+    if isinstance(text, str):
+        rendered = text
+    else:
+        rendered = render_yaml_block(text)
+    return rendered.strip().replace("\r\n", "\n")
 
 
 def require_equal_block(label: str, actual: str, expected: str) -> list[str]:
+    if not isinstance(actual, str) or not isinstance(expected, str):
+        if actual != expected:
+            return [f"{label}: block drifted from the canonical M122 implementation-only shape"]
+        return []
     if normalize_block(actual) != normalize_block(expected):
         return [f"{label}: block drifted from the canonical M122 implementation-only shape"]
     return []
@@ -226,35 +243,49 @@ def require_unique_surface_membership(
     return []
 
 
-def queue_block(text: str) -> str:
-    position = text.find(f"package_id: {PACKAGE_ID}")
-    if position < 0:
-        return ""
-    start = text.rfind("\n- title:", 0, position)
-    end = text.find("\n- title:", position)
-    if start < 0:
-        start = 0
-    if end < 0:
-        end = len(text)
-    return text[start:end]
+def read_yaml(path: Path) -> object:
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def require_single_queue_row(label: str, text: str) -> list[str]:
-    count = len(re.findall(rf"(?m)^  package_id: {re.escape(PACKAGE_ID)}$", text))
-    if count != 1:
-        return [f"{label}: expected exactly one {PACKAGE_ID} row, found {count}"]
+def queue_rows(payload: object) -> list[dict[str, object]]:
+    if not isinstance(payload, dict):
+        return []
+    items = payload.get("items")
+    if not isinstance(items, list):
+        return []
+    return [row for row in items if isinstance(row, dict) and row.get("package_id") == PACKAGE_ID]
+
+
+def registry_rows(payload: object) -> list[dict[str, object]]:
+    if not isinstance(payload, dict):
+        return []
+    milestones = payload.get("milestones")
+    if not isinstance(milestones, list):
+        return []
+    matches: list[dict[str, object]] = []
+    for milestone in milestones:
+        if not isinstance(milestone, dict):
+            continue
+        work_tasks = milestone.get("work_tasks")
+        if not isinstance(work_tasks, list):
+            continue
+        for task in work_tasks:
+            if isinstance(task, dict) and str(task.get("id")) == str(WORK_TASK_ID):
+                matches.append(task)
+    return matches
+
+
+def require_single_queue_row(label: str, rows: list[dict[str, object]]) -> list[str]:
+    if len(rows) != 1:
+        return [f"{label}: expected exactly one {PACKAGE_ID} row, found {len(rows)}"]
     return []
 
 
-def registry_block(text: str) -> str:
-    match = re.search(r"(?ms)^    - id: '122\.4'.*?(?=^    - id: |\Z)", text)
-    return match.group(0) if match else ""
-
-
-def require_single_registry_row(text: str) -> list[str]:
-    count = len(re.findall(rf"(?m)^    - id: '{re.escape(WORK_TASK_ID)}'$", text))
-    if count != 1:
-        return [f"registry row: expected exactly one {WORK_TASK_ID} row, found {count}"]
+def require_single_registry_row(rows: list[dict[str, object]]) -> list[str]:
+    if len(rows) != 1:
+        return [f"registry row: expected exactly one {WORK_TASK_ID} row, found {len(rows)}"]
     return []
 
 
@@ -265,6 +296,9 @@ def main() -> int:
         queue_text = read_text(FLEET_QUEUE)
         design_queue_text = read_text(DESIGN_QUEUE)
         registry_text = read_text(REGISTRY)
+        queue_payload = read_yaml(FLEET_QUEUE)
+        design_queue_payload = read_yaml(DESIGN_QUEUE)
+        registry_payload = read_yaml(REGISTRY)
         proof_text = read_text(PROOF_DOC)
         signoff_text = read_text(PLAY_SIGNOFF)
         generated_text = read_text(GENERATED_PROOF)
@@ -272,20 +306,23 @@ def main() -> int:
         print(f"m122_mobile_runner_goal_updates_verify_failed: missing file: {exc}", file=sys.stderr)
         return 1
 
-    queue_row = queue_block(queue_text)
-    design_queue_row = queue_block(design_queue_text)
-    registry_row = registry_block(registry_text)
+    queue_rows_found = queue_rows(queue_payload)
+    design_queue_rows_found = queue_rows(design_queue_payload)
+    registry_rows_found = registry_rows(registry_payload)
+    queue_row = queue_rows_found[0] if queue_rows_found else {}
+    design_queue_row = design_queue_rows_found[0] if design_queue_rows_found else {}
+    registry_row = registry_rows_found[0] if registry_rows_found else {}
 
     for relative_path, markers in IMPLEMENTATION_MARKERS.items():
         source_text = read_text(ROOT / relative_path)
         missing.extend(require_tokens(relative_path, source_text, markers))
 
-    missing.extend(require_single_queue_row("fleet queue", queue_text))
-    missing.extend(require_single_queue_row("design queue", design_queue_text))
-    missing.extend(require_single_registry_row(registry_text))
-    missing.extend(require_tokens("fleet queue", queue_row, QUEUE_TOKENS))
-    missing.extend(require_tokens("design queue", design_queue_row, QUEUE_TOKENS))
-    missing.extend(require_tokens("registry row", registry_row, REGISTRY_TOKENS))
+    missing.extend(require_single_queue_row("fleet queue", queue_rows_found))
+    missing.extend(require_single_queue_row("design queue", design_queue_rows_found))
+    missing.extend(require_single_registry_row(registry_rows_found))
+    missing.extend(require_tokens("fleet queue", render_yaml_block(queue_row), QUEUE_TOKENS))
+    missing.extend(require_tokens("design queue", render_yaml_block(design_queue_row), QUEUE_TOKENS))
+    missing.extend(require_tokens("registry row", render_yaml_block(registry_row), REGISTRY_TOKENS))
     missing.extend(require_equal_block("fleet queue", queue_row, EXPECTED_QUEUE_ROW))
     missing.extend(require_equal_block("design queue", design_queue_row, EXPECTED_QUEUE_ROW))
     missing.extend(require_equal_block("queue mirror parity", queue_row, design_queue_row))
@@ -387,9 +424,9 @@ def main() -> int:
                 missing.append("generated_proof_payload: M122 receipt status must stay implemented")
             if receipt.get("milestone_id") != MILESTONE_ID:
                 missing.append("generated_proof_payload: wrong milestone_id for M122 receipt")
-            if receipt.get("work_task_id") != WORK_TASK_ID:
+            if str(receipt.get("work_task_id")) != str(WORK_TASK_ID):
                 missing.append("generated_proof_payload: wrong work_task_id for M122 receipt")
-            if receipt.get("frontier_id") != QUEUE_FRONTIER_ID:
+            if str(receipt.get("frontier_id")) != str(QUEUE_FRONTIER_ID):
                 missing.append("generated_proof_payload: wrong frontier_id for M122 receipt")
             if receipt.get("proof_marker_set") != "mobile_runner_goal_updates":
                 missing.append("generated_proof_payload: wrong proof marker set for M122 receipt")
