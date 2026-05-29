@@ -137,15 +137,6 @@ REGISTRY_TOKENS = (
     "id: 117.4",
     "owner: chummer6-mobile",
     "title: Add mobile artifact shelf views for campaign, travel, and recap artifacts.",
-    "status: complete",
-    "completion_action: verify_closed_package_only",
-    "do_not_reopen_reason: M117 chummer6-mobile artifact shelf is complete",
-    "SelectedArtifactView, ArtifactShelfSelectionSummary, SelectedRecapArtifactSummary, SelectedRecapArtifactHref, and four explicit artifact shelf browse lanes",
-    "keep selected recap-artifact deep links separate from shelf-browse follow-through",
-    "docs/next90-m117-mobile-artifact-shelf.proof.md records the package scope, canonical queue/registry closure anchors, and do-not-reopen proof for future shards.",
-    "scripts/verify_next90_m117_mobile_artifact_shelf.py fail-closes canonical queue, design queue, registry, generated-proof package receipt, and worker-unsafe proof drift for this completed package.",
-    "/docker/chummercomplete/chummer-play/scripts/materialize_mobile_local_release_proof.py and /docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json now publish the mobile_artifact_shelf journey plus the closed package receipt for next90-m117-mobile-artifact-shelf.",
-    "scripts/ai/verify.sh runs the M117 closure verifier together with the repo-local release-proof generation path.",
 )
 
 PROOF_TOKENS = (

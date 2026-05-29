@@ -386,6 +386,29 @@
       <ul id="workspace-player-safe-consequence-feed-list"></ul>
     </div>
     </section>
+    <section class="grid-two" aria-label="Table Pulse and remote reaction surfaces">
+    <div class="card">
+      <div class="eyebrow">Table Pulse</div>
+      <p id="workspace-table-pulse-summary" class="hint"></p>
+      <p id="workspace-table-pulse-heat" class="hint"></p>
+      <p id="workspace-table-pulse-notifications" class="hint"></p>
+      <p><a id="workspace-table-pulse-link" class="hint" href="/play">Open Table Pulse lane</a></p>
+      <ul id="workspace-table-pulse-labels"></ul>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Remote reactions</div>
+      <p id="workspace-table-pulse-remote-reaction" class="hint"></p>
+      <p id="workspace-table-pulse-adjudication" class="hint"></p>
+      <p id="workspace-table-pulse-newsroom" class="hint"></p>
+      <p><a id="workspace-table-pulse-newsroom-link" class="hint" href="/ledger/turns/1">Open Living Newsroom</a></p>
+      <p id="workspace-table-pulse-aftermath" class="hint"></p>
+      <p><a id="workspace-table-pulse-aftermath-link" class="hint" href="/account/work#aftermath-packages">Open aftermath rail</a></p>
+      <p id="workspace-table-pulse-signal-deck" class="hint"></p>
+      <p id="workspace-runner-passport" class="hint"></p>
+      <p id="workspace-table-pulse-follow-through" class="hint"></p>
+      <p><a id="workspace-table-pulse-follow-through-link" class="hint" href="/account/work">Open Table Pulse follow-through</a></p>
+    </div>
+    </section>
     <section class="grid-two" aria-label="Change packet and claimed-device onboarding artifacts">
     <div class="card">
       <div class="eyebrow">Change packet</div>
@@ -910,6 +933,21 @@
     setList("workspace-runner-goal-update-list", payload.runnerGoalUpdateLabels);
     setText("workspace-player-safe-consequence-feed", payload.playerSafeConsequenceFeedSummary, "No player-safe consequence feed summary is available yet.");
     setList("workspace-player-safe-consequence-feed-list", payload.playerSafeConsequenceFeedLabels);
+    setText("workspace-table-pulse-summary", payload.tablePulseSummary, "No Table Pulse summary is available yet.");
+    setText("workspace-table-pulse-heat", payload.tablePulseHeatSummary, "No Table Pulse heat summary is available yet.");
+    setText("workspace-table-pulse-notifications", payload.tablePulseNotificationSummary, "No Table Pulse notification summary is available yet.");
+    setLink("workspace-table-pulse-link", payload.tablePulseEntryHref, "Open Table Pulse lane", "/play", "Open Table Pulse lane");
+    setList("workspace-table-pulse-labels", payload.tablePulseLabels);
+    setText("workspace-table-pulse-remote-reaction", payload.tablePulseRemoteReactionSummary, "No remote reaction summary is available yet.");
+    setText("workspace-table-pulse-adjudication", payload.tablePulseAdjudicationSummary, "No adjudication summary is available yet.");
+    setText("workspace-table-pulse-newsroom", payload.tablePulseLivingNewsroomSummary, "No Living Newsroom summary is available yet.");
+    setLink("workspace-table-pulse-newsroom-link", payload.tablePulseLivingNewsroomHref, "Open Living Newsroom", "/ledger/turns/1", "Open Living Newsroom");
+    setText("workspace-table-pulse-aftermath", payload.tablePulseAftermathSummary, "No aftermath summary is available yet.");
+    setLink("workspace-table-pulse-aftermath-link", payload.tablePulseAftermathHref, "Open aftermath rail", "/account/work#aftermath-packages", "Open aftermath rail");
+    setText("workspace-table-pulse-signal-deck", payload.tablePulseSignalDeckSummary, "No Signal Deck summary is available yet.");
+    setText("workspace-runner-passport", payload.runnerPassportSummary, "No Runner Passport summary is available yet.");
+    setText("workspace-table-pulse-follow-through", payload.tablePulseFollowThroughSummary, "No Table Pulse follow-through summary is available yet.");
+    setLink("workspace-table-pulse-follow-through-link", payload.tablePulseFollowThroughHref, "Open Table Pulse follow-through", "/account/work", "Open Table Pulse follow-through");
     setLink("workspace-recap-publication-link", payload.recapPublicationHref, payload.recapNextAction, "/account/work", "Artifact shelf follow-through");
     setText("workspace-replay", payload.replaySummary, "No replay-safe package summary is available yet.");
     setText("workspace-replay-audience", payload.replayAudienceSummary, "No replay artifact audience summary is available yet.");

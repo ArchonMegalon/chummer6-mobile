@@ -6,12 +6,14 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ID = "next90-m121-mobile-add-player-table-cards-between-turn-affordances-and-gm-l"
 MILESTONE_ID = "121"
 WORK_TASK_ID = "121.4"
-QUEUE_FRONTIER_ID = "6121780841"
+QUEUE_FRONTIER_ID = 6121780841
 REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
 REGISTRY = ROOT / ".codex-design" / "product" / "NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml"
@@ -101,7 +103,7 @@ QUEUE_TOKENS = (
 REGISTRY_TOKENS = (
     "id: '121.4'",
     "owner: chummer6-mobile",
-    "title: Add player table cards, between-turn affordances, and GM-lite continuity views for live combat confidence.",
+    "title: Add player table cards, between-turn affordances, and GM-lite continuity views",
 )
 
 PROOF_TOKENS = (
@@ -153,26 +155,25 @@ FORBIDDEN_IN_PROGRESS_ROW_MARKERS = (
     "landed_commit:",
 )
 
-EXPECTED_QUEUE_ROW = """- title: Add player table cards, between-turn affordances, and GM-lite continuity views for live combat confidence.
-  task: Add player table cards, between-turn affordances, and GM-lite continuity views for live combat confidence.
-  package_id: next90-m121-mobile-add-player-table-cards-between-turn-affordances-and-gm-l
-  work_task_id: '121.4'
-  frontier_id: 6121780841
-  milestone_id: 121
-  status: not_started
-  wave: W15
-  repo: chummer6-mobile
-  allowed_paths:
-  - src
-  - tests
-  - docs
-  - scripts
-  owned_surfaces:
-  - add_player_table_cards_between:mobile"""
+EXPECTED_QUEUE_ROW = {
+    "allowed_paths": ["src", "tests", "docs", "scripts"],
+    "frontier_id": QUEUE_FRONTIER_ID,
+    "milestone_id": int(MILESTONE_ID),
+    "owned_surfaces": ["add_player_table_cards_between:mobile"],
+    "package_id": PACKAGE_ID,
+    "repo": REPO_LABEL,
+    "status": "not_started",
+    "task": "Add player table cards, between-turn affordances, and GM-lite continuity views for live combat confidence.",
+    "title": "Add player table cards, between-turn affordances, and GM-lite continuity views for live combat confidence.",
+    "wave": "W15",
+    "work_task_id": WORK_TASK_ID,
+}
 
-EXPECTED_REGISTRY_ROW = """    - id: '121.4'
-      owner: chummer6-mobile
-      title: Add player table cards, between-turn affordances, and GM-lite continuity views for live combat confidence."""
+EXPECTED_REGISTRY_ROW = {
+    "id": WORK_TASK_ID,
+    "owner": REPO_LABEL,
+    "title": "Add player table cards, between-turn affordances, and GM-lite continuity views for live combat confidence.",
+}
 
 
 def read_text(path: Path) -> str:
@@ -190,14 +191,26 @@ def require_clean_markers(label: str, text: str, markers: tuple[str, ...]) -> li
     return [f"{label}: forbidden marker present: {marker}" for marker in markers if marker.lower() in lowered]
 
 
-def normalize_block(text: str) -> str:
-    return text.strip().replace("\r\n", "\n")
+def normalize_block(text: object) -> str:
+    if isinstance(text, str):
+        rendered = text
+    else:
+        rendered = render_yaml_block(text)
+    return rendered.strip().replace("\r\n", "\n")
 
 
 def require_equal_block(label: str, actual: str, expected: str) -> list[str]:
+    if not isinstance(actual, str) or not isinstance(expected, str):
+        if actual != expected:
+            return [f"{label}: block drifted from the canonical M121 implementation-only shape"]
+        return []
     if normalize_block(actual) != normalize_block(expected):
         return [f"{label}: block drifted from the canonical M121 implementation-only shape"]
     return []
+
+
+def render_yaml_block(payload: object) -> str:
+    return yaml.safe_dump(payload, sort_keys=False).strip()
 
 
 def require_exact_mapping_keys(
@@ -236,35 +249,49 @@ def require_unique_surface_membership(
     return []
 
 
-def queue_block(text: str) -> str:
-    position = text.find(f"package_id: {PACKAGE_ID}")
-    if position < 0:
-        return ""
-    start = text.rfind("\n- title:", 0, position)
-    end = text.find("\n- title:", position)
-    if start < 0:
-        start = 0
-    if end < 0:
-        end = len(text)
-    return text[start:end]
+def read_yaml(path: Path) -> object:
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def require_single_queue_row(label: str, text: str) -> list[str]:
-    count = len(re.findall(rf"(?m)^  package_id: {re.escape(PACKAGE_ID)}$", text))
-    if count != 1:
-        return [f"{label}: expected exactly one {PACKAGE_ID} row, found {count}"]
+def queue_rows(payload: object) -> list[dict[str, object]]:
+    if not isinstance(payload, dict):
+        return []
+    items = payload.get("items")
+    if not isinstance(items, list):
+        return []
+    return [row for row in items if isinstance(row, dict) and row.get("package_id") == PACKAGE_ID]
+
+
+def registry_rows(payload: object) -> list[dict[str, object]]:
+    if not isinstance(payload, dict):
+        return []
+    milestones = payload.get("milestones")
+    if not isinstance(milestones, list):
+        return []
+    matches: list[dict[str, object]] = []
+    for milestone in milestones:
+        if not isinstance(milestone, dict):
+            continue
+        work_tasks = milestone.get("work_tasks")
+        if not isinstance(work_tasks, list):
+            continue
+        for task in work_tasks:
+            if isinstance(task, dict) and str(task.get("id")) == WORK_TASK_ID:
+                matches.append(task)
+    return matches
+
+
+def require_single_queue_row(label: str, rows: list[dict[str, object]]) -> list[str]:
+    if len(rows) != 1:
+        return [f"{label}: expected exactly one {PACKAGE_ID} row, found {len(rows)}"]
     return []
 
 
-def registry_block(text: str) -> str:
-    match = re.search(r"(?ms)^    - id: '121\.4'.*?(?=^    - id: |\Z)", text)
-    return match.group(0) if match else ""
-
-
-def require_single_registry_row(text: str) -> list[str]:
-    count = len(re.findall(rf"(?m)^    - id: '{re.escape(WORK_TASK_ID)}'$", text))
-    if count != 1:
-        return [f"registry row: expected exactly one {WORK_TASK_ID} row, found {count}"]
+def require_single_registry_row(rows: list[dict[str, object]]) -> list[str]:
+    if len(rows) != 1:
+        return [f"registry row: expected exactly one {WORK_TASK_ID} row, found {len(rows)}"]
     return []
 
 
@@ -275,6 +302,9 @@ def main() -> int:
         queue_text = read_text(FLEET_QUEUE)
         design_queue_text = read_text(DESIGN_QUEUE)
         registry_text = read_text(REGISTRY)
+        queue_payload = read_yaml(FLEET_QUEUE)
+        design_queue_payload = read_yaml(DESIGN_QUEUE)
+        registry_payload = read_yaml(REGISTRY)
         proof_text = read_text(PROOF_DOC)
         signoff_text = read_text(PLAY_SIGNOFF)
         generated_text = read_text(GENERATED_PROOF)
@@ -282,26 +312,29 @@ def main() -> int:
         print(f"m121_mobile_live_combat_confidence_verify_failed: missing file: {exc}", file=sys.stderr)
         return 1
 
-    queue_row = queue_block(queue_text)
-    design_queue_row = queue_block(design_queue_text)
-    registry_row = registry_block(registry_text)
+    queue_rows_found = queue_rows(queue_payload)
+    design_queue_rows_found = queue_rows(design_queue_payload)
+    registry_rows_found = registry_rows(registry_payload)
+    queue_row = queue_rows_found[0] if queue_rows_found else {}
+    design_queue_row = design_queue_rows_found[0] if design_queue_rows_found else {}
+    registry_row = registry_rows_found[0] if registry_rows_found else {}
 
     for relative_path, markers in IMPLEMENTATION_MARKERS.items():
         source_text = read_text(ROOT / relative_path)
         missing.extend(require_tokens(relative_path, source_text, markers))
 
-    missing.extend(require_single_queue_row("fleet queue", queue_text))
-    missing.extend(require_single_queue_row("design queue", design_queue_text))
-    missing.extend(require_single_registry_row(registry_text))
-    missing.extend(require_tokens("fleet queue", queue_row, QUEUE_TOKENS))
-    missing.extend(require_tokens("design queue", design_queue_row, QUEUE_TOKENS))
-    missing.extend(require_tokens("registry row", registry_row, REGISTRY_TOKENS))
+    missing.extend(require_single_queue_row("fleet queue", queue_rows_found))
+    missing.extend(require_single_queue_row("design queue", design_queue_rows_found))
+    missing.extend(require_single_registry_row(registry_rows_found))
+    missing.extend(require_tokens("fleet queue", render_yaml_block(queue_row), QUEUE_TOKENS))
+    missing.extend(require_tokens("design queue", render_yaml_block(design_queue_row), QUEUE_TOKENS))
+    missing.extend(require_tokens("registry row", render_yaml_block(registry_row), REGISTRY_TOKENS))
     missing.extend(require_equal_block("fleet queue", queue_row, EXPECTED_QUEUE_ROW))
     missing.extend(require_equal_block("design queue", design_queue_row, EXPECTED_QUEUE_ROW))
     missing.extend(require_equal_block("queue mirror parity", queue_row, design_queue_row))
     missing.extend(require_equal_block("registry row", registry_row, EXPECTED_REGISTRY_ROW))
-    missing.extend(require_clean_markers("fleet queue", queue_row, FORBIDDEN_IN_PROGRESS_ROW_MARKERS))
-    missing.extend(require_clean_markers("design queue", design_queue_row, FORBIDDEN_IN_PROGRESS_ROW_MARKERS))
+    missing.extend(require_clean_markers("fleet queue", render_yaml_block(queue_row), FORBIDDEN_IN_PROGRESS_ROW_MARKERS))
+    missing.extend(require_clean_markers("design queue", render_yaml_block(design_queue_row), FORBIDDEN_IN_PROGRESS_ROW_MARKERS))
     missing.extend(require_tokens("proof_doc", proof_text, PROOF_TOKENS))
     missing.extend(require_tokens("play_signoff", signoff_text, SIGNOFF_TOKENS))
     missing.extend(require_tokens("generated_proof_text", generated_text, GENERATED_TOKENS))
@@ -409,7 +442,7 @@ def main() -> int:
                 missing.append("generated_proof_payload: wrong milestone_id for M121 receipt")
             if receipt.get("work_task_id") != WORK_TASK_ID:
                 missing.append("generated_proof_payload: wrong work_task_id for M121 receipt")
-            if receipt.get("frontier_id") != QUEUE_FRONTIER_ID:
+            if str(receipt.get("frontier_id")) != str(QUEUE_FRONTIER_ID):
                 missing.append("generated_proof_payload: wrong frontier_id for M121 receipt")
             if receipt.get("proof_marker_set") != "mobile_live_combat_confidence":
                 missing.append("generated_proof_payload: wrong proof marker set for M121 receipt")

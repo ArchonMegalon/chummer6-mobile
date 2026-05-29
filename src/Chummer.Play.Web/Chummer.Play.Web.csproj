@@ -9,4 +9,7 @@
     <ProjectReference Include="..\Chummer.Play.Player\Chummer.Play.Player.csproj" />
     <ProjectReference Include="..\Chummer.Play.Gm\Chummer.Play.Gm.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="$(ChummerPlayContractsPackageId)" />
+  </ItemGroup>
 </Project>
