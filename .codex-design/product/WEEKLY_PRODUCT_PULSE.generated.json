@@ -1,8 +1,8 @@
 {
   "contract_name": "chummer.weekly_product_pulse",
   "contract_version": 3,
-  "generated_at": "2026-05-25T23:35:19Z",
-  "as_of": "2026-05-26",
+  "generated_at": "2026-05-29T10:35:31Z",
+  "as_of": "2026-05-29",
   "scorecard_source": "products/chummer/PRODUCT_HEALTH_SCORECARD.yaml",
   "progress_report_source": "products/chummer/PROGRESS_REPORT.generated.json",
   "progress_history_source": "products/chummer/PROGRESS_HISTORY.generated.json",
@@ -16,23 +16,20 @@
   },
   "flagship_readiness": {
     "state": "watch",
-    "reason": "Published flagship readiness proof is fail. Coverage gaps remain: desktop_client, hub_and_registry, mobile_play_shell, ui_kit_and_flagship_polish, fleet_and_operator_loop. Readiness-plane gaps remain: structural_ready, flagship_ready, veteran_deep_workflow_ready, primary_route_ready, dense_workbench_ready, public_shelf_ready, recovery_trust_ready.",
+    "reason": "Published flagship readiness proof is fail. Coverage gaps remain: desktop_client. Readiness-plane gaps remain: flagship_ready, veteran_deep_workflow_ready, primary_route_ready, dense_workbench_ready, public_shelf_ready, recovery_trust_ready, sr4_parity_ready, sr6_parity_ready.",
     "proof_status": "fail",
     "coverage_gap_keys": [
-      "desktop_client",
-      "hub_and_registry",
-      "mobile_play_shell",
-      "ui_kit_and_flagship_polish",
-      "fleet_and_operator_loop"
+      "desktop_client"
     ],
     "readiness_plane_gap_keys": [
-      "structural_ready",
       "flagship_ready",
       "veteran_deep_workflow_ready",
       "primary_route_ready",
       "dense_workbench_ready",
       "public_shelf_ready",
-      "recovery_trust_ready"
+      "recovery_trust_ready",
+      "sr4_parity_ready",
+      "sr6_parity_ready"
     ]
   },
   "rule_environment_trust": {
@@ -46,12 +43,18 @@
   "journey_gate_health": {
     "state": "blocked",
     "reason": "Resolve the blocking golden-journey gaps before widening publish claims.",
-    "blocked_count": 6,
+    "blocked_count": 3,
     "warning_count": 0,
-    "blocked_external_only_count": 0,
-    "blocked_with_local_count": 6,
-    "blocked_external_only_hosts": [],
-    "blocked_external_only_tuples": []
+    "blocked_external_only_count": 2,
+    "blocked_with_local_count": 1,
+    "blocked_external_only_hosts": [
+      "macos",
+      "windows"
+    ],
+    "blocked_external_only_tuples": [
+      "avalonia:osx-arm64:macos",
+      "avalonia:win-x64:windows"
+    ]
   },
   "top_support_or_feedback_clusters": [
     {
@@ -84,7 +87,7 @@
   "public_promise_drift_count": 0,
   "governor_decisions": [
     {
-      "decision_id": "2026-05-26-focus-next-12-biggest-wins",
+      "decision_id": "2026-05-29-focus-next-12-biggest-wins",
       "action": "focus_shift",
       "reason": "Keep delivery focus on Next 12 Biggest Wins. The pulse shows 99% overall progress in 'Public-fit polish', history depth has reached 20 snapshots, and the pacing risk remains concentrated in Core Engine while trust/publication/utility closure still needs measured completion on the active registry.",
       "cited_signals": [
@@ -97,16 +100,16 @@
       ]
     },
     {
-      "decision_id": "2026-05-26-launch-governance",
+      "decision_id": "2026-05-29-launch-governance",
       "action": "freeze_launch",
-      "reason": "Freeze launch expansion while 6 golden journey(s) remain blocked and journey health is blocked.",
+      "reason": "Freeze launch expansion while 3 golden journey(s) remain blocked and journey health is blocked.",
       "cited_signals": [
         "journey_gate_state=blocked",
-        "journey_gate_blocked_count=6",
+        "journey_gate_blocked_count=3",
         "local_release_proof_status=passed",
         "flagship_readiness_state=watch",
         "flagship_readiness_proof_status=fail",
-        "provider_canary_status=Canary evidence is still accumulating",
+        "provider_canary_status=Canary green on all active lanes",
         "closure_health_state=watch",
         "successor_dependency_state=ready",
         "successor_open_dependency_ids=",
@@ -124,23 +127,20 @@
     },
     "flagship_readiness": {
       "state": "watch",
-      "reason": "Published flagship readiness proof is fail. Coverage gaps remain: desktop_client, hub_and_registry, mobile_play_shell, ui_kit_and_flagship_polish, fleet_and_operator_loop. Readiness-plane gaps remain: structural_ready, flagship_ready, veteran_deep_workflow_ready, primary_route_ready, dense_workbench_ready, public_shelf_ready, recovery_trust_ready.",
+      "reason": "Published flagship readiness proof is fail. Coverage gaps remain: desktop_client. Readiness-plane gaps remain: flagship_ready, veteran_deep_workflow_ready, primary_route_ready, dense_workbench_ready, public_shelf_ready, recovery_trust_ready, sr4_parity_ready, sr6_parity_ready.",
       "proof_status": "fail",
       "coverage_gap_keys": [
-        "desktop_client",
-        "hub_and_registry",
-        "mobile_play_shell",
-        "ui_kit_and_flagship_polish",
-        "fleet_and_operator_loop"
+        "desktop_client"
       ],
       "readiness_plane_gap_keys": [
-        "structural_ready",
         "flagship_ready",
         "veteran_deep_workflow_ready",
         "primary_route_ready",
         "dense_workbench_ready",
         "public_shelf_ready",
-        "recovery_trust_ready"
+        "recovery_trust_ready",
+        "sr4_parity_ready",
+        "sr6_parity_ready"
       ]
     },
     "rule_environment_trust": {
@@ -154,12 +154,18 @@
     "journey_gate_health": {
       "state": "blocked",
       "reason": "Resolve the blocking golden-journey gaps before widening publish claims.",
-      "blocked_count": 6,
+      "blocked_count": 3,
       "warning_count": 0,
-      "blocked_external_only_count": 0,
-      "blocked_with_local_count": 6,
-      "blocked_external_only_hosts": [],
-      "blocked_external_only_tuples": []
+      "blocked_external_only_count": 2,
+      "blocked_with_local_count": 1,
+      "blocked_external_only_hosts": [
+        "macos",
+        "windows"
+      ],
+      "blocked_external_only_tuples": [
+        "avalonia:osx-arm64:macos",
+        "avalonia:win-x64:windows"
+      ]
     },
     "top_support_or_feedback_clusters": [
       {
@@ -192,7 +198,7 @@
     "public_promise_drift_count": 0,
     "governor_decisions": [
       {
-        "decision_id": "2026-05-26-focus-next-12-biggest-wins",
+        "decision_id": "2026-05-29-focus-next-12-biggest-wins",
         "action": "focus_shift",
         "reason": "Keep delivery focus on Next 12 Biggest Wins. The pulse shows 99% overall progress in 'Public-fit polish', history depth has reached 20 snapshots, and the pacing risk remains concentrated in Core Engine while trust/publication/utility closure still needs measured completion on the active registry.",
         "cited_signals": [
@@ -205,16 +211,16 @@
         ]
       },
       {
-        "decision_id": "2026-05-26-launch-governance",
+        "decision_id": "2026-05-29-launch-governance",
         "action": "freeze_launch",
-        "reason": "Freeze launch expansion while 6 golden journey(s) remain blocked and journey health is blocked.",
+        "reason": "Freeze launch expansion while 3 golden journey(s) remain blocked and journey health is blocked.",
         "cited_signals": [
           "journey_gate_state=blocked",
-          "journey_gate_blocked_count=6",
+          "journey_gate_blocked_count=3",
           "local_release_proof_status=passed",
           "flagship_readiness_state=watch",
           "flagship_readiness_proof_status=fail",
-          "provider_canary_status=Canary evidence is still accumulating",
+          "provider_canary_status=Canary green on all active lanes",
           "closure_health_state=watch",
           "successor_dependency_state=ready",
           "successor_open_dependency_ids=",
@@ -231,12 +237,12 @@
     "phase_label": "Public-fit polish",
     "history_snapshot_count": 20,
     "longest_pole": "Core Engine",
-    "launch_readiness": "Hold launch expansion pending route-canary validation. 6 golden journey(s) remain blocked.",
+    "launch_readiness": "Hold launch expansion pending route-canary validation. 3 golden journey(s) remain blocked.",
     "provider_route_stewardship": {
-      "default_status": "Pilot defaults are not yet governed",
-      "canary_status": "Canary evidence is still accumulating",
-      "review_due": "2026-06-08",
-      "next_decision": "Hold broad promotion until public route canary coverage exists."
+      "default_status": "Pilot defaults are governed",
+      "canary_status": "Canary green on all active lanes",
+      "review_due": "2026-06-12",
+      "next_decision": "Keep the current pilot default until support closure returns to a clear posture."
     },
     "successor_dependency_posture": {
       "state": "ready",
@@ -272,11 +278,11 @@
       "state": "watch",
       "open_case_count": 0,
       "waiting_closure_count": 0,
-      "pending_human_response_count": 6,
+      "pending_human_response_count": 12,
       "reported_case_count": 0,
-      "materialized_packet_count": 1,
+      "materialized_packet_count": 2,
       "design_impact_count": 0,
-      "summary": "0 waiting closure / 6 pending human response. 0 open support packets still need closure follow-through."
+      "summary": "0 waiting closure / 12 pending human response. 0 open support packets still need closure follow-through."
     },
     "adoption_health": {
       "state": "clear",
