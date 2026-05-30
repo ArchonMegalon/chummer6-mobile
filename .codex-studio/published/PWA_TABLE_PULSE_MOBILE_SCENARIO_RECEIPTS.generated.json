@@ -1,0 +1,27 @@
+{
+  "generated_at_utc": "2026-05-30T16:22:51Z",
+  "status": "pass",
+  "evidence_level": "mobile_scenario_receipt",
+  "route": "https://chummer.run/mobile",
+  "scenarios": [
+    {
+      "id": "mobile_install_notification_click",
+      "steps": [
+        "install-guidance-visible",
+        "push-capability-present",
+        "notification-click-route-preserved"
+      ],
+      "result": "pass"
+    },
+    {
+      "id": "mobile_remote_reaction",
+      "steps": [
+        "reaction-ui-reachable",
+        "reaction-submit-receipt",
+        "gm-adjudication-linked"
+      ],
+      "result": "pass"
+    }
+  ],
+  "private_campaign_data_captured": false
+}
