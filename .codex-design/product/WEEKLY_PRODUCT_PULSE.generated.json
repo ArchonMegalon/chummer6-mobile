@@ -1,8 +1,8 @@
 {
   "contract_name": "chummer.weekly_product_pulse",
   "contract_version": 3,
-  "generated_at": "2026-06-07T18:23:15Z",
-  "as_of": "2026-06-07",
+  "generated_at": "2026-06-18T12:09:46Z",
+  "as_of": "2026-06-18",
   "scorecard_source": "products/chummer/PRODUCT_HEALTH_SCORECARD.yaml",
   "progress_report_source": "products/chummer/PROGRESS_REPORT.generated.json",
   "progress_history_source": "products/chummer/PROGRESS_HISTORY.generated.json",
@@ -16,12 +16,16 @@
   },
   "flagship_readiness": {
     "state": "watch",
-    "reason": "Published flagship readiness proof is fail. Readiness-plane gaps remain: flagship_ready, feedback_loop_ready, recovery_trust_ready.",
+    "reason": "Published flagship readiness proof is fail. Coverage gaps remain: desktop_client, horizons_and_public_surface. Readiness-plane gaps remain: flagship_ready, veteran_deep_workflow_ready, dense_workbench_ready, recovery_trust_ready.",
     "proof_status": "fail",
-    "coverage_gap_keys": [],
+    "coverage_gap_keys": [
+      "desktop_client",
+      "horizons_and_public_surface"
+    ],
     "readiness_plane_gap_keys": [
       "flagship_ready",
-      "feedback_loop_ready",
+      "veteran_deep_workflow_ready",
+      "dense_workbench_ready",
       "recovery_trust_ready"
     ]
   },
@@ -74,12 +78,12 @@
   "public_promise_drift_count": 0,
   "governor_decisions": [
     {
-      "decision_id": "2026-06-07-focus-next-12-biggest-wins",
+      "decision_id": "2026-06-18-focus-next-12-biggest-wins",
       "action": "focus_shift",
-      "reason": "Keep delivery focus on Next 12 Biggest Wins. The pulse shows 100% overall progress in 'Public-fit polish', history depth has reached 38 snapshots, and the pacing risk remains concentrated in Core Engine while trust/publication/utility closure still needs measured completion on the active registry.",
+      "reason": "Keep delivery focus on Next 12 Biggest Wins. The pulse shows 100% overall progress in 'Public-fit polish', history depth has reached 40 snapshots, and the pacing risk remains concentrated in Core Engine while trust/publication/utility closure still needs measured completion on the active registry.",
       "cited_signals": [
         "overall_progress_percent=100",
-        "history_snapshot_count=38",
+        "history_snapshot_count=40",
         "oldest_blocker_days=0",
         "phase_label=Public-fit polish",
         "longest_pole=Core Engine",
@@ -87,7 +91,7 @@
       ]
     },
     {
-      "decision_id": "2026-06-07-launch-governance",
+      "decision_id": "2026-06-18-launch-governance",
       "action": "freeze_launch",
       "reason": "Freeze launch expansion until published flagship readiness proof returns to ready posture.",
       "cited_signals": [
@@ -101,7 +105,7 @@
         "successor_dependency_state=ready",
         "successor_open_dependency_ids=",
         "successor_open_dependency_work_task_ids=",
-        "status_plane_final_claim_status=pass"
+        "status_plane_final_claim_status=fail"
       ]
     }
   ],
@@ -114,12 +118,16 @@
     },
     "flagship_readiness": {
       "state": "watch",
-      "reason": "Published flagship readiness proof is fail. Readiness-plane gaps remain: flagship_ready, feedback_loop_ready, recovery_trust_ready.",
+      "reason": "Published flagship readiness proof is fail. Coverage gaps remain: desktop_client, horizons_and_public_surface. Readiness-plane gaps remain: flagship_ready, veteran_deep_workflow_ready, dense_workbench_ready, recovery_trust_ready.",
       "proof_status": "fail",
-      "coverage_gap_keys": [],
+      "coverage_gap_keys": [
+        "desktop_client",
+        "horizons_and_public_surface"
+      ],
       "readiness_plane_gap_keys": [
         "flagship_ready",
-        "feedback_loop_ready",
+        "veteran_deep_workflow_ready",
+        "dense_workbench_ready",
         "recovery_trust_ready"
       ]
     },
@@ -172,12 +180,12 @@
     "public_promise_drift_count": 0,
     "governor_decisions": [
       {
-        "decision_id": "2026-06-07-focus-next-12-biggest-wins",
+        "decision_id": "2026-06-18-focus-next-12-biggest-wins",
         "action": "focus_shift",
-        "reason": "Keep delivery focus on Next 12 Biggest Wins. The pulse shows 100% overall progress in 'Public-fit polish', history depth has reached 38 snapshots, and the pacing risk remains concentrated in Core Engine while trust/publication/utility closure still needs measured completion on the active registry.",
+        "reason": "Keep delivery focus on Next 12 Biggest Wins. The pulse shows 100% overall progress in 'Public-fit polish', history depth has reached 40 snapshots, and the pacing risk remains concentrated in Core Engine while trust/publication/utility closure still needs measured completion on the active registry.",
         "cited_signals": [
           "overall_progress_percent=100",
-          "history_snapshot_count=38",
+          "history_snapshot_count=40",
           "oldest_blocker_days=0",
           "phase_label=Public-fit polish",
           "longest_pole=Core Engine",
@@ -185,7 +193,7 @@
         ]
       },
       {
-        "decision_id": "2026-06-07-launch-governance",
+        "decision_id": "2026-06-18-launch-governance",
         "action": "freeze_launch",
         "reason": "Freeze launch expansion until published flagship readiness proof returns to ready posture.",
         "cited_signals": [
@@ -199,7 +207,7 @@
           "successor_dependency_state=ready",
           "successor_open_dependency_ids=",
           "successor_open_dependency_work_task_ids=",
-          "status_plane_final_claim_status=pass"
+          "status_plane_final_claim_status=fail"
         ]
       }
     ],
@@ -209,13 +217,13 @@
     "current_recommended_wave": "Next 12 Biggest Wins",
     "overall_progress_percent": 100,
     "phase_label": "Public-fit polish",
-    "history_snapshot_count": 38,
+    "history_snapshot_count": 40,
     "longest_pole": "Core Engine",
     "launch_readiness": "Hold launch expansion until published flagship readiness proof returns to ready posture.",
     "provider_route_stewardship": {
       "default_status": "Pilot defaults are governed",
       "canary_status": "Canary green on all active lanes",
-      "review_due": "2026-06-19",
+      "review_due": "2026-07-01",
       "next_decision": "Promote once canaries stay green and support fallout remains clear through the next route review."
     },
     "successor_dependency_posture": {
@@ -263,26 +271,18 @@
       "local_release_proof_status": "passed",
       "proven_journey_count": 5,
       "proven_route_count": 10,
-      "history_snapshot_count": 38,
-      "summary": "Current local edge proof passed. 5 journey proofs and 10 trust routes are on record. 38 weekly snapshots are on record for the current public trust posture."
+      "history_snapshot_count": 40,
+      "summary": "Current local edge proof passed. 5 journey proofs and 10 trust routes are on record. 40 weekly snapshots are on record for the current public trust posture."
     },
     "progress_trend": {
       "state": "steady",
       "direction": "flat",
       "delta_percent": 0,
-      "from_as_of": "2026-06-02",
-      "to_as_of": "2026-06-04",
-      "summary": "Flat trend 0% from 2026-06-02 to 2026-06-04. Trend window: 2026-05-19 100% -> 2026-05-21 100% -> 2026-05-22 100% -> 2026-05-29 100% -> 2026-05-30 100% -> 2026-06-01 100% -> 2026-06-02 100% -> 2026-06-04 100%.",
+      "from_as_of": "2026-06-12",
+      "to_as_of": "2026-06-17",
+      "summary": "Flat trend 0% from 2026-06-12 to 2026-06-17. Trend window: 2026-05-22 100% -> 2026-05-29 100% -> 2026-05-30 100% -> 2026-06-01 100% -> 2026-06-02 100% -> 2026-06-04 100% -> 2026-06-12 100% -> 2026-06-17 100%.",
       "sample_count": 8,
       "samples": [
-        {
-          "as_of": "2026-05-19",
-          "overall_progress_percent": 100
-        },
-        {
-          "as_of": "2026-05-21",
-          "overall_progress_percent": 100
-        },
         {
           "as_of": "2026-05-22",
           "overall_progress_percent": 100
@@ -305,6 +305,14 @@
         },
         {
           "as_of": "2026-06-04",
+          "overall_progress_percent": 100
+        },
+        {
+          "as_of": "2026-06-12",
+          "overall_progress_percent": 100
+        },
+        {
+          "as_of": "2026-06-17",
           "overall_progress_percent": 100
         }
       ]
