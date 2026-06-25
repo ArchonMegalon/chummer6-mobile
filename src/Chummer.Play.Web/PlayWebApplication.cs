@@ -388,7 +388,7 @@ public static class PlayWebApplication
         );
     }
 
-    private static async Task RequireTrustedPlayApiBoundaryAsync(HttpContext context, RequestDelegate next)
+    internal static async Task RequireTrustedPlayApiBoundaryAsync(HttpContext context, RequestDelegate next)
     {
         if (!context.Request.Path.StartsWithSegments("/api/play"))
         {
@@ -396,11 +396,10 @@ public static class PlayWebApplication
             return;
         }
 
+        ApplyPrivateNoStoreHeaders(context.Response);
         context.Response.OnStarting(() =>
         {
-            context.Response.Headers.CacheControl = "private, no-store";
-            context.Response.Headers.Pragma = "no-cache";
-            context.Response.Headers.Expires = "0";
+            ApplyPrivateNoStoreHeaders(context.Response);
             return Task.CompletedTask;
         });
 
@@ -416,6 +415,13 @@ public static class PlayWebApplication
         }
 
         await next(context);
+    }
+
+    private static void ApplyPrivateNoStoreHeaders(HttpResponse response)
+    {
+        response.Headers.CacheControl = "private, no-store";
+        response.Headers.Pragma = "no-cache";
+        response.Headers.Expires = "0";
     }
 
     public static bool IsTrustedPlayApiRequest(HttpContext context)

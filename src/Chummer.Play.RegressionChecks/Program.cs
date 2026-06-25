@@ -2018,9 +2018,7 @@ static async Task VerifyPlayApiBoundaryRequiresTrustedContextAsync()
 
     Assert(source.Contains("app.Use(RequireTrustedPlayApiBoundaryAsync);", StringComparison.Ordinal), "mobile app must register the play API trust boundary before route handlers.");
     Assert(source.Contains("context.Request.Path.StartsWithSegments(\"/api/play\")", StringComparison.Ordinal), "play API boundary must scope itself to private /api/play routes.");
-    Assert(source.Contains("context.Response.Headers.CacheControl = \"private, no-store\";", StringComparison.Ordinal), "play API responses must be marked private and non-cacheable.");
-    Assert(source.Contains("context.Response.Headers.Pragma = \"no-cache\";", StringComparison.Ordinal), "play API responses must carry legacy no-cache headers for shared browser profiles.");
-    Assert(source.Contains("context.Response.Headers.Expires = \"0\";", StringComparison.Ordinal), "play API responses must expire immediately for shared browser profiles.");
+    Assert(source.Contains("ApplyPrivateNoStoreHeaders(context.Response)", StringComparison.Ordinal), "play API responses must be marked private and non-cacheable.");
     Assert(source.Contains("context.Response.OnStarting(() =>", StringComparison.Ordinal), "play API no-store headers must be applied to successful and denied responses.");
     Assert(source.Contains("context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment()", StringComparison.Ordinal), "development mode must remain explicit for local test/dev play API access.");
     Assert(source.Contains("IPAddress.IsLoopback(remoteAddress)", StringComparison.Ordinal), "loopback requests must remain the only implicit production trust case.");
@@ -2063,6 +2061,27 @@ static async Task VerifyPlayApiBoundaryRequiresTrustedContextAsync()
         suppliedApiKey: null,
         remoteAddress: IPAddress.Parse("203.0.113.24"));
     Assert(PlayWebApplication.IsTrustedPlayApiRequest(developmentRemote), "development play API calls must remain trusted for local developer smoke tests.");
+
+    var deniedApiResponse = await InvokePlayApiBoundaryAsync(
+        environmentName: Environments.Production,
+        configuredApiKey: null,
+        suppliedApiKey: null,
+        remoteAddress: IPAddress.Parse("203.0.113.24"));
+    Assert(!deniedApiResponse.NextCalled, "remote production play API calls without trust must not reach route handlers.");
+    Assert(deniedApiResponse.StatusCode == StatusCodes.Status403Forbidden, "remote production play API calls without trust must receive a forbidden response.");
+    Assert(deniedApiResponse.Body.Contains("play_api_forbidden", StringComparison.Ordinal), "remote production play API denial must keep the typed error contract.");
+    Assert(string.Equals(deniedApiResponse.CacheControl, "private, no-store", StringComparison.Ordinal), "remote production play API denial must remain private and non-cacheable.");
+    Assert(string.Equals(deniedApiResponse.Pragma, "no-cache", StringComparison.Ordinal), "remote production play API denial must carry legacy no-cache headers.");
+    Assert(string.Equals(deniedApiResponse.Expires, "0", StringComparison.Ordinal), "remote production play API denial must expire immediately.");
+
+    var allowedApiResponse = await InvokePlayApiBoundaryAsync(
+        environmentName: Environments.Production,
+        configuredApiKey: "expected-play-key",
+        suppliedApiKey: "expected-play-key",
+        remoteAddress: IPAddress.Parse("203.0.113.24"));
+    Assert(allowedApiResponse.NextCalled, "remote production play API calls with the configured key must reach route handlers.");
+    Assert(allowedApiResponse.StatusCode == StatusCodes.Status204NoContent, "trusted play API middleware pass-through must preserve the route handler response.");
+    Assert(string.Equals(allowedApiResponse.CacheControl, "private, no-store", StringComparison.Ordinal), "trusted play API responses must remain private and non-cacheable.");
 }
 
 static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
@@ -3965,6 +3984,42 @@ static DefaultHttpContext BuildPlayApiBoundaryContext(
     }
 
     return context;
+}
+
+static async Task<(bool NextCalled, int StatusCode, string CacheControl, string Pragma, string Expires, string Body)> InvokePlayApiBoundaryAsync(
+    string environmentName,
+    string? configuredApiKey,
+    string? suppliedApiKey,
+    IPAddress remoteAddress)
+{
+    var context = BuildPlayApiBoundaryContext(
+        environmentName,
+        configuredApiKey,
+        suppliedApiKey,
+        remoteAddress);
+    context.Response.Body = new MemoryStream();
+
+    var nextCalled = false;
+    await PlayWebApplication.RequireTrustedPlayApiBoundaryAsync(
+        context,
+        innerContext =>
+        {
+            nextCalled = true;
+            innerContext.Response.StatusCode = StatusCodes.Status204NoContent;
+            return Task.CompletedTask;
+        });
+    await context.Response.StartAsync();
+
+    context.Response.Body.Position = 0;
+    using var reader = new StreamReader(context.Response.Body, Encoding.UTF8);
+    string body = await reader.ReadToEndAsync();
+    return (
+        nextCalled,
+        context.Response.StatusCode,
+        context.Response.Headers.CacheControl.ToString(),
+        context.Response.Headers.Pragma.ToString(),
+        context.Response.Headers.Expires.ToString(),
+        body);
 }
 
 file sealed record ReconnectConflictPayload(
