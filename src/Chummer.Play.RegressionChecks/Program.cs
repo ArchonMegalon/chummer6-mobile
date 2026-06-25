@@ -2016,6 +2016,9 @@ static async Task VerifyPlayApiBoundaryRequiresTrustedContextAsync()
     Assert(source.Contains("app.Use(RequireTrustedPlayApiBoundaryAsync);", StringComparison.Ordinal), "mobile app must register the play API trust boundary before route handlers.");
     Assert(source.Contains("context.Request.Path.StartsWithSegments(\"/api/play\")", StringComparison.Ordinal), "play API boundary must scope itself to private /api/play routes.");
     Assert(source.Contains("context.Response.Headers.CacheControl = \"private, no-store\";", StringComparison.Ordinal), "play API responses must be marked private and non-cacheable.");
+    Assert(source.Contains("context.Response.Headers.Pragma = \"no-cache\";", StringComparison.Ordinal), "play API responses must carry legacy no-cache headers for shared browser profiles.");
+    Assert(source.Contains("context.Response.Headers.Expires = \"0\";", StringComparison.Ordinal), "play API responses must expire immediately for shared browser profiles.");
+    Assert(source.Contains("context.Response.OnStarting(() =>", StringComparison.Ordinal), "play API no-store headers must be applied to successful and denied responses.");
     Assert(source.Contains("context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment()", StringComparison.Ordinal), "development mode must remain explicit for local test/dev play API access.");
     Assert(source.Contains("IPAddress.IsLoopback(remoteAddress)", StringComparison.Ordinal), "loopback requests must remain the only implicit production trust case.");
     Assert(source.Contains("CHUMMER_PLAY_API_KEY", StringComparison.Ordinal), "remote production play API calls must require an explicit configured key.");
