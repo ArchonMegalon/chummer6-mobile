@@ -11,7 +11,10 @@ using Chummer.Play.Web.BrowserState;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
@@ -2025,6 +2028,41 @@ static async Task VerifyPlayApiBoundaryRequiresTrustedContextAsync()
     Assert(source.Contains("X-Chummer-Play-Api-Key", StringComparison.Ordinal), "remote production play API calls must use the documented play API key header.");
     Assert(source.Contains("CryptographicOperations.FixedTimeEquals", StringComparison.Ordinal), "play API key comparison must be constant-time.");
     Assert(source.Contains("play_api_forbidden", StringComparison.Ordinal), "blocked play API calls must return a typed denial.");
+
+    var remoteProductionNoKey = BuildPlayApiBoundaryContext(
+        environmentName: Environments.Production,
+        configuredApiKey: null,
+        suppliedApiKey: null,
+        remoteAddress: IPAddress.Parse("203.0.113.24"));
+    Assert(!PlayWebApplication.IsTrustedPlayApiRequest(remoteProductionNoKey), "remote production play API calls must be denied when no API key is configured.");
+
+    var remoteProductionWrongKey = BuildPlayApiBoundaryContext(
+        environmentName: Environments.Production,
+        configuredApiKey: "expected-play-key",
+        suppliedApiKey: "wrong-play-key",
+        remoteAddress: IPAddress.Parse("203.0.113.24"));
+    Assert(!PlayWebApplication.IsTrustedPlayApiRequest(remoteProductionWrongKey), "remote production play API calls must reject mismatched API keys.");
+
+    var remoteProductionValidKey = BuildPlayApiBoundaryContext(
+        environmentName: Environments.Production,
+        configuredApiKey: "expected-play-key",
+        suppliedApiKey: "expected-play-key",
+        remoteAddress: IPAddress.Parse("203.0.113.24"));
+    Assert(PlayWebApplication.IsTrustedPlayApiRequest(remoteProductionValidKey), "remote production play API calls must pass only with the configured API key.");
+
+    var loopbackProduction = BuildPlayApiBoundaryContext(
+        environmentName: Environments.Production,
+        configuredApiKey: null,
+        suppliedApiKey: null,
+        remoteAddress: IPAddress.Loopback);
+    Assert(PlayWebApplication.IsTrustedPlayApiRequest(loopbackProduction), "loopback production play API calls must remain trusted for local installs.");
+
+    var developmentRemote = BuildPlayApiBoundaryContext(
+        environmentName: Environments.Development,
+        configuredApiKey: null,
+        suppliedApiKey: null,
+        remoteAddress: IPAddress.Parse("203.0.113.24"));
+    Assert(PlayWebApplication.IsTrustedPlayApiRequest(developmentRemote), "development play API calls must remain trusted for local developer smoke tests.");
 }
 
 static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
@@ -3899,12 +3937,58 @@ static string NormalizePath(string? path)
         : normalized;
 }
 
+static DefaultHttpContext BuildPlayApiBoundaryContext(
+    string environmentName,
+    string? configuredApiKey,
+    string? suppliedApiKey,
+    IPAddress remoteAddress)
+{
+    IConfiguration configuration = new ConfigurationBuilder()
+        .AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["CHUMMER_PLAY_API_KEY"] = configuredApiKey
+        })
+        .Build();
+    var services = new ServiceCollection()
+        .AddSingleton(configuration)
+        .AddSingleton<IHostEnvironment>(new RegressionHostEnvironment(environmentName))
+        .BuildServiceProvider();
+    var context = new DefaultHttpContext
+    {
+        RequestServices = services
+    };
+    context.Request.Path = "/api/play/resume/session-boundary";
+    context.Connection.RemoteIpAddress = remoteAddress;
+    if (!string.IsNullOrWhiteSpace(suppliedApiKey))
+    {
+        context.Request.Headers["X-Chummer-Play-Api-Key"] = suppliedApiKey;
+    }
+
+    return context;
+}
+
 file sealed record ReconnectConflictPayload(
     string Error,
     bool Stale,
     PlaySessionProjection Projection,
     SyncCheckpoint Checkpoint
 );
+
+file sealed class RegressionHostEnvironment : IHostEnvironment
+{
+    public RegressionHostEnvironment(string environmentName)
+    {
+        EnvironmentName = environmentName;
+    }
+
+    public string EnvironmentName { get; set; }
+
+    public string ApplicationName { get; set; } = "Chummer.Play.RegressionChecks";
+
+    public string ContentRootPath { get; set; } = Directory.GetCurrentDirectory();
+
+    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+}
 
 file sealed class CoordinatedRuntimeWriteBrowserStore : IBrowserKeyValueStore
 {

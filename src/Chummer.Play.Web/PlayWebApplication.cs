@@ -418,8 +418,10 @@ public static class PlayWebApplication
         await next(context);
     }
 
-    private static bool IsTrustedPlayApiRequest(HttpContext context)
+    public static bool IsTrustedPlayApiRequest(HttpContext context)
     {
+        ArgumentNullException.ThrowIfNull(context);
+
         if (context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment())
         {
             return true;
