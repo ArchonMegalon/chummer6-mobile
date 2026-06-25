@@ -42,6 +42,7 @@ await RunCheckAsync(nameof(VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundl
 await RunCheckAsync(nameof(VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync), VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync);
 await RunCheckAsync(nameof(VerifyIndexShellAccessibilityContractAsync), VerifyIndexShellAccessibilityContractAsync);
 await RunCheckAsync(nameof(VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync), VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync);
+await RunCheckAsync(nameof(VerifyPlayApiBoundaryRequiresTrustedContextAsync), VerifyPlayApiBoundaryRequiresTrustedContextAsync);
 await RunCheckAsync(nameof(VerifyIndexShellBindsContextualActionLabelsAsync), VerifyIndexShellBindsContextualActionLabelsAsync);
 await RunCheckAsync(nameof(VerifyBootstrapRoleShellEntryPointsAsync), VerifyBootstrapRoleShellEntryPointsAsync);
 await RunCheckAsync(nameof(VerifyRoleBoundarySurvivesCapabilityLeakageAsync), VerifyRoleBoundarySurvivesCapabilityLeakageAsync);
@@ -2005,6 +2006,22 @@ static async Task VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync()
     Assert(!script.Contains("API_CACHE", StringComparison.Ordinal), "service worker must not keep a Cache API bucket for private play API responses.");
     Assert(!script.Contains("cacheWithQuotaHandling(API_CACHE", StringComparison.Ordinal), "service worker must not persist private play API responses.");
     Assert(!script.Contains("caches.open(API_CACHE)", StringComparison.Ordinal), "service worker must not replay cached private play API responses.");
+}
+
+static async Task VerifyPlayApiBoundaryRequiresTrustedContextAsync()
+{
+    var applicationPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "PlayWebApplication.cs");
+    var source = await File.ReadAllTextAsync(applicationPath);
+
+    Assert(source.Contains("app.Use(RequireTrustedPlayApiBoundaryAsync);", StringComparison.Ordinal), "mobile app must register the play API trust boundary before route handlers.");
+    Assert(source.Contains("context.Request.Path.StartsWithSegments(\"/api/play\")", StringComparison.Ordinal), "play API boundary must scope itself to private /api/play routes.");
+    Assert(source.Contains("context.Response.Headers.CacheControl = \"private, no-store\";", StringComparison.Ordinal), "play API responses must be marked private and non-cacheable.");
+    Assert(source.Contains("context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment()", StringComparison.Ordinal), "development mode must remain explicit for local test/dev play API access.");
+    Assert(source.Contains("IPAddress.IsLoopback(remoteAddress)", StringComparison.Ordinal), "loopback requests must remain the only implicit production trust case.");
+    Assert(source.Contains("CHUMMER_PLAY_API_KEY", StringComparison.Ordinal), "remote production play API calls must require an explicit configured key.");
+    Assert(source.Contains("X-Chummer-Play-Api-Key", StringComparison.Ordinal), "remote production play API calls must use the documented play API key header.");
+    Assert(source.Contains("CryptographicOperations.FixedTimeEquals", StringComparison.Ordinal), "play API key comparison must be constant-time.");
+    Assert(source.Contains("play_api_forbidden", StringComparison.Ordinal), "blocked play API calls must return a typed denial.");
 }
 
 static async Task VerifyIndexShellBindsContextualActionLabelsAsync()

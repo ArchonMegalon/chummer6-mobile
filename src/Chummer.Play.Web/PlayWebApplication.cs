@@ -8,7 +8,12 @@ using Chummer.Play.Player.PlayerShell;
 using Chummer.Play.Web.BrowserState;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Chummer.Play.Web;
 
@@ -41,6 +46,7 @@ public static class PlayWebApplication
     {
         app.UseDefaultFiles();
         app.UseStaticFiles();
+        app.Use(RequireTrustedPlayApiBoundaryAsync);
 
         var playerShell = PlayerShellModule.CreateDescriptor();
         var gmShell = GmTacticalShellModule.CreateDescriptor();
@@ -380,6 +386,67 @@ public static class PlayWebApplication
                     cancellationToken
                 )
         );
+    }
+
+    private static async Task RequireTrustedPlayApiBoundaryAsync(HttpContext context, RequestDelegate next)
+    {
+        if (!context.Request.Path.StartsWithSegments("/api/play"))
+        {
+            await next(context);
+            return;
+        }
+
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers.CacheControl = "private, no-store";
+            context.Response.Headers.Pragma = "no-cache";
+            context.Response.Headers.Expires = "0";
+            return Task.CompletedTask;
+        });
+
+        if (!IsTrustedPlayApiRequest(context))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "play_api_forbidden",
+                detail = "Mobile play APIs require a local development context, loopback request, or configured play API key."
+            });
+            return;
+        }
+
+        await next(context);
+    }
+
+    private static bool IsTrustedPlayApiRequest(HttpContext context)
+    {
+        if (context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment())
+        {
+            return true;
+        }
+
+        IPAddress? remoteAddress = context.Connection.RemoteIpAddress;
+        if (remoteAddress is null || IPAddress.IsLoopback(remoteAddress))
+        {
+            return true;
+        }
+
+        string configuredKey = context.RequestServices.GetRequiredService<IConfiguration>()["CHUMMER_PLAY_API_KEY"]?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(configuredKey))
+        {
+            return false;
+        }
+
+        string suppliedKey = context.Request.Headers["X-Chummer-Play-Api-Key"].ToString().Trim();
+        return FixedTimeEquals(suppliedKey, configuredKey);
+    }
+
+    private static bool FixedTimeEquals(string supplied, string expected)
+    {
+        byte[] suppliedBytes = Encoding.UTF8.GetBytes(supplied);
+        byte[] expectedBytes = Encoding.UTF8.GetBytes(expected);
+        return suppliedBytes.Length == expectedBytes.Length
+               && CryptographicOperations.FixedTimeEquals(suppliedBytes, expectedBytes);
     }
 
     private static async Task<PlayResumeResponse> BuildResumeResponseAsync(
