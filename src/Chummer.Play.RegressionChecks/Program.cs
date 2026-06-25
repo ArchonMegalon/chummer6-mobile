@@ -41,6 +41,7 @@ await RunCheckAsync(nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewes
 await RunCheckAsync(nameof(VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync), VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync);
 await RunCheckAsync(nameof(VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync), VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync);
 await RunCheckAsync(nameof(VerifyIndexShellAccessibilityContractAsync), VerifyIndexShellAccessibilityContractAsync);
+await RunCheckAsync(nameof(VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync), VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync);
 await RunCheckAsync(nameof(VerifyIndexShellBindsContextualActionLabelsAsync), VerifyIndexShellBindsContextualActionLabelsAsync);
 await RunCheckAsync(nameof(VerifyBootstrapRoleShellEntryPointsAsync), VerifyBootstrapRoleShellEntryPointsAsync);
 await RunCheckAsync(nameof(VerifyRoleBoundarySurvivesCapabilityLeakageAsync), VerifyRoleBoundarySurvivesCapabilityLeakageAsync);
@@ -1990,6 +1991,20 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("beforeinstallprompt", StringComparison.Ordinal), "play shell must listen for install-prompt availability.");
     Assert(html.Contains("window.addEventListener(\"online\", updateNetworkStatus);", StringComparison.Ordinal), "play shell must react to live online transitions.");
     Assert(html.Contains("window.addEventListener(\"offline\", updateNetworkStatus);", StringComparison.Ordinal), "play shell must react to live offline transitions.");
+}
+
+static async Task VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync()
+{
+    var serviceWorkerPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "service-worker.js");
+    var script = await File.ReadAllTextAsync(serviceWorkerPath);
+
+    Assert(script.Contains("url.pathname.startsWith(\"/api/play/\")", StringComparison.Ordinal), "service worker must explicitly route private play API reads.");
+    Assert(script.Contains("Private play state is network-only", StringComparison.Ordinal), "service worker must document the private API cache boundary.");
+    Assert(script.Contains("play_api_network_unavailable", StringComparison.Ordinal), "service worker must return a typed offline failure for private play API reads.");
+    Assert(script.Contains("\"cache-control\": \"no-store\"", StringComparison.Ordinal), "service worker private API fallback must be non-cacheable.");
+    Assert(!script.Contains("API_CACHE", StringComparison.Ordinal), "service worker must not keep a Cache API bucket for private play API responses.");
+    Assert(!script.Contains("cacheWithQuotaHandling(API_CACHE", StringComparison.Ordinal), "service worker must not persist private play API responses.");
+    Assert(!script.Contains("caches.open(API_CACHE)", StringComparison.Ordinal), "service worker must not replay cached private play API responses.");
 }
 
 static async Task VerifyIndexShellBindsContextualActionLabelsAsync()

@@ -300,6 +300,7 @@ rg -n 'VerifyStoredLineageStaleResponsesAsync\(' src/Chummer.Play.RegressionChec
 rg -n 'VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyOfflineQueueRejectsStaleLineageAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyIndexShellAccessibilityContractAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
+rg -n 'VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyBootstrapRoleShellEntryPointsAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyQuickActionRejectsCrossRoleAuthorizationAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'VerifyDeniedQuickActionsPreserveStoredReplayStateAsync\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
@@ -349,6 +350,11 @@ rg -n 'MEDIA_CACHE' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'MEDIA_MAX_ENTRIES' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'pruneMediaCache' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'QuotaExceededError|NS_ERROR_DOM_QUOTA_REACHED' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'play_api_network_unavailable' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+if rg -n 'API_CACHE|cacheWithQuotaHandling\(API_CACHE|caches\.open\(API_CACHE\)' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null 2>&1; then
+  echo "private /api/play responses must not use Cache API storage" >&2
+  exit 1
+fi
 rg -n 'request\.Cursor\.Session' src/Chummer.Play.Web >/dev/null
 rg -n 'IBrowserKeyValueStore' src/Chummer.Play.Web/BrowserSessionEventLogStore.cs >/dev/null
 rg -n 'GetFromJsonAsync<PlaySessionProjection>' src/Chummer.Play.Web/BrowserSessionApiClient.cs >/dev/null

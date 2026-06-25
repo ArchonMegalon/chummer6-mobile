@@ -1,6 +1,5 @@
 const CACHE_VERSION = "play-shell-v2";
 const SHELL_CACHE = `chummer-shell-${CACHE_VERSION}`;
-const API_CACHE = `chummer-api-${CACHE_VERSION}`;
 const MEDIA_CACHE = `chummer-media-${CACHE_VERSION}`;
 const MEDIA_META_CACHE = `chummer-media-meta-${CACHE_VERSION}`;
 const OFFLINE_NAV_FALLBACK = "/index.html";
@@ -25,7 +24,7 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => ![SHELL_CACHE, API_CACHE, MEDIA_CACHE, MEDIA_META_CACHE].includes(key))
+          .filter((key) => ![SHELL_CACHE, MEDIA_CACHE, MEDIA_META_CACHE].includes(key))
           .map((key) => caches.delete(key))
       )
     ).then(async () => {
@@ -44,16 +43,22 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname.startsWith("/api/play/")) {
-    // Keep API reads fresh; fallback to cache only when network is unavailable.
+    // Private play state is network-only; do not replay another account's cached API response.
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            cacheWithQuotaHandling(API_CACHE, request, response.clone());
+        .catch(() => new Response(
+          JSON.stringify({
+            error: "play_api_network_unavailable",
+            detail: "Reconnect before loading private play data."
+          }),
+          {
+            status: 503,
+            headers: {
+              "content-type": "application/problem+json",
+              "cache-control": "no-store"
+            }
           }
-          return response;
-        })
-        .catch(() => caches.open(API_CACHE).then((cache) => cache.match(request)))
+        ))
     );
     return;
   }
