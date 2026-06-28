@@ -1,14 +1,21 @@
-const CACHE_VERSION = "play-shell-v2";
+const CACHE_VERSION = "play-shell-v5";
 const SHELL_CACHE = `chummer-shell-${CACHE_VERSION}`;
 const MEDIA_CACHE = `chummer-media-${CACHE_VERSION}`;
 const MEDIA_META_CACHE = `chummer-media-meta-${CACHE_VERSION}`;
 const OFFLINE_NAV_FALLBACK = "/index.html";
+const MOBILE_NAV_FALLBACK = "/mobile";
 const MEDIA_MAX_ENTRIES = 40;
 const MEDIA_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 3;
 const SHELL_ASSETS = [
   "/",
   "/index.html",
+  "/mobile",
+  "/mobile.css",
+  "/mobile-turn-companion.js",
   "/manifest.webmanifest",
+  "/icons/apple-touch-icon.png",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
   "/icons/icon-192.svg",
   "/icons/icon-512.svg"
 ];
@@ -69,6 +76,9 @@ self.addEventListener("fetch", (event) => {
         const cached = await caches.match(request);
         if (cached) {
           return cached;
+        }
+        if (url.pathname.startsWith("/mobile")) {
+          return caches.match(MOBILE_NAV_FALLBACK);
         }
         return caches.match(OFFLINE_NAV_FALLBACK);
       })

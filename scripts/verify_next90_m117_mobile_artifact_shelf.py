@@ -16,6 +16,7 @@ MILESTONE_ID = "117"
 WORK_TASK_ID = "117.4"
 REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
+CANONICAL_QUEUE_ROOT = f"/docker/chummercomplete/{REPO_LABEL}"
 
 REGISTRY = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml")
 DESIGN_QUEUE = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
@@ -114,7 +115,7 @@ IMPLEMENTATION_MARKERS = {
     ),
 }
 
-QUEUE_TOKENS = (
+QUEUE_BASE_TOKENS = (
     f"package_id: {PACKAGE_ID}",
     f"work_task_id: {WORK_TASK_ID}",
     f"frontier_id: {SUCCESSOR_FRONTIER_ID}",
@@ -127,10 +128,20 @@ QUEUE_TOKENS = (
     "task: Add mobile artifact shelf views for campaign, travel, and recap artifacts.",
     "artifact_shelf:mobile",
     "artifact_recap_view:mobile",
-    "/docker/chummercomplete/chummer-play/docs/next90-m117-mobile-artifact-shelf.proof.md",
-    "/docker/chummercomplete/chummer-play/scripts/verify_next90_m117_mobile_artifact_shelf.py",
-    "/docker/chummercomplete/chummer-play/scripts/materialize_mobile_local_release_proof.py",
-    "/docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
+)
+
+DESIGN_QUEUE_TOKENS = QUEUE_BASE_TOKENS + (
+    f"{CANONICAL_QUEUE_ROOT}/docs/next90-m117-mobile-artifact-shelf.proof.md",
+    f"{CANONICAL_QUEUE_ROOT}/scripts/verify_next90_m117_mobile_artifact_shelf.py",
+    f"{CANONICAL_QUEUE_ROOT}/scripts/materialize_mobile_local_release_proof.py",
+    f"{CANONICAL_QUEUE_ROOT}/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
+)
+
+FLEET_QUEUE_TOKENS = QUEUE_BASE_TOKENS + (
+    f"{CHECKOUT_ROOT}/docs/next90-m117-mobile-artifact-shelf.proof.md",
+    f"{CHECKOUT_ROOT}/scripts/verify_next90_m117_mobile_artifact_shelf.py",
+    f"{CHECKOUT_ROOT}/scripts/materialize_mobile_local_release_proof.py",
+    f"{CHECKOUT_ROOT}/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
 )
 
 REGISTRY_TOKENS = (
@@ -284,12 +295,15 @@ def main() -> int:
         missing.append(f"registry: expected exactly one row for 117.4, found {registry_match_count}")
     missing.extend(require_tokens("registry", registry_block(registry_text), REGISTRY_TOKENS))
 
-    for label, queue_text in (("design queue", design_queue_text), ("fleet queue", fleet_queue_text)):
+    for label, queue_text, queue_tokens in (
+        ("design queue", design_queue_text, DESIGN_QUEUE_TOKENS),
+        ("fleet queue", fleet_queue_text, FLEET_QUEUE_TOKENS),
+    ):
         match_count = count_queue_blocks(queue_text)
         if match_count != 1:
             missing.append(f"{label}: expected exactly one row for {PACKAGE_ID}, found {match_count}")
         block = queue_block(queue_text)
-        missing.extend(require_tokens(label, block, QUEUE_TOKENS))
+        missing.extend(require_tokens(label, block, queue_tokens))
 
     missing.extend(require_tokens("proof doc", proof_text, PROOF_TOKENS))
     missing.extend(require_tokens("play signoff", signoff_text, SIGNOFF_TOKENS))

@@ -14,6 +14,7 @@ WORK_TASK_ID = "145.3"
 QUEUE_FRONTIER_ID = "1453045303"
 REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
+CANONICAL_QUEUE_ROOT = f"/docker/chummercomplete/{REPO_LABEL}"
 REGISTRY = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml")
 DESIGN_QUEUE = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
 FLEET_QUEUE = Path("/docker/fleet/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
@@ -83,7 +84,7 @@ IMPLEMENTATION_MARKERS = {
     ),
 }
 
-QUEUE_TOKENS = (
+QUEUE_BASE_TOKENS = (
     f"package_id: {PACKAGE_ID}",
     f"work_task_id: '{WORK_TASK_ID}'",
     f"frontier_id: {QUEUE_FRONTIER_ID}",
@@ -94,10 +95,20 @@ QUEUE_TOKENS = (
     f"repo: {REPO_LABEL}",
     "quick_explain:mobile",
     "grounded_follow_up:mobile",
-    "/docker/chummercomplete/chummer-play/docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md",
-    "/docker/chummercomplete/chummer-play/scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py",
-    "/docker/chummercomplete/chummer-play/scripts/materialize_mobile_local_release_proof.py",
-    "/docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
+)
+
+DESIGN_QUEUE_TOKENS = QUEUE_BASE_TOKENS + (
+    f"{CANONICAL_QUEUE_ROOT}/docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md",
+    f"{CANONICAL_QUEUE_ROOT}/scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py",
+    f"{CANONICAL_QUEUE_ROOT}/scripts/materialize_mobile_local_release_proof.py",
+    f"{CANONICAL_QUEUE_ROOT}/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
+)
+
+FLEET_QUEUE_TOKENS = QUEUE_BASE_TOKENS + (
+    f"{CHECKOUT_ROOT}/docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md",
+    f"{CHECKOUT_ROOT}/scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py",
+    f"{CHECKOUT_ROOT}/scripts/materialize_mobile_local_release_proof.py",
+    f"{CHECKOUT_ROOT}/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
 )
 
 REGISTRY_TOKENS = (
@@ -214,8 +225,8 @@ def main() -> int:
 
     missing.extend(require_single_queue_row("fleet queue", queue_text))
     missing.extend(require_single_queue_row("design queue", design_queue_text))
-    missing.extend(require_tokens("fleet queue", queue_row, QUEUE_TOKENS))
-    missing.extend(require_tokens("design queue", design_queue_row, QUEUE_TOKENS))
+    missing.extend(require_tokens("fleet queue", queue_row, FLEET_QUEUE_TOKENS))
+    missing.extend(require_tokens("design queue", design_queue_row, DESIGN_QUEUE_TOKENS))
     missing.extend(require_tokens("registry row", registry_row, REGISTRY_TOKENS))
     missing.extend(require_tokens("proof_doc", proof_text, PROOF_TOKENS))
     missing.extend(require_tokens("play_signoff", signoff_text, SIGNOFF_TOKENS))

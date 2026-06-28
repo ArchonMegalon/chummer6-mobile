@@ -1,14 +1,41 @@
 {
-  "name": "Chummer Play",
-  "short_name": "Play",
-  "description": "Installable player and GM shell for offline-safe Chummer play sessions.",
-  "start_url": "/index.html",
+  "id": "/mobile",
+  "name": "Chummer Turn Companion",
+  "short_name": "Chummer Play",
+  "description": "Installable bounded turn companion for live Chummer play sessions on player and GM devices.",
+  "start_url": "/mobile",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0f1b26",
   "theme_color": "#0f1b26",
   "orientation": "any",
+  "shortcuts": [
+    {
+      "name": "Player Companion",
+      "short_name": "Player",
+      "description": "Open the bounded player turn companion.",
+      "url": "/mobile?role=Player"
+    },
+    {
+      "name": "GM Companion",
+      "short_name": "GM",
+      "description": "Open the bounded GM turn companion.",
+      "url": "/mobile?role=GameMaster"
+    }
+  ],
   "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.svg",
       "sizes": "192x192",

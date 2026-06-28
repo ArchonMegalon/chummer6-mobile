@@ -34,6 +34,9 @@ test -f docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md
 test -f feedback/2026-03-10-public-repo-graph-audit.md
 test -f src/Chummer.Play.Web/Program.cs
 test -f src/Chummer.Play.Web/PlayWebApplication.cs
+test -f src/Chummer.Play.Core/Application/PlayTurnCompanionProjector.cs
+test -f src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor
+test -f src/Chummer.Play.Web/Components/App.razor
 test -f src/Chummer.Play.Web/PlayRouteHandlers.cs
 test -f src/Chummer.Play.Web/BrowserSessionApiClient.cs
 test -f src/Chummer.Play.Web/BrowserSessionCoachApiClient.cs
@@ -51,9 +54,16 @@ test -f src/Chummer.Play.Web/BrowserState/RuntimeBundleCacheEntry.cs
 test -f src/Chummer.Play.Web/wwwroot/index.html
 test -f src/Chummer.Play.Web/wwwroot/manifest.webmanifest
 test -f src/Chummer.Play.Web/wwwroot/service-worker.js
+test -f src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js
+test -f src/Chummer.Play.Web/wwwroot/mobile.css
+test -f src/Chummer.Play.Web/wwwroot/icons/apple-touch-icon.png
+test -f src/Chummer.Play.Web/wwwroot/icons/icon-192.png
+test -f src/Chummer.Play.Web/wwwroot/icons/icon-512.png
 test -f src/Chummer.Play.Web/wwwroot/icons/icon-192.svg
 test -f src/Chummer.Play.Web/wwwroot/icons/icon-512.svg
 test -f scripts/materialize_mobile_local_release_proof.py
+test -f scripts/verify_mobile_pwa_runtime_smoke.py
+test -f scripts/verify_mobile_pwa_viewport_smoke.py
 test -f scripts/verify_next90_m112_mobile_campaign_continuity.py
 test -f scripts/verify_next90_m119_mobile_onboarding_continuity.py
 test -f scripts/verify_next90_m121_mobile_live_combat_confidence.py
@@ -313,6 +323,9 @@ rg -n 'VerifyRoamingWorkspaceRestorePlanRestoresPackageOwnedCampaignState\(' src
 rg -n 'VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrails\(' src/Chummer.Play.RegressionChecks/Program.cs >/dev/null
 rg -n 'IsLedgerAligned\(' src/Chummer.Play.Web/SessionLineage.cs >/dev/null
 rg -n 'VerifyIndexShellAccessibilityContractAsync|VerifyBootstrapRoleShellEntryPointsAsync|VerifyCachePressureBudgetContractAsync|RuntimeBundleQuota == 8|<html lang="en">' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Mobile turn companion criteria|Bounded turn-state criteria:|Replay-safe continuity criteria:|RUNSITE anchor criteria:' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Quick-glance criteria:.*scripts/verify_mobile_pwa_viewport_smoke.py' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
+rg -n 'Installability criteria:.*Page.getInstallabilityErrors.*scripts/verify_mobile_pwa_viewport_smoke.py' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Post-closure completion criteria \(M12\)' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'Player shell criteria: browser transport \+ event-log \+ offline resume stay lineage-safe.*authorization denials preserve stored replay context' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
 rg -n 'GM shell criteria: GM-only action and Spider-card capability gates remain enforced.*preserve stored replay context' docs/PLAY_RELEASE_SIGNOFF.md >/dev/null
@@ -342,7 +355,11 @@ rg -n 'RemoveAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineCacheService.cs 
 rg -n 'PlayCachePressureSnapshot' src >/dev/null
 rg -n 'PlayResumeResponse' src >/dev/null
 rg -n 'Chummer\.Campaign\.Contracts' README.md >/dev/null
-rg -n '"start_url": "/index.html"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"id": "/mobile"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"start_url": "/mobile"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"url": "/mobile\?role=Player"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"url": "/mobile\?role=GameMaster"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n 'apple-mobile-web-app-capable|apple-mobile-web-app-title|rel="apple-touch-icon"|rel="manifest"' src/Chummer.Play.Web/Components/App.razor >/dev/null
 rg -n 'navigator\.serviceWorker\.register' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
 rg -n 'role="status" aria-live="polite" aria-atomic="true"' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
 rg -n 'CACHE_VERSION' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
@@ -383,6 +400,8 @@ bash "${package_plane_runner}" build src/Chummer.Play.Gm/Chummer.Play.Gm.csproj 
 bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo
 bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo >/dev/null
 bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
+python3 scripts/verify_mobile_pwa_runtime_smoke.py >/dev/null
+python3 scripts/verify_mobile_pwa_viewport_smoke.py >/dev/null
 python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
 python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
 python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
@@ -397,6 +416,9 @@ rg -n '"install_claim_restore_continue"' .codex-studio/published/MOBILE_LOCAL_RE
 rg -n '"campaign_session_recover_recap"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"recover_from_sync_conflict"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"quality_release_hardening"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"pwa_runtime_smoke"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"mobile_pwa_viewport_smoke"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"turn_companion_live_session"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"migration_boundary_evidence"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"mobile_campaign_continuity"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"mobile_onboarding_continuity"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
@@ -409,6 +431,19 @@ rg -n 'VerifyRoamingWorkspaceRestorePlanPreservesConflictAndInstallLocalGuardrai
 rg -n 'VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'VerifyIndexShellAccessibilityContractAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'VerifyCachePressureBudgetContractAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'VerifyTurnCompanionRunsiteAnchorSelectionStaysDeviceScopedAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'RUNSITE stays orientation-only here: room, zone, and hotspot anchors are inspectable context, not token authority.' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'mobile_pwa_runtime_smoke ok' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'mobile_pwa_viewport_smoke ok' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'service_worker_controlled: true' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'compact_layout:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'installability_errors:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'player_interactions:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'replay_ack: local 3->0 / server 0->3->0' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'player_resume_snapshot:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_interactions: fire-stairs / reveal-threat / local 3->0 / server 0->3->0' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_resume_snapshot:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'Post-closure completion criteria \(M12\)' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'Post-closure hardening criteria \(M13\)' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null

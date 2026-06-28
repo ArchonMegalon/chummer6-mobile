@@ -6,6 +6,8 @@ using Chummer.Play.Core.Sync;
 using Chummer.Play.Gm.TacticalShell;
 using Chummer.Play.Player.PlayerShell;
 using Chummer.Play.Web.BrowserState;
+using Chummer.Play.Web.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -22,16 +24,21 @@ public static class PlayWebApplication
     public static WebApplication Build(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        ConfigureServices(builder.Services);
+        ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
 
         var app = builder.Build();
         Configure(app);
         return app;
     }
 
-    internal static void ConfigureServices(IServiceCollection services)
+    internal static void ConfigureServices(
+        IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment hostEnvironment)
     {
-        services.AddSingleton<IBrowserKeyValueStore, InMemoryBrowserKeyValueStore>();
+        services.AddRazorComponents();
+        services.AddSingleton<IBrowserKeyValueStore>(_ =>
+            new FileSystemBrowserKeyValueStore(ResolveBrowserStateRoot(configuration, hostEnvironment)));
         services.AddSingleton<BrowserSessionEventLogStore>();
         services.AddSingleton<BrowserSessionOfflineCacheService>();
         services.AddSingleton<BrowserSessionOfflineQueueService>();
@@ -40,6 +47,7 @@ public static class PlayWebApplication
         services.AddSingleton<IPlayOfflineQueueService>(serviceProvider => serviceProvider.GetRequiredService<BrowserSessionOfflineQueueService>());
         services.AddSingleton<IRoamingWorkspaceSyncPlanner, RoamingWorkspaceSyncPlanner>();
         services.AddSingleton<IPlayRoamingRestoreService, PlayRoamingRestoreService>();
+        services.AddSingleton<PlayTurnCompanionService>();
     }
 
     internal static void Configure(WebApplication app)
@@ -47,11 +55,53 @@ public static class PlayWebApplication
         app.UseDefaultFiles();
         app.UseStaticFiles();
         app.Use(RequireTrustedPlayApiBoundaryAsync);
+        app.UseAntiforgery();
 
         var playerShell = PlayerShellModule.CreateDescriptor();
         var gmShell = GmTacticalShellModule.CreateDescriptor();
 
         app.MapGet("/health", () => Results.Text("ok"));
+        app.MapGet(
+            "/api/play/turn-companion/{sessionId}",
+            async (
+                string sessionId,
+                PlaySurfaceRole role,
+                string? deviceId,
+                PlayTurnCompanionService turnCompanionService,
+                CancellationToken cancellationToken) =>
+                Results.Json(await turnCompanionService.GetProjectionAsync(sessionId, role, deviceId, cancellationToken))
+        );
+        app.MapGet(
+            "/api/play/turn-companion/{sessionId}/queue-status",
+            async (
+                string sessionId,
+                PlaySurfaceRole role,
+                string? deviceId,
+                PlayTurnCompanionService turnCompanionService,
+                CancellationToken cancellationToken) =>
+                Results.Json(await turnCompanionService.GetQueueStatusAsync(sessionId, role, deviceId, cancellationToken))
+        );
+        app.MapPost(
+            "/api/play/turn-companion/{sessionId}/replay",
+            async (
+                string sessionId,
+                PlaySurfaceRole role,
+                string? deviceId,
+                PlayTurnCompanionReplayRequest request,
+                PlayTurnCompanionService turnCompanionService,
+                CancellationToken cancellationToken) =>
+                Results.Json(await turnCompanionService.ReplayClientQueueAsync(sessionId, role, request.Events ?? Array.Empty<string>(), deviceId, cancellationToken))
+        );
+        app.MapPost(
+            "/api/play/turn-companion/{sessionId}/acknowledge",
+            async (
+                string sessionId,
+                PlaySurfaceRole role,
+                string? deviceId,
+                PlayTurnCompanionService turnCompanionService,
+                CancellationToken cancellationToken) =>
+                Results.Json(await turnCompanionService.AcknowledgePendingQueueAsync(sessionId, role, deviceId, cancellationToken))
+        );
         app.MapGet(
             PlayApiRoutes.Bootstrap,
             async (
@@ -386,6 +436,22 @@ public static class PlayWebApplication
                     cancellationToken
                 )
         );
+        app.MapRazorComponents<App>();
+    }
+
+    private static string ResolveBrowserStateRoot(
+        IConfiguration configuration,
+        IHostEnvironment hostEnvironment)
+    {
+        string configuredRoot = configuration["CHUMMER_PLAY_BROWSER_STATE_DIR"]
+            ?? Path.Combine(hostEnvironment.ContentRootPath, ".artifacts", "browser-state");
+        string fullRoot = Path.GetFullPath(configuredRoot);
+
+        bool isolatePerApp = bool.TryParse(configuration["CHUMMER_PLAY_BROWSER_STATE_ISOLATE_PER_APP"], out bool isolated)
+            && isolated;
+        return isolatePerApp
+            ? Path.Combine(fullRoot, Guid.NewGuid().ToString("N"))
+            : fullRoot;
     }
 
     internal static async Task RequireTrustedPlayApiBoundaryAsync(HttpContext context, RequestDelegate next)

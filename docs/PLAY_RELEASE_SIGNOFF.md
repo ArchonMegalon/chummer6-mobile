@@ -9,6 +9,7 @@ Purpose: keep the mobile/play share of `F0` explicit now that `E1` is already ma
 - accessibility proof via `VerifyIndexShellAccessibilityContractAsync` and `VerifyBootstrapRoleShellEntryPointsAsync`
 - performance-budget proof via `VerifyCachePressureBudgetContractAsync`
 - replay/rejoin safety via the regression checks already tied into `M10` and `M11`
+- real-host/browser PWA proof via `scripts/verify_mobile_pwa_runtime_smoke.py`, `scripts/verify_mobile_pwa_viewport_smoke.py`, plus `VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync`
 - package-only shared boundary consumption for `Chummer.Engine.Contracts`, `Chummer.Play.Contracts`, and `Chummer.Ui.Kit`
 
 ## Release budgets
@@ -16,6 +17,20 @@ Purpose: keep the mobile/play share of `F0` explicit now that `E1` is already ma
 - Accessibility: the installable shell must keep `<html lang="en">` and the polite live-status region in `src/Chummer.Play.Web/wwwroot/index.html`.
 - Localization: the shell must keep explicit document-language and role-entry semantics instead of relying on implicit browser defaults.
 - Performance: runtime-bundle cache pressure must preserve the current bounded quota budget (`RuntimeBundleQuota == 8`) and continue to report backpressure when the budget is saturated.
+
+## Real-Host PWA Runtime Criteria
+
+- Real-host pipeline criteria: the Kestrel-hosted `/mobile` shell must render without a 500 and keep antiforgery middleware enabled through `app.UseAntiforgery();` and `VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync`.
+- Runtime smoke criteria: `scripts/verify_mobile_pwa_runtime_smoke.py` must keep service-worker control, claimed-device local tracker edits, RUNSITE anchor selection, manual resolve/history, replay-plus-ack queue behavior, generic `/mobile` resume, role-aware Player/GM shortcut resume, and offline reopen executable against a real host instead of only through in-memory regression routing.
+- Installability criteria: the same Chromium-hosted shell must keep app-manifest parse errors and `Page.getInstallabilityErrors` empty through `scripts/verify_mobile_pwa_viewport_smoke.py`, so installability is proven by the browser’s PWA checks rather than only by metadata presence.
+- Quick-glance criteria: `scripts/verify_mobile_pwa_viewport_smoke.py` must keep the 390px-wide player shell overflow-free, show the quick-jump rail plus six-card glance strip, keep the live tracker card above lower-context trust/RUNSITE detail, and collapse the action and odds rails to a single handheld column.
+
+## Mobile turn companion criteria
+
+- Bounded turn-state criteria: the `/mobile` companion keeps health, stun, edge, ammo, reserve, charges, mission-critical inventory, a bounded action rail, source-backed modifiers, quick odds, and digital/manual roll resolution explicit through `VerifyTurnCompanionProjectionStaysBoundedAndComputesOddsAsync`, `VerifyTurnCompanionPlayerProjectionCoversRequestedLiveTrackersAsync`, `VerifyTurnCompanionDigitalResolveProducesBoundedReceiptAsync`, `VerifyTurnCompanionManualResolveUpdatesHistoryAndAmmoAsync`, and `VerifyTurnCompanionRouteRendersBlazorShellAsync`.
+- GM lane criteria: the same `/mobile` companion keeps a GM-specific actor posture, bounded initiative/threat actions, GM-only replay-safe quick actions, and role-concrete owner-route posture explicit through `VerifyTurnCompanionGmProjectionStaysBoundedAndRoleSpecificAsync` plus the real-browser GM interaction lane in `scripts/verify_mobile_pwa_runtime_smoke.py`.
+- Replay-safe continuity criteria: the same shell keeps history, claimed-device continuity, replay/ack posture, install metadata, and device-scoped local state explicit through `VerifyTurnCompanionClaimedDeviceStateIsolationAsync`, `VerifyTurnCompanionReplayQueueRoundTripsAsync`, `VerifyTurnCompanionClientRuntimeKeepsClaimedDeviceContinuityContractAsync`, `VerifyTurnCompanionManifestTargetsDirectMobilePwaAsync`, and `VerifyTurnCompanionAppShellDeclaresMobileInstallMetadataAsync`.
+- RUNSITE anchor criteria: optional RUNSITE room/zone/hotspot anchors stay orientation-only, device-scoped, and observer-safe instead of becoming tactical token authority through `VerifyTurnCompanionProjectionStaysBoundedAndComputesOddsAsync`, `VerifyTurnCompanionObserverStaysReadOnlyAsync`, and `VerifyTurnCompanionRunsiteAnchorSelectionStaysDeviceScopedAsync`.
 
 ## Exit statement
 

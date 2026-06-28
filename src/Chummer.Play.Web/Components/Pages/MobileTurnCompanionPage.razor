@@ -1,0 +1,456 @@
+@page "/mobile"
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@inject PlayTurnCompanionService TurnCompanionService
+
+<PageTitle>Chummer Mobile Turn Companion</PageTitle>
+<HeadContent>
+    <link rel="stylesheet" href="/mobile.css" />
+    <script src="/mobile-turn-companion.js" defer></script>
+</HeadContent>
+
+<main class="turn-shell" data-turn-root data-session-id="@ActiveSessionId" data-role="@Role.ToString()" data-device-id="@ActiveDeviceId">
+    @if (Projection is null)
+    {
+        <section class="turn-card hero">
+            <p class="eyebrow">Live-session turn companion</p>
+            <h1>Loading the claimed-device shell.</h1>
+            <p class="lede">Reading local tracker state, continuity posture, and the bounded action lane for this session.</p>
+        </section>
+    }
+    else
+    {
+        <section class="turn-card turn-banner" id="mobile-client-banner">
+            <p class="eyebrow">Device posture</p>
+            <h2 id="mobile-client-banner-title">Checking local playtime posture.</h2>
+            <p id="mobile-client-banner-copy" class="support-copy">Restoring the device-local snapshot, install cache, and reconnect posture for this claimed shell.</p>
+        </section>
+
+        <section class="turn-card hero">
+            <div class="hero-header">
+                <div>
+                    <p class="eyebrow">Live-session turn companion</p>
+                    <h1 id="turn-shell-summary">@Projection.ShellSummary</h1>
+                    <p id="turn-boundary-summary" class="lede">@Projection.LocalBoundarySummary</p>
+                </div>
+                <div class="hero-controls" role="tablist" aria-label="Shell role">
+                    <a class="@RoleButtonClass(PlaySurfaceRole.Player)" data-role-name="@PlaySurfaceRole.Player" href="@BuildRoleHref(PlaySurfaceRole.Player)">Player</a>
+                    <a class="@RoleButtonClass(PlaySurfaceRole.GameMaster)" data-role-name="@PlaySurfaceRole.GameMaster" href="@BuildRoleHref(PlaySurfaceRole.GameMaster)">GM</a>
+                    <a class="@RoleButtonClass(PlaySurfaceRole.Observer)" data-role-name="@PlaySurfaceRole.Observer" href="@BuildRoleHref(PlaySurfaceRole.Observer)">Observer</a>
+                </div>
+            </div>
+            <div class="hero-grid">
+                <div class="trust-strip">
+                    <span id="turn-trust-status" class="status-pill @TrustToneClass(Projection.Trust.StatusLabel)">@Projection.Trust.StatusLabel</span>
+                    <span id="turn-checkpoint-label" class="status-pill">@Projection.Trust.CheckpointLabel</span>
+                    <span id="turn-runtime-label" class="status-pill">@Projection.Trust.RuntimeLabel</span>
+                    <span id="turn-queue-label" class="status-pill">@Projection.Trust.QueueLabel</span>
+                </div>
+                <p id="turn-scene-summary" class="scene-summary">@Projection.CurrentSceneSummary</p>
+                <p id="turn-status-message" class="status-message" hidden="@string.IsNullOrWhiteSpace(StatusMessage)">@StatusMessage</p>
+                <p id="turn-install-status" class="support-copy">Install boundary is loading for this shell.</p>
+                <div class="install-surface">
+                    <button id="turn-install-button" type="button" class="secondary-button" data-turn-kind="install-shell">Install app</button>
+                    <p id="turn-install-detail" class="support-copy">Install this shell so the bounded turn companion can reopen from the device during play.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="turn-card turn-quick-lane">
+            <div id="turn-jump-nav" class="jump-strip" aria-label="Quick jump rail">
+                <a class="jump-chip" href="#turn-now-card">Now</a>
+                <a class="jump-chip" href="#turn-resolve-card">Resolve</a>
+                <a class="jump-chip" href="#turn-sync-card">Reconnect</a>
+                <a class="jump-chip" href="#turn-history-card">History</a>
+                <a class="jump-chip" href="#turn-runsite-card">RUNSITE</a>
+            </div>
+            <div id="turn-glance-grid" class="glance-grid" aria-label="Quick glance trackers">
+                <article class="glance-chip">
+                    <span class="metric-label">Physical</span>
+                    <strong id="turn-glance-physical" class="glance-value">@MetricValue("physical")</strong>
+                </article>
+                <article class="glance-chip">
+                    <span class="metric-label">Stun</span>
+                    <strong id="turn-glance-stun" class="glance-value">@MetricValue("stun")</strong>
+                </article>
+                <article class="glance-chip">
+                    <span class="metric-label">Edge</span>
+                    <strong id="turn-glance-edge" class="glance-value">@MetricValue("edge")</strong>
+                </article>
+                <article class="glance-chip">
+                    <span class="metric-label">Magazine</span>
+                    <strong id="turn-glance-ammo" class="glance-value">@MetricValue("ammo")</strong>
+                </article>
+                <article class="glance-chip">
+                    <span class="metric-label">Local queue</span>
+                    <strong id="turn-glance-local-queue" class="glance-value">0</strong>
+                </article>
+                <article class="glance-chip">
+                    <span class="metric-label">Anchor</span>
+                    <strong id="turn-glance-anchor" class="glance-value">@SelectedAnchorLabel()</strong>
+                </article>
+            </div>
+        </section>
+
+        <section id="turn-now-card" class="turn-card">
+            <p class="eyebrow">Now</p>
+            <h2 id="turn-actor-label">@Projection.Now.ActorLabel</h2>
+            <p id="turn-weapon-label" class="support-copy">@Projection.Now.WeaponLabel</p>
+            <div id="turn-metric-grid" class="metric-grid">
+                @foreach (PlayTurnStatCard card in Projection.Now.StatCards)
+                {
+                    <article class="metric-card metric-card--@card.Accent">
+                        <div class="metric-meta">
+                            <span class="metric-label">@card.Label</span>
+                            <span class="metric-value">@card.Value</span>
+                        </div>
+                        <p class="metric-detail">@card.Detail</p>
+                        <div class="stepper">
+                            <button type="button" data-turn-kind="adjust-metric" data-metric-id="@card.MetricId" data-delta="-1" disabled="@(!Projection.CanMutate)">-</button>
+                            <button type="button" data-turn-kind="adjust-metric" data-metric-id="@card.MetricId" data-delta="1" disabled="@(!Projection.CanMutate)">+</button>
+                        </div>
+                    </article>
+                }
+            </div>
+            <div id="turn-inventory-grid" class="inventory-grid">
+                @foreach (PlayTurnInventoryCard card in Projection.Now.InventoryCards)
+                {
+                    <article class="inventory-card">
+                        <div class="metric-meta">
+                            <span class="metric-label">@card.Label</span>
+                            <span class="metric-value">@card.Quantity</span>
+                        </div>
+                        <p class="metric-detail">@card.Detail</p>
+                        <div class="stepper">
+                            <button type="button" data-turn-kind="adjust-metric" data-metric-id="@($"inventory:{card.ItemId}")" data-delta="-1" disabled="@(!Projection.CanMutate)">-</button>
+                            <button type="button" data-turn-kind="adjust-metric" data-metric-id="@($"inventory:{card.ItemId}")" data-delta="1" disabled="@(!Projection.CanMutate)">+</button>
+                        </div>
+                    </article>
+                }
+            </div>
+        </section>
+
+        <section class="turn-grid turn-grid--two">
+            <section id="turn-trust-card" class="turn-card">
+                <p class="eyebrow">Trust</p>
+                <h2>Local, synced, stale, queued</h2>
+                <p id="turn-trust-summary">@Projection.Trust.Summary</p>
+                <ul id="turn-trust-labels" class="label-list">
+                    @foreach (string label in Projection.Trust.Labels)
+                    {
+                        <li>@label</li>
+                    }
+                </ul>
+            </section>
+            <section id="turn-runsite-card" class="turn-card">
+                <p class="eyebrow">RUNSITE anchor</p>
+                <h2>Orientation only</h2>
+                <p id="turn-runsite-summary">@Projection.Runsite.Summary</p>
+                <label class="field-label" for="runsite-anchor">Current anchor</label>
+                <select id="runsite-anchor" class="field-input" data-turn-kind="select-anchor" disabled="@(!Projection.CanMutate)">
+                    @foreach (PlayTurnAnchorOption anchor in Projection.Runsite.Anchors)
+                    {
+                        <option value="@anchor.AnchorId" selected="@anchor.Selected">@anchor.Label</option>
+                    }
+                </select>
+                <p id="turn-runsite-posture" class="support-copy">@Projection.Runsite.TruthPosture</p>
+            </section>
+        </section>
+
+        <section class="turn-grid turn-grid--two">
+            <section class="turn-card">
+                <p class="eyebrow">Act</p>
+                <h2>Choose one bounded action</h2>
+                <div id="turn-action-grid" class="action-grid">
+                    @foreach (PlayTurnActionOption action in Projection.Act.Actions)
+                    {
+                        <button type="button"
+                                class="action-tile @(action.Selected ? "action-tile--selected" : string.Empty)"
+                                data-turn-kind="select-action"
+                                data-action-id="@action.ActionId"
+                                disabled="@(!action.Enabled)">
+                            <span class="action-label">@action.Label</span>
+                            <span class="action-summary">@action.Summary</span>
+                            <span class="action-pool">@action.BaseDicePool dice</span>
+                        </button>
+                    }
+                </div>
+                @if (Projection.Act.ExistingQuickActions.Count > 0)
+                {
+                    <div id="turn-quick-action-strip" class="quick-action-strip">
+                        @foreach (string quickAction in Projection.Act.ExistingQuickActions)
+                        {
+                            <span class="quick-chip">@quickAction</span>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section class="turn-card">
+                <p class="eyebrow">Adjust</p>
+                <h2>Source-backed modifier stack</h2>
+                <p id="turn-modifier-summary">@Projection.Adjust.Summary</p>
+                <div id="turn-modifier-list" class="modifier-list">
+                    @foreach (PlayTurnModifierOption modifier in Projection.Adjust.Options)
+                    {
+                        <label class="modifier-row">
+                            <input type="checkbox"
+                                   data-turn-kind="toggle-modifier"
+                                   data-modifier-id="@modifier.ModifierId"
+                                   checked="@modifier.Enabled"
+                                   disabled="@(!Projection.CanMutate)" />
+                            <span class="modifier-copy">
+                                <strong>@modifier.Label</strong>
+                                <span>@modifier.Source</span>
+                            </span>
+                            <span class="modifier-delta">@Signed(modifier.DiceModifier)</span>
+                        </label>
+                    }
+                </div>
+            </section>
+        </section>
+
+        <section class="turn-grid turn-grid--two">
+            <section id="turn-resolve-card" class="turn-card resolve-card">
+                <p class="eyebrow">Resolve</p>
+                <h2 id="turn-resolve-label">@Projection.Resolve.SelectedActionLabel</h2>
+                <p id="turn-resolve-pool" class="resolve-pool">@Projection.Resolve.DicePool dice</p>
+                <p id="turn-odds-summary">@Projection.Resolve.OddsSummary</p>
+                <div id="turn-odds-grid" class="odds-grid">
+                    @foreach (PlayTurnOddsBadge badge in Projection.Resolve.Odds)
+                    {
+                        <div class="odds-badge">
+                            <span>@badge.Label</span>
+                            <strong>@badge.Value</strong>
+                        </div>
+                    }
+                </div>
+                <div class="resolve-actions">
+                    <button type="button" class="primary-button" data-turn-kind="resolve-digital" disabled="@(!Projection.CanMutate)">Roll digitally</button>
+                </div>
+                <div class="manual-panel">
+                    <label class="field-label" for="manual-hits">Manual hits</label>
+                    <input id="manual-hits" class="field-input" type="number" min="0" value="0" disabled="@(!Projection.CanMutate)" />
+                    <label class="checkbox-row">
+                        <input id="manual-glitch" type="checkbox" disabled="@(!Projection.CanMutate)" />
+                        <span>Mark glitch posture</span>
+                    </label>
+                    <button type="button" class="secondary-button" data-turn-kind="resolve-manual" disabled="@(!Projection.CanMutate)">Save manual roll</button>
+                </div>
+                <p id="turn-manual-hint" class="support-copy">@Projection.Resolve.ManualEntryHint</p>
+                <p id="turn-last-outcome" class="receipt-copy">@Projection.Resolve.LastOutcomeSummary</p>
+            </section>
+
+            <section id="turn-sync-card" class="turn-card">
+                <p class="eyebrow">Reconnect</p>
+                <h2>Replay and acknowledge with intent</h2>
+                <p id="turn-sync-summary">@Projection.Sync.PendingSummary</p>
+                <p id="turn-sync-reconnect" class="support-copy">@Projection.Sync.ReconnectSummary</p>
+                <div class="sync-metrics">
+                    <article class="sync-chip">
+                        <span class="metric-label">Local queue</span>
+                        <strong id="turn-local-queue-count">0</strong>
+                    </article>
+                    <article class="sync-chip">
+                        <span class="metric-label">Server queue</span>
+                        <strong id="turn-server-queue-count">@Projection.PendingQueueCount</strong>
+                    </article>
+                    <article class="sync-chip">
+                        <span class="metric-label">Network</span>
+                        <strong id="turn-network-state">Checking</strong>
+                    </article>
+                </div>
+                <div id="turn-queue-action-grid" class="action-grid action-grid--stacked">
+                    @foreach (PlayTurnQueueActionOption action in Projection.Sync.QuickActions)
+                    {
+                        <button type="button"
+                                class="action-tile"
+                                data-turn-kind="queue-quick-action"
+                                data-action-id="@action.ActionId"
+                                disabled="@(!Projection.CanMutate)">
+                            <span class="action-label">@action.Label</span>
+                            <span class="action-summary">@action.Summary</span>
+                        </button>
+                    }
+                </div>
+                <div class="resolve-actions">
+                    <button id="turn-replay-local-button" type="button" class="primary-button" data-turn-kind="replay-local-queue" disabled="@(!Projection.Sync.CanReplayLocalQueue)">Replay local queue</button>
+                    <button id="turn-ack-server-button" type="button" class="secondary-button" data-turn-kind="ack-server-queue" disabled="@(!Projection.Sync.CanAcknowledgeServerQueue)">Acknowledge sync</button>
+                </div>
+                <p id="turn-sync-claim" class="support-copy">@Projection.Sync.ClaimedDeviceSummary</p>
+            </section>
+        </section>
+
+        <section class="turn-grid turn-grid--two">
+            <section id="turn-history-card" class="turn-card">
+                <p class="eyebrow">History</p>
+                <h2>Recent deltas and queued receipts</h2>
+                <p id="turn-history-summary">@Projection.History.Summary</p>
+                <ul id="turn-history-list" class="history-list">
+                    @foreach (PlayTurnHistoryItem item in Projection.History.Entries)
+                    {
+                        <li class="history-item">
+                            <div class="history-meta">
+                                <strong>@item.Title</strong>
+                                <span>@item.When</span>
+                            </div>
+                            <p>@item.Detail</p>
+                            <div class="history-flags">
+                                @if (item.Manual)
+                                {
+                                    <span class="status-pill status-pill--manual">Manual</span>
+                                }
+                                @if (item.Queued)
+                                {
+                                    <span class="status-pill status-pill--queued">Queued</span>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </section>
+
+            <section class="turn-card">
+                <p class="eyebrow">Claimed Device</p>
+                <h2>Continuity token and owner route</h2>
+                <p id="turn-continuity-status">Checking claimed-device continuity.</p>
+                <p id="turn-continuity-detail" class="support-copy">Loading continuity token, observed sequence, and current owner-route posture for this shell.</p>
+                <div class="sync-metrics">
+                    <article class="sync-chip">
+                        <span class="metric-label">This device</span>
+                        <strong id="turn-continuity-device">@(!string.IsNullOrWhiteSpace(ActiveDeviceId) ? ActiveDeviceId : "pending")</strong>
+                    </article>
+                    <article class="sync-chip">
+                        <span class="metric-label">Continuity token</span>
+                        <strong id="turn-continuity-token">Pending</strong>
+                    </article>
+                    <article class="sync-chip">
+                        <span class="metric-label">Observed through</span>
+                        <strong id="turn-continuity-sequence">0</strong>
+                    </article>
+                </div>
+                <div class="resolve-actions">
+                    <button id="turn-claim-device-button" type="button" class="primary-button" data-turn-kind="claim-device">Claim this device</button>
+                    <a id="turn-owner-route-link" class="secondary-button" href="@BuildRoleHref(Role)">Open owner route</a>
+                </div>
+                <p id="turn-owner-route-copy" class="support-copy">The owner route stays visible here so a claimed-device handoff never depends on the older shell.</p>
+            </section>
+        </section>
+
+        <script id="turn-companion-bootstrap" type="application/json">@BootstrapJsonMarkup</script>
+    }
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "sessionId")]
+    public string? SessionId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "role")]
+    public string? RoleQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "deviceId")]
+    public string? DeviceIdQuery { get; set; }
+
+    private PlayTurnCompanionProjection? Projection { get; set; }
+
+    private string? StatusMessage { get; set; }
+
+    private PlaySurfaceRole Role { get; set; } = PlaySurfaceRole.Player;
+
+    private string ActiveSessionId => string.IsNullOrWhiteSpace(SessionId) ? "session-main" : SessionId.Trim();
+
+    private string ActiveDeviceId => string.IsNullOrWhiteSpace(DeviceIdQuery) ? string.Empty : DeviceIdQuery.Trim();
+
+    private static JsonSerializerOptions ClientJsonOptions { get; } = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    private string BootstrapJson
+        => Projection is null
+            ? "{}"
+            : JsonSerializer.Serialize(
+                new MobileTurnCompanionClientBootstrap(
+                    ActiveSessionId,
+                    Role.ToString(),
+                    Projection,
+                    StatusMessage,
+                    DateTimeOffset.UtcNow),
+                ClientJsonOptions);
+
+    private MarkupString BootstrapJsonMarkup => new(BootstrapJson);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Role = ParseRole(RoleQuery);
+        await RefreshAsync("Turn companion loaded.");
+    }
+
+    private async Task RefreshAsync(string? statusMessage = null)
+    {
+        StatusMessage = statusMessage;
+        Projection = await TurnCompanionService.GetProjectionAsync(ActiveSessionId, Role, ActiveDeviceId);
+    }
+
+    private string BuildRoleHref(PlaySurfaceRole role)
+    {
+        List<string> queryParts =
+        [
+            $"sessionId={Uri.EscapeDataString(ActiveSessionId)}",
+            $"role={Uri.EscapeDataString(role.ToString())}"
+        ];
+        if (!string.IsNullOrWhiteSpace(ActiveDeviceId))
+        {
+            queryParts.Add($"deviceId={Uri.EscapeDataString(ActiveDeviceId)}");
+        }
+
+        return $"/mobile?{string.Join("&", queryParts)}";
+    }
+
+    private string RoleButtonClass(PlaySurfaceRole role)
+        => role == Role ? "role-button role-button--active" : "role-button";
+
+    private static string Signed(int value)
+        => value.ToString("+#;-#;0");
+
+    private int MetricValue(string metricId)
+        => Projection?.Now.StatCards.FirstOrDefault(item => string.Equals(item.MetricId, metricId, StringComparison.Ordinal))?.Value ?? 0;
+
+    private string SelectedAnchorLabel()
+        => Projection?.Runsite.Anchors.FirstOrDefault(item => item.Selected)?.Label ?? "No anchor";
+
+    private static PlaySurfaceRole ParseRole(string? roleQuery)
+        => Enum.TryParse(roleQuery, ignoreCase: true, out PlaySurfaceRole parsedRole)
+            ? parsedRole
+            : PlaySurfaceRole.Player;
+
+    private static string TrustToneClass(string statusLabel)
+    {
+        string lowered = statusLabel.ToLowerInvariant();
+        if (lowered.Contains("reconnect", StringComparison.Ordinal))
+        {
+            return "status-pill--danger";
+        }
+
+        if (lowered.Contains("pressure", StringComparison.Ordinal) || lowered.Contains("queued", StringComparison.Ordinal))
+        {
+            return "status-pill--warning";
+        }
+
+        if (lowered.Contains("observer", StringComparison.Ordinal))
+        {
+            return "status-pill--cool";
+        }
+
+        return "status-pill--ok";
+    }
+
+    private sealed record MobileTurnCompanionClientBootstrap(
+        string SessionId,
+        string RoleName,
+        PlayTurnCompanionProjection Projection,
+        string? StatusMessage,
+        DateTimeOffset GeneratedAtUtc
+    );
+}

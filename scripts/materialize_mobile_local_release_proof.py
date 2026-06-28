@@ -11,9 +11,17 @@ ROOT = Path(__file__).resolve().parents[1]
 CHECKOUT_ROOT = str(ROOT)
 REPO_LABEL = "chummer6-mobile"
 REGRESSION_SOURCE = ROOT / "src" / "Chummer.Play.RegressionChecks" / "Program.cs"
+PLAY_WEB_APPLICATION = ROOT / "src" / "Chummer.Play.Web" / "PlayWebApplication.cs"
+TURN_COMPANION_PROJECTOR = ROOT / "src" / "Chummer.Play.Core" / "Application" / "PlayTurnCompanionProjector.cs"
+TURN_COMPANION_PAGE = ROOT / "src" / "Chummer.Play.Web" / "Components" / "Pages" / "MobileTurnCompanionPage.razor"
+TURN_COMPANION_RUNTIME = ROOT / "src" / "Chummer.Play.Web" / "wwwroot" / "mobile-turn-companion.js"
 WEB_SOURCE = ROOT / "src" / "Chummer.Play.Web" / "wwwroot" / "index.html"
+APP_SHELL = ROOT / "src" / "Chummer.Play.Web" / "Components" / "App.razor"
 MIGRATION_MAP = ROOT / "docs" / "migration-map.md"
 PLAY_SIGNOFF = ROOT / "docs" / "PLAY_RELEASE_SIGNOFF.md"
+VERIFY_SCRIPT = ROOT / "scripts" / "ai" / "verify.sh"
+RUNTIME_SMOKE = ROOT / "scripts" / "verify_mobile_pwa_runtime_smoke.py"
+VIEWPORT_SMOKE = ROOT / "scripts" / "verify_mobile_pwa_viewport_smoke.py"
 M112_PROOF_DOC = ROOT / "docs" / "next90-m112-mobile-campaign-continuity.proof.md"
 M112_VERIFIER = ROOT / "scripts" / "verify_next90_m112_mobile_campaign_continuity.py"
 M119_PROOF_DOC = ROOT / "docs" / "next90-m119-mobile-onboarding-continuity.proof.md"
@@ -148,6 +156,86 @@ REQUIRED_MARKERS = {
         "Post-closure hardening criteria (M13)",
         "Post-closure role-depth criteria (M14)",
         "Release-proof cadence criteria:",
+    ],
+    "pwa_runtime_smoke": [
+        "Real-Host PWA Runtime Criteria",
+        "scripts/verify_mobile_pwa_runtime_smoke.py",
+        "mobile_pwa_runtime_smoke ok",
+        "service_worker_controlled: true",
+        "player_interactions:",
+        "replay_ack: local 3->0 / server 0->3->0",
+        "player_resume_snapshot:",
+        "gm_interactions: fire-stairs / reveal-threat / local 3->0 / server 0->3->0",
+        "gm_resume_snapshot:",
+        "generic_resume:",
+        "gm_resume:",
+        "offline_reopen:",
+        "VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync",
+        "app.UseAntiforgery();",
+        "python3 scripts/verify_mobile_pwa_runtime_smoke.py >/dev/null",
+    ],
+    "mobile_pwa_viewport_smoke": [
+        "scripts/verify_mobile_pwa_viewport_smoke.py",
+        "mobile_pwa_viewport_smoke ok",
+        "Quick-glance criteria:",
+        "turn-jump-nav",
+        "turn-glance-grid",
+        "turn-now-card",
+        "viewport: 390x844 player lane",
+        "overflow_free:",
+        "quick_lane_priority:",
+        "compact_layout:",
+        "quick_glance: ammo",
+        "Page.getInstallabilityErrors",
+        "installability_errors:",
+        "safe_area_padding:",
+        "python3 scripts/verify_mobile_pwa_viewport_smoke.py >/dev/null",
+        'function renderQuickGlance(client)',
+        'setText("turn-glance-ammo", String(statValue(projection, "ammo")));',
+    ],
+    "turn_companion_live_session": [
+        "Mobile turn companion criteria",
+        "Bounded turn-state criteria:",
+        "Replay-safe continuity criteria:",
+        "RUNSITE anchor criteria:",
+        "VerifyTurnCompanionProjectionStaysBoundedAndComputesOddsAsync",
+        "VerifyTurnCompanionPlayerProjectionCoversRequestedLiveTrackersAsync",
+        "VerifyTurnCompanionGmProjectionStaysBoundedAndRoleSpecificAsync",
+        "VerifyTurnCompanionDigitalResolveProducesBoundedReceiptAsync",
+        "VerifyTurnCompanionManualResolveUpdatesHistoryAndAmmoAsync",
+        "VerifyTurnCompanionObserverStaysReadOnlyAsync",
+        "VerifyTurnCompanionClaimedDeviceStateIsolationAsync",
+        "VerifyTurnCompanionRunsiteAnchorSelectionStaysDeviceScopedAsync",
+        "VerifyTurnCompanionReplayQueueRoundTripsAsync",
+        "VerifyTurnCompanionRouteRendersBlazorShellAsync",
+        "VerifyTurnCompanionClientRuntimeKeepsClaimedDeviceContinuityContractAsync",
+        "VerifyTurnCompanionManifestTargetsDirectMobilePwaAsync",
+        "VerifyTurnCompanionAppShellDeclaresMobileInstallMetadataAsync",
+        'serverRoomProjection.Runsite.SelectedAnchorId == "server-room"',
+        'deviceBProjection.Runsite.SelectedAnchorId == "front-door"',
+        'observerProjection.Runsite.SelectedAnchorId == "front-door"',
+        'projection.Now.ActorLabel.Contains("GM focus actor", StringComparison.Ordinal)',
+        'projection.Act.Actions.Any(item => item.ActionId == "advance-initiative")',
+        'projection.Sync.QuickActions.Any(item => item.ActionId == "gm-advance-initiative")',
+        'projection.Now.InventoryCards.Any(item => item.ItemId == "stim-patch")',
+        'projection.Now.InventoryCards.Any(item => item.ItemId == "flashbang")',
+        'projection.Resolve.ManualEntryHint.Contains("hit count", StringComparison.OrdinalIgnoreCase)',
+        'projection.Resolve.ManualEntryHint.Contains("digital resolver", StringComparison.OrdinalIgnoreCase)',
+        'afterResolve.Resolve.LastOutcomeSummary.Contains("via digital entry", StringComparison.Ordinal)',
+        'new PlayTurnStatCard("physical", "Physical", state.PhysicalDamage, "Damage marked locally on this shell.", "critical")',
+        'new PlayTurnStatCard("stun", "Stun", state.StunDamage, "Stun carry-forward for the next exchange.", "warning")',
+        'new PlayTurnStatCard("ammo", "Magazine", state.AmmoInMagazine, "Active firing posture.", "cool")',
+        'state.Inventory.Select(item => new PlayTurnInventoryCard(item.ItemId, item.Label, item.Quantity, "Mission-critical inventory only.")).ToArray())',
+        "RUNSITE stays orientation-only here: room, zone, and hotspot anchors are inspectable context, not token authority.",
+        'id="turn-action-grid"',
+        'id="turn-odds-summary"',
+        'id="turn-history-list"',
+        'id="turn-runsite-summary"',
+        'id="runsite-anchor"',
+        'id="turn-claim-device-button"',
+        'queueLocalEvent(client, "turn:metric:" + metricId + ":" + signedToken(delta));',
+        'queueLocalEvent(client, "turn:anchor:" + anchorId);',
+        'queueLocalEvent(client, "turn:resolve:" + action.actionId + ":" + result.mode + ":" + result.hits + ":" + (result.glitch ? "glitch1" : "glitch0"));',
     ],
     "migration_boundary_evidence": [
         "`Chummer.Session.Web/Program.cs` -> `src/Chummer.Play.Web/Program.cs`",
@@ -509,11 +597,35 @@ def main() -> int:
     if not WEB_SOURCE.is_file():
         print(f"missing web source: {WEB_SOURCE}", file=sys.stderr)
         return 1
+    if not PLAY_WEB_APPLICATION.is_file():
+        print(f"missing play web application: {PLAY_WEB_APPLICATION}", file=sys.stderr)
+        return 1
+    if not TURN_COMPANION_PROJECTOR.is_file():
+        print(f"missing turn companion projector: {TURN_COMPANION_PROJECTOR}", file=sys.stderr)
+        return 1
+    if not TURN_COMPANION_PAGE.is_file():
+        print(f"missing turn companion page: {TURN_COMPANION_PAGE}", file=sys.stderr)
+        return 1
+    if not TURN_COMPANION_RUNTIME.is_file():
+        print(f"missing turn companion runtime: {TURN_COMPANION_RUNTIME}", file=sys.stderr)
+        return 1
+    if not APP_SHELL.is_file():
+        print(f"missing app shell: {APP_SHELL}", file=sys.stderr)
+        return 1
     if not MIGRATION_MAP.is_file():
         print(f"missing migration map: {MIGRATION_MAP}", file=sys.stderr)
         return 1
     if not PLAY_SIGNOFF.is_file():
         print(f"missing play signoff: {PLAY_SIGNOFF}", file=sys.stderr)
+        return 1
+    if not VERIFY_SCRIPT.is_file():
+        print(f"missing verify script: {VERIFY_SCRIPT}", file=sys.stderr)
+        return 1
+    if not RUNTIME_SMOKE.is_file():
+        print(f"missing runtime smoke script: {RUNTIME_SMOKE}", file=sys.stderr)
+        return 1
+    if not VIEWPORT_SMOKE.is_file():
+        print(f"missing viewport smoke script: {VIEWPORT_SMOKE}", file=sys.stderr)
         return 1
     if not M112_PROOF_DOC.is_file():
         print(f"missing M112 proof doc: {M112_PROOF_DOC}", file=sys.stderr)
@@ -553,9 +665,17 @@ def main() -> int:
         return 1
 
     regression_text = REGRESSION_SOURCE.read_text(encoding="utf-8")
+    play_web_application_text = PLAY_WEB_APPLICATION.read_text(encoding="utf-8")
+    turn_companion_projector_text = TURN_COMPANION_PROJECTOR.read_text(encoding="utf-8")
+    turn_companion_page_text = TURN_COMPANION_PAGE.read_text(encoding="utf-8")
+    turn_companion_runtime_text = TURN_COMPANION_RUNTIME.read_text(encoding="utf-8")
     web_text = WEB_SOURCE.read_text(encoding="utf-8")
+    app_shell_text = APP_SHELL.read_text(encoding="utf-8")
     migration_map_text = MIGRATION_MAP.read_text(encoding="utf-8")
     play_signoff_text = PLAY_SIGNOFF.read_text(encoding="utf-8")
+    verify_script_text = VERIFY_SCRIPT.read_text(encoding="utf-8")
+    runtime_smoke_text = RUNTIME_SMOKE.read_text(encoding="utf-8")
+    viewport_smoke_text = VIEWPORT_SMOKE.read_text(encoding="utf-8")
     m112_proof_doc_text = M112_PROOF_DOC.read_text(encoding="utf-8")
     m112_verifier_text = M112_VERIFIER.read_text(encoding="utf-8")
     m119_proof_doc_text = M119_PROOF_DOC.read_text(encoding="utf-8")
@@ -571,9 +691,17 @@ def main() -> int:
     combined_text = "\n".join(
         [
             regression_text,
+            play_web_application_text,
+            turn_companion_projector_text,
+            turn_companion_page_text,
+            turn_companion_runtime_text,
             web_text,
+            app_shell_text,
             migration_map_text,
             play_signoff_text,
+            verify_script_text,
+            runtime_smoke_text,
+            viewport_smoke_text,
             m112_proof_doc_text,
             m112_verifier_text,
             m119_proof_doc_text,
@@ -609,9 +737,17 @@ def main() -> int:
         "proof_kind": "source_backed_local_regression_contract",
         "source_files": [
             str(REGRESSION_SOURCE.relative_to(ROOT)),
+            str(PLAY_WEB_APPLICATION.relative_to(ROOT)),
+            str(TURN_COMPANION_PROJECTOR.relative_to(ROOT)),
+            str(TURN_COMPANION_PAGE.relative_to(ROOT)),
+            str(TURN_COMPANION_RUNTIME.relative_to(ROOT)),
             str(WEB_SOURCE.relative_to(ROOT)),
+            str(APP_SHELL.relative_to(ROOT)),
             str(MIGRATION_MAP.relative_to(ROOT)),
             str(PLAY_SIGNOFF.relative_to(ROOT)),
+            str(VERIFY_SCRIPT.relative_to(ROOT)),
+            str(RUNTIME_SMOKE.relative_to(ROOT)),
+            str(VIEWPORT_SMOKE.relative_to(ROOT)),
             str(M112_PROOF_DOC.relative_to(ROOT)),
             str(M112_VERIFIER.relative_to(ROOT)),
             str(M119_PROOF_DOC.relative_to(ROOT)),

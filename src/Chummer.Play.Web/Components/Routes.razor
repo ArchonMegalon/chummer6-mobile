@@ -1,0 +1,11 @@
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" />
+    </Found>
+    <NotFound>
+        <main style="padding: 2rem; font-family: Trebuchet MS, Segoe UI, sans-serif;">
+            <h1>Route not found</h1>
+            <p>Open <a href="/mobile">/mobile</a> to use the turn companion shell.</p>
+        </main>
+    </NotFound>
+</Router>

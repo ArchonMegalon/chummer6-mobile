@@ -17,6 +17,7 @@ MILESTONE_ID = "112"
 WORK_TASK_ID = "112.4"
 REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
+CANONICAL_QUEUE_ROOT = f"/docker/chummercomplete/{REPO_LABEL}"
 REGISTRY = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml")
 DESIGN_QUEUE = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
 FLEET_QUEUE = Path("/docker/fleet/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
@@ -281,13 +282,13 @@ EXPECTED_QUEUE_ROW = {
     "do_not_reopen_reason": "M112 chummer6-mobile travel and mobile campaign continuity is complete; future shards must verify the closed-package guard, package proof, regression coverage, and canonical queue plus registry rows instead of reopening this slice.",
     "allowed_paths": ["src", "tests", "docs", "scripts"],
     "proof": [
-        "/docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Application/PlayCampaignWorkspaceLiteProjector.cs",
-        "/docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs",
-        "/docker/chummercomplete/chummer-play/src/Chummer.Play.Core/Application/PlayEntryRecoveryProjector.cs",
-        "/docker/chummercomplete/chummer-play/src/Chummer.Play.Web/wwwroot/index.html",
-        "/docker/chummercomplete/chummer-play/src/Chummer.Play.RegressionChecks/Program.cs",
-        "/docker/chummercomplete/chummer-play/docs/next90-m112-mobile-campaign-continuity.proof.md",
-        "/docker/chummercomplete/chummer-play/scripts/verify_next90_m112_mobile_campaign_continuity.py",
+        f"{CANONICAL_QUEUE_ROOT}/src/Chummer.Play.Core/Application/PlayCampaignWorkspaceLiteProjector.cs",
+        f"{CANONICAL_QUEUE_ROOT}/src/Chummer.Play.Core/Roaming/RoamingWorkspaceSyncPlanner.cs",
+        f"{CANONICAL_QUEUE_ROOT}/src/Chummer.Play.Core/Application/PlayEntryRecoveryProjector.cs",
+        f"{CANONICAL_QUEUE_ROOT}/src/Chummer.Play.Web/wwwroot/index.html",
+        f"{CANONICAL_QUEUE_ROOT}/src/Chummer.Play.RegressionChecks/Program.cs",
+        f"{CANONICAL_QUEUE_ROOT}/docs/next90-m112-mobile-campaign-continuity.proof.md",
+        f"{CANONICAL_QUEUE_ROOT}/scripts/verify_next90_m112_mobile_campaign_continuity.py",
         "python3 scripts/verify_next90_m112_mobile_campaign_continuity.py",
         "scripts/ai/with-package-plane.sh dotnet run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj",
     ],
@@ -329,14 +330,14 @@ def normalize_block(text: object) -> str:
         rendered = text
     else:
         rendered = render_yaml_block(text)
-    return rendered.strip().replace("\r\n", "\n")
+    return (
+        rendered.strip()
+        .replace("\r\n", "\n")
+        .replace(CHECKOUT_ROOT, CANONICAL_QUEUE_ROOT)
+    )
 
 
 def require_equal_block(label: str, actual: str, expected: str) -> list[str]:
-    if not isinstance(actual, str) or not isinstance(expected, str):
-        if actual != expected:
-            return [f"{label}: block drifted from the canonical M112 closed-package shape"]
-        return []
     if normalize_block(actual) != normalize_block(expected):
         return [f"{label}: block drifted from the canonical M112 closed-package shape"]
     return []

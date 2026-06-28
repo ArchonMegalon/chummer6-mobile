@@ -21,6 +21,11 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
+Environment.SetEnvironmentVariable(
+    "CHUMMER_PLAY_BROWSER_STATE_DIR",
+    Path.Combine(Path.GetTempPath(), "chummer-play-regression-browser-state", Guid.NewGuid().ToString("N")));
+Environment.SetEnvironmentVariable("CHUMMER_PLAY_BROWSER_STATE_ISOLATE_PER_APP", "true");
+
 await RunCheckAsync(nameof(VerifyLedgerLineageResetAsync), VerifyLedgerLineageResetAsync);
 await RunCheckAsync(nameof(VerifyBootstrapProjectionPreservesReplayStateAsync), VerifyBootstrapProjectionPreservesReplayStateAsync);
 await RunCheckAsync(nameof(VerifyMonotonicSequenceOwnershipAsync), VerifyMonotonicSequenceOwnershipAsync);
@@ -43,10 +48,25 @@ await RunCheckAsync(nameof(VerifyOfflineCacheReadDoesNotRewriteStoredMetadataAsy
 await RunCheckAsync(nameof(VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync), VerifyOfflineCacheConcurrentReadAndWritePreserveNewestSameSessionMetadataAsync);
 await RunCheckAsync(nameof(VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync), VerifyOfflineCacheQuotaIgnoresUnparseableRuntimeBundleKeysAsync);
 await RunCheckAsync(nameof(VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync), VerifyOfflineCacheConcurrentCrossSessionQuotaWritesStayBoundedAsync);
+await RunCheckAsync(nameof(VerifyAppBrowserStatePersistsAcrossRebuildAsync), VerifyAppBrowserStatePersistsAcrossRebuildAsync);
 await RunCheckAsync(nameof(VerifyIndexShellAccessibilityContractAsync), VerifyIndexShellAccessibilityContractAsync);
 await RunCheckAsync(nameof(VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync), VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync);
 await RunCheckAsync(nameof(VerifyPlayApiBoundaryRequiresTrustedContextAsync), VerifyPlayApiBoundaryRequiresTrustedContextAsync);
 await RunCheckAsync(nameof(VerifyIndexShellBindsContextualActionLabelsAsync), VerifyIndexShellBindsContextualActionLabelsAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionProjectionStaysBoundedAndComputesOddsAsync), VerifyTurnCompanionProjectionStaysBoundedAndComputesOddsAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionPlayerProjectionCoversRequestedLiveTrackersAsync), VerifyTurnCompanionPlayerProjectionCoversRequestedLiveTrackersAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionGmProjectionStaysBoundedAndRoleSpecificAsync), VerifyTurnCompanionGmProjectionStaysBoundedAndRoleSpecificAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionDigitalResolveProducesBoundedReceiptAsync), VerifyTurnCompanionDigitalResolveProducesBoundedReceiptAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionManualResolveUpdatesHistoryAndAmmoAsync), VerifyTurnCompanionManualResolveUpdatesHistoryAndAmmoAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionObserverStaysReadOnlyAsync), VerifyTurnCompanionObserverStaysReadOnlyAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionClaimedDeviceStateIsolationAsync), VerifyTurnCompanionClaimedDeviceStateIsolationAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionRunsiteAnchorSelectionStaysDeviceScopedAsync), VerifyTurnCompanionRunsiteAnchorSelectionStaysDeviceScopedAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionReplayQueueRoundTripsAsync), VerifyTurnCompanionReplayQueueRoundTripsAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionRouteRendersBlazorShellAsync), VerifyTurnCompanionRouteRendersBlazorShellAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionClientRuntimeKeepsClaimedDeviceContinuityContractAsync), VerifyTurnCompanionClientRuntimeKeepsClaimedDeviceContinuityContractAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionManifestTargetsDirectMobilePwaAsync), VerifyTurnCompanionManifestTargetsDirectMobilePwaAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionAppShellDeclaresMobileInstallMetadataAsync), VerifyTurnCompanionAppShellDeclaresMobileInstallMetadataAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync), VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync);
 await RunCheckAsync(nameof(VerifyBootstrapRoleShellEntryPointsAsync), VerifyBootstrapRoleShellEntryPointsAsync);
 await RunCheckAsync(nameof(VerifyRoleBoundarySurvivesCapabilityLeakageAsync), VerifyRoleBoundarySurvivesCapabilityLeakageAsync);
 await RunCheckAsync(nameof(VerifyQuickActionRejectsCrossRoleAuthorizationAsync), VerifyQuickActionRejectsCrossRoleAuthorizationAsync);
@@ -1397,6 +1417,67 @@ static async Task VerifyEventLogPersistsAcrossServiceInstancesAsync()
     Assert(persisted.LastKnownSequence == 2, "event-log persistence must keep sequence ownership across service instances");
 }
 
+static async Task VerifyAppBrowserStatePersistsAcrossRebuildAsync()
+{
+    const string sessionId = "session-app-rebuild-persist";
+    string? previousRoot = Environment.GetEnvironmentVariable("CHUMMER_PLAY_BROWSER_STATE_DIR");
+    string? previousIsolation = Environment.GetEnvironmentVariable("CHUMMER_PLAY_BROWSER_STATE_ISOLATE_PER_APP");
+    string browserStateRoot = Path.Combine(Path.GetTempPath(), "chummer-play-app-browser-state", Guid.NewGuid().ToString("N"));
+    Environment.SetEnvironmentVariable("CHUMMER_PLAY_BROWSER_STATE_DIR", browserStateRoot);
+    Environment.SetEnvironmentVariable("CHUMMER_PLAY_BROWSER_STATE_ISOLATE_PER_APP", "false");
+
+    try
+    {
+        var firstApp = PlayWebApplication.Build([]);
+        try
+        {
+            var firstService = firstApp.Services.GetRequiredService<PlayTurnCompanionService>();
+            var firstProjection = await firstService.AdjustMetricAsync(sessionId, PlaySurfaceRole.Player, "ammo", -2);
+            Assert(
+                firstProjection.Now.StatCards.First(item => item.MetricId == "ammo").Value == 10,
+                "first app instance must persist the updated turn companion ammo counter");
+
+            var replayResponse = await firstService.ReplayClientQueueAsync(
+                sessionId,
+                PlaySurfaceRole.Player,
+                ["quick-action:player-mark-ready"]);
+            Assert(replayResponse.Accepted, "first app instance must accept replaying a bounded quick action");
+            Assert(replayResponse.PendingQueueCount == 1, "first app instance must persist one queued replay-safe event");
+        }
+        finally
+        {
+            await firstApp.DisposeAsync();
+        }
+
+        var secondApp = PlayWebApplication.Build([]);
+        try
+        {
+            var secondService = secondApp.Services.GetRequiredService<PlayTurnCompanionService>();
+            var secondProjection = await secondService.GetProjectionAsync(sessionId, PlaySurfaceRole.Player);
+            Assert(
+                secondProjection.Now.StatCards.First(item => item.MetricId == "ammo").Value == 10,
+                "rebuilt app instance must keep persisted turn companion counters from browser-state storage");
+
+            var queueStatus = await secondService.GetQueueStatusAsync(sessionId, PlaySurfaceRole.Player);
+            Assert(queueStatus.PendingQueueCount == 1, "rebuilt app instance must keep the queued replay-safe event count");
+            Assert(queueStatus.Sync.CanAcknowledgeServerQueue, "rebuilt app instance must still expose queue acknowledgement for persisted pending events");
+        }
+        finally
+        {
+            await secondApp.DisposeAsync();
+        }
+    }
+    finally
+    {
+        Environment.SetEnvironmentVariable("CHUMMER_PLAY_BROWSER_STATE_DIR", previousRoot);
+        Environment.SetEnvironmentVariable("CHUMMER_PLAY_BROWSER_STATE_ISOLATE_PER_APP", previousIsolation);
+        if (Directory.Exists(browserStateRoot))
+        {
+            Directory.Delete(browserStateRoot, recursive: true);
+        }
+    }
+}
+
 static async Task VerifyEventLogDropsMalformedStoredLedgerAsync()
 {
     var browserStore = new InMemoryBrowserKeyValueStore();
@@ -2006,6 +2087,14 @@ static async Task VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync()
     Assert(script.Contains("Private play state is network-only", StringComparison.Ordinal), "service worker must document the private API cache boundary.");
     Assert(script.Contains("play_api_network_unavailable", StringComparison.Ordinal), "service worker must return a typed offline failure for private play API reads.");
     Assert(script.Contains("\"cache-control\": \"no-store\"", StringComparison.Ordinal), "service worker private API fallback must be non-cacheable.");
+    Assert(script.Contains("\"/mobile\"", StringComparison.Ordinal), "service worker shell cache must include the mobile turn companion route.");
+    Assert(script.Contains("\"/mobile.css\"", StringComparison.Ordinal), "service worker shell cache must include the mobile turn companion stylesheet.");
+    Assert(script.Contains("\"/mobile-turn-companion.js\"", StringComparison.Ordinal), "service worker shell cache must include the mobile turn companion client runtime.");
+    Assert(script.Contains("\"/icons/apple-touch-icon.png\"", StringComparison.Ordinal), "service worker shell cache must include the apple touch icon for install-local relaunch.");
+    Assert(script.Contains("\"/icons/icon-192.png\"", StringComparison.Ordinal), "service worker shell cache must include the 192px raster icon.");
+    Assert(script.Contains("\"/icons/icon-512.png\"", StringComparison.Ordinal), "service worker shell cache must include the 512px raster icon.");
+    Assert(script.Contains("const MOBILE_NAV_FALLBACK = \"/mobile\";", StringComparison.Ordinal), "service worker must keep a dedicated mobile navigation fallback.");
+    Assert(!script.Contains("\"/_framework/blazor.web.js\"", StringComparison.Ordinal), "mobile turn companion shell cache must not depend on the Blazor interactive framework script.");
     Assert(!script.Contains("API_CACHE", StringComparison.Ordinal), "service worker must not keep a Cache API bucket for private play API responses.");
     Assert(!script.Contains("cacheWithQuotaHandling(API_CACHE", StringComparison.Ordinal), "service worker must not persist private play API responses.");
     Assert(!script.Contains("caches.open(API_CACHE)", StringComparison.Ordinal), "service worker must not replay cached private play API responses.");
@@ -2244,6 +2333,476 @@ static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
     Assert(html.Contains("workspaceQuery.set(\"artifactId\", artifactId);", StringComparison.Ordinal), "play shell must round-trip the requested recap artifact id into the workspace-lite query.");
     Assert(html.Contains("renderShellHero(payload, restorePayload);", StringComparison.Ordinal), "play shell must render the hero shell from workspace and restore payloads before the dense detail surfaces.");
     Assert(html.Contains("renderWorkspace(payload, artifactId);", StringComparison.Ordinal), "play shell must render the selected recap artifact identity into the owned mobile shell.");
+}
+
+static async Task VerifyTurnCompanionProjectionStaysBoundedAndComputesOddsAsync()
+{
+    const string sessionId = "session-turn-projection";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var service = app.Services.GetRequiredService<PlayTurnCompanionService>();
+        var projection = await service.GetProjectionAsync(sessionId, PlaySurfaceRole.Player);
+
+        Assert(projection.CanMutate, "player turn companion projection must stay editable on the claimed player lane");
+        Assert(projection.ShellSummary.Contains("Claimed player actor", StringComparison.Ordinal), "turn companion must keep the claimed player actor explicit");
+        Assert(projection.LocalBoundarySummary.Contains("Install-local turn tracker", StringComparison.Ordinal), "turn companion must keep the local tracker boundary explicit");
+        Assert(projection.Trust.StatusLabel.Length > 0, "turn companion must expose a named trust posture");
+        Assert(projection.Trust.Labels.Any(item => item.Contains("Owner route:", StringComparison.Ordinal)), "turn companion trust posture must keep the owner route visible");
+        Assert(projection.Now.StatCards.Any(item => item.MetricId == "physical"), "turn companion now surface must expose physical tracking");
+        Assert(projection.Now.StatCards.Any(item => item.MetricId == "ammo"), "turn companion now surface must expose ammo tracking");
+        Assert(projection.Act.Actions.Any(item => item.ActionId == "attack"), "turn companion act surface must expose a bounded attack rail");
+        Assert(projection.Adjust.Options.Any(item => item.ModifierId == "cover"), "turn companion adjust surface must expose source-backed modifier toggles");
+        Assert(projection.Resolve.Odds.Count == 4, "turn companion resolve surface must expose fast odds badges");
+        Assert(projection.Resolve.OddsSummary.Contains("1+ hit", StringComparison.Ordinal), "turn companion resolve surface must expose 1+ hit odds");
+        Assert(projection.Runsite.TruthPosture.Contains("orientation-only", StringComparison.OrdinalIgnoreCase), "turn companion runsite surface must preserve orientation-only truth");
+        Assert(projection.Sync.QuickActions.Any(item => item.ActionId == "player-mark-ready"), "turn companion sync surface must expose replay-safe player quick actions");
+        Assert(projection.Sync.PendingSummary.Contains("Server replay queue", StringComparison.Ordinal), "turn companion sync surface must explain the replay queue posture");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyTurnCompanionPlayerProjectionCoversRequestedLiveTrackersAsync()
+{
+    const string sessionId = "session-turn-player-trackers";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var service = app.Services.GetRequiredService<PlayTurnCompanionService>();
+        var projection = await service.GetProjectionAsync(sessionId, PlaySurfaceRole.Player, "player-shell-trackers");
+
+        string[] expectedStatCards = ["physical", "stun", "edge", "ammo", "reserve", "charges"];
+        foreach (string metricId in expectedStatCards)
+        {
+            Assert(
+                projection.Now.StatCards.Any(item => item.MetricId == metricId),
+                $"player turn companion must expose the {metricId} live-session tracker");
+        }
+
+        Assert(
+            projection.Now.InventoryCards.Any(item => item.ItemId == "stim-patch"),
+            "player turn companion must expose mission-critical consumables in the inventory rail");
+        Assert(
+            projection.Now.InventoryCards.Any(item => item.ItemId == "medkit"),
+            "player turn companion must expose the medkit in the inventory rail");
+        Assert(
+            projection.Now.InventoryCards.Any(item => item.ItemId == "flashbang"),
+            "player turn companion must expose bounded tactical inventory instead of a full stash manager");
+        Assert(
+            projection.Now.InventoryCards.All(item => item.Detail.Contains("Mission-critical inventory only.", StringComparison.Ordinal)),
+            "player turn companion inventory rail must stay bounded to in-session essentials");
+
+        string[] expectedActions = ["attack", "reload", "use-consumable", "cast-or-sustain"];
+        foreach (string actionId in expectedActions)
+        {
+            Assert(
+                projection.Act.Actions.Any(item => item.ActionId == actionId),
+                $"player turn companion must expose the bounded {actionId} action");
+        }
+
+        string[] expectedModifiers = ["cover", "wound", "recoil", "visibility", "aim", "sustained"];
+        foreach (string modifierId in expectedModifiers)
+        {
+            Assert(
+                projection.Adjust.Options.Any(item => item.ModifierId == modifierId),
+                $"player turn companion must expose the {modifierId} modifier toggle");
+        }
+
+        Assert(
+            projection.Resolve.ManualEntryHint.Contains("hit count", StringComparison.OrdinalIgnoreCase)
+            && projection.Resolve.ManualEntryHint.Contains("digital resolver", StringComparison.OrdinalIgnoreCase),
+            "player turn companion must support manual roll entry on the resolve surface");
+        Assert(
+            projection.Resolve.OddsSummary.Contains("1+ hit", StringComparison.Ordinal),
+            "player turn companion must show fast odds before rolling");
+        Assert(
+            projection.History.Entries.First().Detail.Contains("do not replace engine or GM authority", StringComparison.Ordinal),
+            "player turn companion history seed must keep the shell explicitly bounded away from full character-builder authority");
+        Assert(
+            projection.Runsite.Anchors.Any(item => item.AnchorId == "server-room"),
+            "player turn companion must expose optional RUNSITE room or zone anchors");
+        Assert(
+            projection.Sync.ClaimedDeviceSummary.Contains("bounded turn companion", StringComparison.OrdinalIgnoreCase),
+            "player turn companion sync surface must keep the claimed-device shell boundary explicit");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyTurnCompanionGmProjectionStaysBoundedAndRoleSpecificAsync()
+{
+    const string sessionId = "session-turn-gm-projection";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var service = app.Services.GetRequiredService<PlayTurnCompanionService>();
+        var projection = await service.GetProjectionAsync(sessionId, PlaySurfaceRole.GameMaster, "gm-shell-main");
+
+        Assert(projection.Role == PlaySurfaceRole.GameMaster, "gm turn companion projection must preserve the gm role");
+        Assert(projection.CanMutate, "gm turn companion projection must stay editable on the claimed GM lane");
+        Assert(projection.Now.ActorLabel.Contains("GM focus actor", StringComparison.Ordinal), "gm turn companion must keep the GM focus actor explicit");
+        Assert(projection.Trust.Labels.Any(item =>
+            item.Contains("/play/", StringComparison.Ordinal)
+            && item.Contains("role=GameMaster", StringComparison.Ordinal)), "gm turn companion trust posture must keep the role-concrete GM owner route visible");
+        Assert(projection.Act.Actions.Any(item => item.ActionId == "advance-initiative"), "gm turn companion action rail must expose advance-initiative");
+        Assert(projection.Act.Actions.Any(item => item.ActionId == "reveal-threat"), "gm turn companion action rail must expose reveal-threat");
+        Assert(projection.Act.Actions.All(item => item.ActionId != "use-consumable"), "gm turn companion action rail must not expose player-only consumable actions");
+        Assert(projection.Resolve.SelectedActionLabel.Contains("Advance Initiative", StringComparison.Ordinal), "gm turn companion must default to a bounded GM action");
+        Assert(projection.Sync.QuickActions.Any(item => item.ActionId == "gm-advance-initiative"), "gm turn companion sync surface must expose the GM initiative quick action");
+        Assert(projection.Sync.QuickActions.Any(item => item.ActionId == "gm-publish-spider-card"), "gm turn companion sync surface must expose the bounded spider-card quick action");
+        Assert(projection.Runsite.TruthPosture.Contains("orientation-only", StringComparison.OrdinalIgnoreCase), "gm turn companion RUNSITE posture must stay orientation-only");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyTurnCompanionDigitalResolveProducesBoundedReceiptAsync()
+{
+    const string sessionId = "session-turn-digital";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var service = app.Services.GetRequiredService<PlayTurnCompanionService>();
+        var afterResolve = await service.ResolveActionAsync(
+            sessionId,
+            PlaySurfaceRole.Player,
+            new PlayTurnResolveRequest(UseManualEntry: false, ManualHits: null, ManualGlitch: false));
+
+        PlayTurnStatCard ammoCard = afterResolve.Now.StatCards.First(item => item.MetricId == "ammo");
+        Assert(ammoCard.Value == 9, "digital attack resolution must spend the bounded attack ammo cost");
+        Assert(afterResolve.Resolve.LastOutcomeSummary.Contains("via digital entry", StringComparison.Ordinal), "digital resolution receipt must record the digital dice path");
+        Assert(afterResolve.Resolve.LastOutcomeSummary.Contains("Magazine 12 -> 9", StringComparison.Ordinal), "digital resolution receipt must keep the ammo delta explicit");
+        Assert(afterResolve.History.Entries.First().Title.Contains("resolved", StringComparison.OrdinalIgnoreCase), "digital resolution must create a latest history receipt");
+        Assert(!afterResolve.History.Entries.First().Manual, "digital resolution receipt must stay distinct from manual entry");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyTurnCompanionManualResolveUpdatesHistoryAndAmmoAsync()
+{
+    const string sessionId = "session-turn-manual";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var service = app.Services.GetRequiredService<PlayTurnCompanionService>();
+
+        await service.ToggleModifierAsync(sessionId, PlaySurfaceRole.Player, "cover", enabled: true);
+        var beforeResolve = await service.GetProjectionAsync(sessionId, PlaySurfaceRole.Player);
+        Assert(beforeResolve.Resolve.DicePool == 14, "turn companion must raise the attack pool when cover is enabled");
+
+        var afterResolve = await service.ResolveActionAsync(
+            sessionId,
+            PlaySurfaceRole.Player,
+            new PlayTurnResolveRequest(UseManualEntry: true, ManualHits: 3, ManualGlitch: false));
+
+        PlayTurnStatCard ammoCard = afterResolve.Now.StatCards.First(item => item.MetricId == "ammo");
+        Assert(ammoCard.Value == 9, "manual attack resolution must spend the bounded attack ammo cost");
+        Assert(afterResolve.Resolve.LastOutcomeSummary.Contains("3 hit(s)", StringComparison.Ordinal), "manual resolution receipt must preserve the entered hit count");
+        Assert(afterResolve.History.Entries.First().Title.Contains("resolved", StringComparison.OrdinalIgnoreCase), "manual resolution must create a latest history receipt");
+        Assert(afterResolve.History.Entries.First().Detail.Contains("Magazine 12 -> 9", StringComparison.Ordinal), "manual resolution receipt must keep the local ammo delta explicit");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyTurnCompanionObserverStaysReadOnlyAsync()
+{
+    const string sessionId = "session-turn-observer";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var service = app.Services.GetRequiredService<PlayTurnCompanionService>();
+        var observerProjection = await service.GetProjectionAsync(sessionId, PlaySurfaceRole.Observer);
+        Assert(!observerProjection.CanMutate, "observer turn companion projection must stay read-only");
+
+        var unchangedProjection = await service.AdjustMetricAsync(sessionId, PlaySurfaceRole.Observer, "ammo", -3);
+        PlayTurnStatCard ammoCard = unchangedProjection.Now.StatCards.First(item => item.MetricId == "ammo");
+        Assert(ammoCard.Value == 12, "observer turn companion must not mutate local ammo tracking");
+        Assert(unchangedProjection.Runsite.Summary.Contains("RUNSITE anchor", StringComparison.Ordinal), "observer turn companion must still expose bounded runsite context");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyTurnCompanionClaimedDeviceStateIsolationAsync()
+{
+    const string sessionId = "session-turn-device-isolation";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var service = app.Services.GetRequiredService<PlayTurnCompanionService>();
+        const string deviceA = "player-shell-alpha";
+        const string deviceB = "player-shell-bravo";
+
+        var deviceAProjection = await service.AdjustMetricAsync(
+            sessionId,
+            PlaySurfaceRole.Player,
+            "ammo",
+            -2,
+            deviceA);
+        var deviceBProjection = await service.GetProjectionAsync(
+            sessionId,
+            PlaySurfaceRole.Player,
+            deviceB);
+        var deviceAReloaded = await service.GetProjectionAsync(
+            sessionId,
+            PlaySurfaceRole.Player,
+            deviceA);
+
+        Assert(
+            deviceAProjection.Now.StatCards.First(item => item.MetricId == "ammo").Value == 10,
+            "claimed device A must keep its own local ammo counter");
+        Assert(
+            deviceBProjection.Now.StatCards.First(item => item.MetricId == "ammo").Value == 12,
+            "claimed device B must not inherit device A local ammo changes");
+        Assert(
+            deviceAReloaded.Now.StatCards.First(item => item.MetricId == "ammo").Value == 10,
+            "claimed device A must reload its own persisted local ammo changes");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyTurnCompanionRunsiteAnchorSelectionStaysDeviceScopedAsync()
+{
+    const string sessionId = "session-turn-anchor";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var service = app.Services.GetRequiredService<PlayTurnCompanionService>();
+        const string deviceA = "player-anchor-alpha";
+        const string deviceB = "player-anchor-bravo";
+
+        var baselineProjection = await service.GetProjectionAsync(
+            sessionId,
+            PlaySurfaceRole.Player,
+            deviceA);
+        var serverRoomProjection = await service.SelectAnchorAsync(
+            sessionId,
+            PlaySurfaceRole.Player,
+            "server-room",
+            deviceA);
+        var deviceAReloaded = await service.GetProjectionAsync(
+            sessionId,
+            PlaySurfaceRole.Player,
+            deviceA);
+        var deviceBProjection = await service.GetProjectionAsync(
+            sessionId,
+            PlaySurfaceRole.Player,
+            deviceB);
+        var observerProjection = await service.SelectAnchorAsync(
+            sessionId,
+            PlaySurfaceRole.Observer,
+            "fire-stairs",
+            "observer-anchor");
+
+        Assert(
+            baselineProjection.Runsite.SelectedAnchorId == "front-door",
+            "turn companion must seed a default RUNSITE anchor on a fresh claimed-device lane");
+        Assert(
+            serverRoomProjection.Runsite.SelectedAnchorId == "server-room",
+            "turn companion must keep the selected RUNSITE anchor on the claimed device");
+        Assert(
+            serverRoomProjection.Runsite.Summary.Contains("Server Room", StringComparison.Ordinal),
+            "turn companion runsite summary must name the selected room/zone anchor");
+        Assert(
+            serverRoomProjection.Runsite.TruthPosture.Contains("orientation-only", StringComparison.OrdinalIgnoreCase),
+            "turn companion RUNSITE selection must stay bounded to orientation-only truth");
+        Assert(
+            serverRoomProjection.LocalRevision == baselineProjection.LocalRevision + 1,
+            "turn companion RUNSITE anchor selection must advance the local revision on the claimed device");
+        Assert(
+            deviceAReloaded.Runsite.SelectedAnchorId == "server-room",
+            "turn companion must reload the selected RUNSITE anchor for the same claimed device");
+        Assert(
+            deviceBProjection.Runsite.SelectedAnchorId == "front-door",
+            "turn companion must not leak one device's RUNSITE anchor selection into a different claimed device");
+        Assert(
+            observerProjection.Runsite.SelectedAnchorId == "front-door",
+            "observer turn companion must stay read-only even when a RUNSITE anchor mutation is requested");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyTurnCompanionReplayQueueRoundTripsAsync()
+{
+    const string sessionId = "session-turn-replay";
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var service = app.Services.GetRequiredService<PlayTurnCompanionService>();
+        var replayResponse = await service.ReplayClientQueueAsync(
+            sessionId,
+            PlaySurfaceRole.Player,
+            ["turn:metric:ammo:-1", "quick-action:player-mark-ready"]);
+
+        Assert(replayResponse.Accepted, "turn companion replay route must accept bounded local receipts");
+        Assert(replayResponse.AcceptedEventCount == 2, "turn companion replay route must count accepted local receipts");
+        Assert(replayResponse.PendingQueueCount == 2, "turn companion replay route must increase the server queue count");
+        Assert(replayResponse.Sync.CanAcknowledgeServerQueue, "turn companion replay route must expose queue acknowledgement once server events are pending");
+
+        var acknowledgeResponse = await service.AcknowledgePendingQueueAsync(
+            sessionId,
+            PlaySurfaceRole.Player);
+
+        Assert(acknowledgeResponse.Accepted, "turn companion acknowledgement route must accept current queued events");
+        Assert(acknowledgeResponse.AcceptedEventCount == 2, "turn companion acknowledgement route must report the acknowledged event count");
+        Assert(acknowledgeResponse.PendingQueueCount == 0, "turn companion acknowledgement route must clear the server queue count");
+        Assert(!acknowledgeResponse.Sync.CanAcknowledgeServerQueue, "turn companion acknowledgement route must disable server queue acknowledgement once empty");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyTurnCompanionRouteRendersBlazorShellAsync()
+{
+    var app = PlayWebApplication.Build([]);
+
+    try
+    {
+        var response = await ExecuteRouteBodyResponseAsync(
+            app,
+            HttpMethod.Get,
+            "/mobile",
+            "?sessionId=session-turn-route&role=Player&deviceId=player-shell-route");
+
+        Assert(response.StatusCode == StatusCodes.Status200OK, "mobile turn companion route must return a normal page response");
+        Assert(response.Body.Contains("Live-session turn companion", StringComparison.Ordinal), "mobile turn companion route must render the bounded shell headline");
+        Assert(response.Body.Contains("Choose one bounded action", StringComparison.Ordinal), "mobile turn companion route must render the action rail");
+        Assert(response.Body.Contains("Source-backed modifier stack", StringComparison.Ordinal), "mobile turn companion route must render the modifier surface");
+        Assert(response.Body.Contains("Replay and acknowledge with intent", StringComparison.Ordinal), "mobile turn companion route must render the reconnect and replay surface");
+        Assert(response.Body.Contains("Recent deltas and queued receipts", StringComparison.Ordinal), "mobile turn companion route must render the history surface");
+        Assert(response.Body.Contains("Claimed Device", StringComparison.Ordinal), "mobile turn companion route must render the claimed-device continuity card");
+        Assert(response.Body.Contains("turn-claim-device-button", StringComparison.Ordinal), "mobile turn companion route must render the continuity claim action");
+        Assert(response.Body.Contains("turn-owner-route-link", StringComparison.Ordinal), "mobile turn companion route must render the owner-route follow-through");
+        Assert(response.Body.Contains("turn-install-status", StringComparison.Ordinal), "mobile turn companion route must render the install-boundary status surface");
+        Assert(response.Body.Contains("turn-install-button", StringComparison.Ordinal), "mobile turn companion route must render the direct install action");
+        Assert(response.Body.Contains("turn-install-detail", StringComparison.Ordinal), "mobile turn companion route must render install guidance beside the action");
+        Assert(response.Body.Contains("turn-jump-nav", StringComparison.Ordinal), "mobile turn companion route must render the quick jump rail for handheld play.");
+        Assert(response.Body.Contains("turn-glance-grid", StringComparison.Ordinal), "mobile turn companion route must render the quick-glance tracker strip for handheld play.");
+        Assert(response.Body.Contains("turn-now-card", StringComparison.Ordinal), "mobile turn companion route must keep the live tracker card as a direct handheld anchor target.");
+        Assert(response.Body.Contains("data-device-id=\"player-shell-route\"", StringComparison.Ordinal), "mobile turn companion route must preserve the claimed-device id on the shell root");
+        Assert(response.Body.Contains("/mobile.css", StringComparison.Ordinal), "mobile turn companion route must bind the dedicated mobile stylesheet");
+        Assert(response.Body.Contains("/mobile-turn-companion.js", StringComparison.Ordinal), "mobile turn companion route must load the dedicated client runtime.");
+        Assert(response.Body.Contains("turn-companion-bootstrap", StringComparison.Ordinal), "mobile turn companion route must emit a client bootstrap payload.");
+        Assert(!response.Body.Contains("_framework/blazor.web.js", StringComparison.Ordinal), "mobile turn companion route must render without the Blazor interactive framework script.");
+    }
+    finally
+    {
+        await app.DisposeAsync();
+    }
+}
+
+static async Task VerifyTurnCompanionClientRuntimeKeepsClaimedDeviceContinuityContractAsync()
+{
+    var scriptPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "mobile-turn-companion.js");
+    var script = await File.ReadAllTextAsync(scriptPath);
+
+    Assert(script.Contains("function claimedTurnRoute(sessionId, roleName, deviceId)", StringComparison.Ordinal), "mobile turn companion runtime must keep a claimed-device owner-route helper.");
+    Assert(script.Contains("function observeRoute(sessionId)", StringComparison.Ordinal), "mobile turn companion runtime must keep a continuity observe-route helper.");
+    Assert(script.Contains("function setButtonText(id, text)", StringComparison.Ordinal), "mobile turn companion runtime must keep a continuity button-text helper.");
+    Assert(script.Contains("function setLink(id, href, text)", StringComparison.Ordinal), "mobile turn companion runtime must keep an owner-route link helper.");
+    Assert(script.Contains("continuityPayload: client.continuityPayload", StringComparison.Ordinal), "mobile turn companion runtime must persist claimed-device continuity inside the local snapshot.");
+    Assert(script.Contains("serviceWorkerStatus: client.serviceWorkerStatus", StringComparison.Ordinal), "mobile turn companion runtime must persist install-boundary status inside the local snapshot.");
+    Assert(script.Contains("case \"install-shell\":", StringComparison.Ordinal), "mobile turn companion runtime must expose a direct install-shell action.");
+    Assert(script.Contains("function renderInstallSurface(client)", StringComparison.Ordinal), "mobile turn companion runtime must render a dedicated install surface.");
+    Assert(script.Contains("function installShell(client)", StringComparison.Ordinal), "mobile turn companion runtime must handle direct install requests from the mobile shell.");
+    Assert(script.Contains("await promptEvent.prompt();", StringComparison.Ordinal), "mobile turn companion runtime must drive the deferred browser install prompt when it is available.");
+    Assert(script.Contains("window.matchMedia(\"(display-mode: standalone)\")", StringComparison.Ordinal), "mobile turn companion runtime must detect installed standalone display mode.");
+    Assert(script.Contains("var lastRouteKey = storagePrefix + \"last-route\";", StringComparison.Ordinal), "mobile turn companion runtime must keep a dedicated last-route storage key for installed relaunch.");
+    Assert(script.Contains("var resumeRoute = resolveResumeRoute(params);", StringComparison.Ordinal), "mobile turn companion runtime must derive resume posture from the current launch parameters.");
+    Assert(script.Contains("function resolveResumeRoute(params)", StringComparison.Ordinal), "mobile turn companion runtime must resolve generic and role-aware resume behavior.");
+    Assert(script.Contains("function lastRouteKeyForRole(roleName)", StringComparison.Ordinal), "mobile turn companion runtime must keep per-role last-route keys.");
+    Assert(script.Contains("writeStoredValue(lastRouteKeyForRole(client.roleName), payload);", StringComparison.Ordinal), "mobile turn companion runtime must persist a role-specific last route.");
+    Assert(script.Contains("function shouldPersistGlobalLastRoute()", StringComparison.Ordinal), "mobile turn companion runtime must keep a visibility-aware guard for the install-wide resume route.");
+    Assert(script.Contains("document.visibilityState === \"visible\" || document.hasFocus()", StringComparison.Ordinal), "mobile turn companion runtime must keep background tabs from stealing the global last-route resume lane.");
+    Assert(script.Contains("resumeSource: \"session-only\"", StringComparison.Ordinal), "mobile turn companion runtime must support role-shortcut session restore even before that role has a local device lane.");
+    Assert(script.Contains("function saveLastRoute(client)", StringComparison.Ordinal), "mobile turn companion runtime must persist the last live-session lane for relaunch.");
+    Assert(script.Contains("Resumed the last claimed-device route for this install.", StringComparison.Ordinal), "mobile turn companion runtime must surface when an installed launch resumed the last lane.");
+    Assert(script.Contains("Resumed the last \" + resumeRoute.roleName + \" claimed-device route for this install.", StringComparison.Ordinal), "mobile turn companion runtime must surface role-aware relaunch status.");
+    Assert(script.Contains("Resuming \" + resumeRoute.sessionId + \" in the \" + resumeRoute.roleName + \" lane on this install.", StringComparison.Ordinal), "mobile turn companion runtime must explain when a role shortcut resumes the session on a fresh role-specific lane.");
+    Assert(script.Contains("function renderQuickGlance(client)", StringComparison.Ordinal), "mobile turn companion runtime must keep the quick-glance tracker strip synchronized with live local state.");
+    Assert(script.Contains("setText(\"turn-glance-ammo\", String(statValue(projection, \"ammo\")));", StringComparison.Ordinal), "mobile turn companion runtime must surface the current magazine value in the quick-glance strip.");
+    Assert(script.Contains("Refreshing trust, queue, and claimed-device posture for this shell.", StringComparison.Ordinal), "mobile turn companion runtime must refresh claimed-device posture on a normal online load.");
+    Assert(script.Contains("setButtonDisabled(\"turn-claim-device-button\", client.networkBusy || !navigator.onLine || !hasContinuityCursor);", StringComparison.Ordinal), "mobile turn companion runtime must keep the claim action disabled until continuity posture is ready.");
+    Assert(script.Contains("navigator.serviceWorker.register(\"/service-worker.js\", { scope: \"/\" })", StringComparison.Ordinal), "mobile turn companion runtime must register the shared service worker when the mobile shell opens directly.");
+    Assert(script.Contains("window.addEventListener(\"beforeinstallprompt\"", StringComparison.Ordinal), "mobile turn companion runtime must listen for install-prompt availability on the direct mobile shell.");
+}
+
+static async Task VerifyTurnCompanionManifestTargetsDirectMobilePwaAsync()
+{
+    var manifestPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "manifest.webmanifest");
+    var manifestText = await File.ReadAllTextAsync(manifestPath);
+    using JsonDocument manifest = JsonDocument.Parse(manifestText);
+    JsonElement root = manifest.RootElement;
+
+    Assert(root.TryGetProperty("id", out JsonElement idElement), "mobile manifest must declare a stable app id.");
+    Assert(string.Equals(idElement.GetString(), "/mobile", StringComparison.Ordinal), "mobile manifest id must target the direct turn companion shell.");
+    Assert(root.TryGetProperty("start_url", out JsonElement startUrlElement), "mobile manifest must declare a start_url.");
+    Assert(string.Equals(startUrlElement.GetString(), "/mobile", StringComparison.Ordinal), "mobile manifest start_url must launch the generic mobile shell so installed relaunch can resume the last claimed-device lane.");
+    Assert(root.TryGetProperty("shortcuts", out JsonElement shortcutsElement) && shortcutsElement.ValueKind == JsonValueKind.Array, "mobile manifest must expose direct launch shortcuts.");
+    Assert(shortcutsElement.GetArrayLength() >= 2, "mobile manifest must expose both player and GM launch shortcuts.");
+    Assert(shortcutsElement.EnumerateArray().Any(item => string.Equals(item.GetProperty("url").GetString(), "/mobile?role=Player", StringComparison.Ordinal)), "mobile manifest must keep a direct player companion shortcut.");
+    Assert(shortcutsElement.EnumerateArray().Any(item => string.Equals(item.GetProperty("url").GetString(), "/mobile?role=GameMaster", StringComparison.Ordinal)), "mobile manifest must keep a direct GM companion shortcut.");
+    Assert(root.TryGetProperty("icons", out JsonElement iconsElement) && iconsElement.ValueKind == JsonValueKind.Array, "mobile manifest must declare install icons.");
+    Assert(iconsElement.EnumerateArray().Any(item =>
+        string.Equals(item.GetProperty("src").GetString(), "/icons/icon-192.png", StringComparison.Ordinal)
+        && string.Equals(item.GetProperty("type").GetString(), "image/png", StringComparison.Ordinal)),
+        "mobile manifest must expose a 192px PNG install icon.");
+    Assert(iconsElement.EnumerateArray().Any(item =>
+        string.Equals(item.GetProperty("src").GetString(), "/icons/icon-512.png", StringComparison.Ordinal)
+        && string.Equals(item.GetProperty("type").GetString(), "image/png", StringComparison.Ordinal)),
+        "mobile manifest must expose a 512px PNG install icon.");
+}
+
+static async Task VerifyTurnCompanionAppShellDeclaresMobileInstallMetadataAsync()
+{
+    var appPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "Components", "App.razor");
+    var appShell = await File.ReadAllTextAsync(appPath);
+
+    Assert(appShell.Contains("<meta name=\"theme-color\" content=\"#0f1b26\" />", StringComparison.Ordinal), "mobile app shell must declare the PWA theme color.");
+    Assert(appShell.Contains("<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />", StringComparison.Ordinal), "mobile app shell must declare Apple standalone capability.");
+    Assert(appShell.Contains("<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\" />", StringComparison.Ordinal), "mobile app shell must declare Apple status-bar posture.");
+    Assert(appShell.Contains("<meta name=\"apple-mobile-web-app-title\" content=\"Chummer Play\" />", StringComparison.Ordinal), "mobile app shell must declare an Apple install title.");
+    Assert(appShell.Contains("<link rel=\"apple-touch-icon\" href=\"/icons/apple-touch-icon.png\" />", StringComparison.Ordinal), "mobile app shell must declare the Apple touch icon.");
+}
+
+static async Task VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync()
+{
+    var applicationPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "PlayWebApplication.cs");
+    var source = await File.ReadAllTextAsync(applicationPath);
+
+    Assert(source.Contains("app.UseAntiforgery();", StringComparison.Ordinal), "mobile real-host pipeline must enable antiforgery middleware before the Razor Components endpoint.");
 }
 
 static Task VerifyBootstrapRoleShellEntryPointsAsync()
@@ -3248,7 +3807,7 @@ static async Task VerifyObserveDoesNotMutateStoredStateOrReturnStaleRuntimeBundl
         Assert(observe.Checkpoint.SceneRevision == "scene-r9", "observe must keep stored checkpoint scene revision");
         Assert(observe.Checkpoint.ProjectionFingerprint == "runtime-observe", "observe must keep stored checkpoint runtime fingerprint");
         Assert(observe.Projection.Timeline.Contains("pending:evt-pending", StringComparer.Ordinal), "observe must preserve stored pending replay events");
-        Assert(Equals(ledgerBeforeObserve, ledgerAfterObserve), "observe must not mutate the stored ledger during a read path");
+        Assert(LedgerValueEquals(ledgerBeforeObserve, ledgerAfterObserve), "observe must not mutate the stored ledger during a read path");
         Assert(Equals(checkpointBeforeObserve, checkpointAfterObserve), "observe must not rewrite the stored checkpoint during a read path");
     }
     finally
@@ -3762,6 +4321,29 @@ static void Assert(bool condition, string message)
     }
 }
 
+static bool LedgerValueEquals(OfflineLedgerEnvelope? left, OfflineLedgerEnvelope? right)
+{
+    if (ReferenceEquals(left, right))
+    {
+        return true;
+    }
+
+    if (left is null || right is null)
+    {
+        return false;
+    }
+
+    return left.SessionId == right.SessionId
+        && left.SceneId == right.SceneId
+        && left.SceneRevision == right.SceneRevision
+        && left.RuntimeFingerprint == right.RuntimeFingerprint
+        && left.LastKnownSequence == right.LastKnownSequence
+        && left.LastAcceptedEventCount == right.LastAcceptedEventCount
+        && left.PendingEvents.SequenceEqual(right.PendingEvents, StringComparer.Ordinal)
+        && left.UpdatedAtUtc == right.UpdatedAtUtc
+        && left.LastSyncedAtUtc == right.LastSyncedAtUtc;
+}
+
 static async Task AssertThrowsAsync<TException>(Func<Task> action, string message)
     where TException : Exception
 {
@@ -3831,9 +4413,12 @@ static async Task<TResponse> ExecuteRouteRequestAsync<TResponse>(
         RequestServices = app.Services,
     };
     context.Request.Method = method.Method;
+    context.Request.Scheme = "http";
+    context.Request.Host = new HostString("localhost");
     context.Request.Path = NormalizePath(route);
     context.Request.QueryString = new QueryString(query);
     context.Response.Body = new MemoryStream();
+    context.SetEndpoint(endpoint);
     if (routeValues is not null)
     {
         foreach (var routeValue in routeValues)
@@ -3892,9 +4477,12 @@ static async Task<(int StatusCode, string Location)> ExecuteRouteResponseAsync(
         RequestServices = app.Services,
     };
     context.Request.Method = method.Method;
+    context.Request.Scheme = "http";
+    context.Request.Host = new HostString("localhost");
     context.Request.Path = NormalizePath(route);
     context.Request.QueryString = new QueryString(query);
     context.Response.Body = new MemoryStream();
+    context.SetEndpoint(endpoint);
     if (routeValues is not null)
     {
         foreach (var routeValue in routeValues)
@@ -3913,6 +4501,62 @@ static async Task<(int StatusCode, string Location)> ExecuteRouteResponseAsync(
 
     await endpoint.RequestDelegate!(context);
     return (context.Response.StatusCode, context.Response.Headers.Location.ToString());
+}
+
+static async Task<(int StatusCode, string Body)> ExecuteRouteBodyResponseAsync(
+    WebApplication app,
+    HttpMethod method,
+    string route,
+    string query = "",
+    string? jsonBody = null,
+    IReadOnlyDictionary<string, string>? routeValues = null)
+{
+    var endpointRouteBuilder = (IEndpointRouteBuilder)app;
+    var endpoint = endpointRouteBuilder
+        .DataSources
+        .SelectMany(static source => source.Endpoints)
+        .OfType<RouteEndpoint>()
+        .FirstOrDefault(candidate =>
+            candidate.RequestDelegate is not null
+            && MethodMatches(candidate, method)
+            && RouteMatches(candidate, route));
+    if (endpoint is null)
+    {
+        throw new InvalidOperationException($"Could not resolve endpoint for route '{route}' and method '{method.Method}'.");
+    }
+
+    var context = new DefaultHttpContext
+    {
+        RequestServices = app.Services,
+    };
+    context.Request.Method = method.Method;
+    context.Request.Scheme = "http";
+    context.Request.Host = new HostString("localhost");
+    context.Request.Path = NormalizePath(route);
+    context.Request.QueryString = new QueryString(query);
+    context.Response.Body = new MemoryStream();
+    context.SetEndpoint(endpoint);
+    if (routeValues is not null)
+    {
+        foreach (var routeValue in routeValues)
+        {
+            context.Request.RouteValues[routeValue.Key] = routeValue.Value;
+        }
+    }
+
+    if (!string.IsNullOrWhiteSpace(jsonBody))
+    {
+        var bytes = Encoding.UTF8.GetBytes(jsonBody);
+        context.Request.Body = new MemoryStream(bytes);
+        context.Request.ContentLength = bytes.Length;
+        context.Request.ContentType = "application/json";
+    }
+
+    await endpoint.RequestDelegate!(context);
+    context.Response.Body.Position = 0;
+    using var reader = new StreamReader(context.Response.Body, Encoding.UTF8);
+    string body = await reader.ReadToEndAsync();
+    return (context.Response.StatusCode, body);
 }
 
 static (string Route, string Query) SplitHref(string href)
@@ -3935,7 +4579,36 @@ static bool MethodMatches(RouteEndpoint endpoint, HttpMethod method)
 static bool RouteMatches(RouteEndpoint endpoint, string route)
 {
     var endpointRoute = endpoint.RoutePattern.RawText ?? endpoint.RoutePattern.ToString();
-    return string.Equals(NormalizePath(endpointRoute), NormalizePath(route), StringComparison.OrdinalIgnoreCase);
+    var normalizedEndpointRoute = NormalizePath(endpointRoute);
+    var normalizedRoute = NormalizePath(route);
+    if (string.Equals(normalizedEndpointRoute, normalizedRoute, StringComparison.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    var endpointSegments = normalizedEndpointRoute.Split('/', StringSplitOptions.RemoveEmptyEntries);
+    var routeSegments = normalizedRoute.Split('/', StringSplitOptions.RemoveEmptyEntries);
+    if (endpointSegments.Length != routeSegments.Length)
+    {
+        return false;
+    }
+
+    for (var index = 0; index < endpointSegments.Length; index++)
+    {
+        var endpointSegment = endpointSegments[index];
+        if (endpointSegment.StartsWith("{", StringComparison.Ordinal)
+            && endpointSegment.EndsWith("}", StringComparison.Ordinal))
+        {
+            continue;
+        }
+
+        if (!string.Equals(endpointSegment, routeSegments[index], StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 static string NormalizePath(string? path)
