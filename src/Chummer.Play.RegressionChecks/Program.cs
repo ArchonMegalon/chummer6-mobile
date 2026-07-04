@@ -2791,6 +2791,7 @@ static async Task VerifyTurnCompanionAppShellDeclaresMobileInstallMetadataAsync(
     var appShell = await File.ReadAllTextAsync(appPath);
 
     Assert(appShell.Contains("<meta name=\"theme-color\" content=\"#0f1b26\" />", StringComparison.Ordinal), "mobile app shell must declare the PWA theme color.");
+    Assert(appShell.Contains("<meta name=\"mobile-web-app-capable\" content=\"yes\" />", StringComparison.Ordinal), "mobile app shell must declare standard standalone capability.");
     Assert(appShell.Contains("<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />", StringComparison.Ordinal), "mobile app shell must declare Apple standalone capability.");
     Assert(appShell.Contains("<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\" />", StringComparison.Ordinal), "mobile app shell must declare Apple status-bar posture.");
     Assert(appShell.Contains("<meta name=\"apple-mobile-web-app-title\" content=\"Chummer Play\" />", StringComparison.Ordinal), "mobile app shell must declare an Apple install title.");
