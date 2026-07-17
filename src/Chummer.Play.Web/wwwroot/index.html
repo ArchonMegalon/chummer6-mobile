@@ -103,6 +103,19 @@
     .chip[data-tone="reconnect"] { border-color: rgba(255, 181, 181, 0.45); color: #ffd4d4; }
     .chip-label { color: #9bb0c4; }
     .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+    .hero-action-menu {
+      appearance: none;
+      min-height: 2.75rem;
+      min-width: 12rem;
+      border: 1px solid rgba(168, 208, 255, 0.25);
+      border-radius: 999px;
+      background: rgba(10, 20, 32, 0.72);
+      color: var(--text);
+      padding: 0 2.25rem 0 1rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
     .action-link, .action-button {
       appearance: none;
       border: 1px solid rgba(168, 208, 255, 0.25);
@@ -164,6 +177,13 @@
           </div>
           <p id="shell-status" class="hint">The shell is grounding continuity and quick recovery lanes.</p>
           <div class="hero-actions">
+            <select id="shell-hero-action-menu" class="hero-action-menu" aria-label="Hero action menu">
+              <option value="">Action</option>
+              <option value="play">Play</option>
+              <option value="primary">Safe next step</option>
+              <option value="secondary">Support route</option>
+            </select>
+            <a id="shell-play-action-link" class="action-link" data-kind="primary" href="/mobile/player">Play</a>
             <a id="shell-primary-action-link" class="action-link" data-kind="primary" href="/play">Open safe next step</a>
             <a id="shell-secondary-action-link" class="action-link" href="/contact">Open support route</a>
             <button id="shell-install-button" class="action-button" type="button" hidden>Install on this device</button>
@@ -515,7 +535,11 @@
       const entry = document.createElement("li");
       const link = document.createElement("a");
       link.className = "hint";
-      link.href = item.href || "/artifacts";
+      link.href = normalizePlayRouteForMobileShell(
+        item.href || "/artifacts",
+        activeShellIdentity?.role,
+        activeShellIdentity?.sessionId,
+        activeShellIdentity?.deviceId);
       link.textContent = `${item.label || "Artifact view"}${item.isSelected ? " (current)" : ""}: ${item.summary || "No view summary is available yet."}`;
       entry.appendChild(link);
       list.appendChild(entry);
@@ -526,10 +550,87 @@
     document.getElementById(id).textContent = value || fallback;
   }
 
+  function roleToMobileMode(roleText) {
+    const lowered = String(roleText || "").toLowerCase();
+    if (lowered.includes("observer")) {
+      return "observer";
+    }
+    if (lowered === "gm" || lowered === "gamer" || lowered === "gamemaster" || lowered.includes("game")) {
+      return "gm";
+    }
+    return "player";
+  }
+
+  function normalizePlayRouteForMobileShell(href, roleFallback, sessionIdFallback, deviceFallback) {
+    void sessionIdFallback;
+    void deviceFallback;
+    if (!href || typeof href !== "string") {
+      return href;
+    }
+
+    const trimmedHref = href.trim();
+    if (!trimmedHref) {
+      return href;
+    }
+
+    try {
+      const hrefUrl = new URL(trimmedHref, window.location.origin);
+      const isPlayRoute = hrefUrl.pathname === "/play" || hrefUrl.pathname.startsWith("/play/");
+      if (!isPlayRoute) {
+        return trimmedHref;
+      }
+
+      const playParams = new URLSearchParams(hrefUrl.search);
+      const role = playParams.get("role") || roleFallback || activeShellIdentity.role || "Player";
+      const mode = roleToMobileMode(role);
+      return `/mobile/${mode}`;
+    } catch {
+      return trimmedHref;
+    }
+  }
+
   function setLink(id, href, text, fallbackHref, fallbackText) {
     const link = document.getElementById(id);
-    link.href = href || fallbackHref;
+    const targetHref = href || fallbackHref;
+    link.href = normalizePlayRouteForMobileShell(
+      targetHref,
+      activeShellIdentity?.role,
+      activeShellIdentity?.sessionId,
+      activeShellIdentity?.deviceId);
     link.textContent = text || fallbackText;
+  }
+
+  function syncHeroActionMenu() {
+    const menu = document.getElementById("shell-hero-action-menu");
+    if (!menu) {
+      return;
+    }
+
+    menu.dataset.playHref = document.getElementById("shell-play-action-link").href;
+    menu.dataset.primaryHref = document.getElementById("shell-primary-action-link").href;
+    menu.dataset.secondaryHref = document.getElementById("shell-secondary-action-link").href;
+    menu.value = "";
+  }
+
+  function heroActionHref(action) {
+    const menu = document.getElementById("shell-hero-action-menu");
+    switch (action) {
+      case "play":
+        return menu.dataset.playHref || document.getElementById("shell-play-action-link").href;
+      case "primary":
+        return menu.dataset.primaryHref || document.getElementById("shell-primary-action-link").href;
+      case "secondary":
+        return menu.dataset.secondaryHref || document.getElementById("shell-secondary-action-link").href;
+      default:
+        return "";
+    }
+  }
+
+  function navigateHeroAction(action) {
+    const targetHref = heroActionHref(action);
+    if (targetHref) {
+      window.location.assign(targetHref);
+    }
   }
 
   function makeStableId(prefix) {
@@ -737,7 +838,7 @@
       || lastWorkspacePayload?.roleFollowThroughHref
       || lastRestorePayload?.resumeFollowThroughHref
       || "/play";
-    const ownerRouteLabel = ownerRoute.includes("/play/")
+    const ownerRouteLabel = ownerRoute.includes("/play") || ownerRoute.includes("/mobile/")
       ? "Open claimed owner route"
       : "Open owner route";
     const claimButton = document.getElementById("shell-continuity-claim-button");
@@ -793,8 +894,10 @@
     document.getElementById("shell-role-focus-heading").textContent = roleFocus.heading;
     document.getElementById("shell-role-focus-copy").textContent = roleFocus.copy;
     document.getElementById("shell-offline-copy").textContent = payload.offlineTruthSummary || "No offline truth summary is available yet.";
+    setLink("shell-play-action-link", "/play", "Play", "/play", "Play");
     setLink("shell-primary-action-link", primaryActionHref, primaryActionText, "/play", "Open safe next step");
     setLink("shell-secondary-action-link", secondaryActionHref, secondaryActionText, "/contact", "Open support route");
+    syncHeroActionMenu();
   }
 
   async function claimContinuityOnThisDevice() {
@@ -1134,6 +1237,11 @@
     deferredInstallPrompt = null;
     updateInstallSurface();
     updateNetworkStatus();
+  });
+  document.getElementById("shell-hero-action-menu").addEventListener("change", (event) => {
+    const action = event.target.value;
+    event.target.value = "";
+    navigateHeroAction(action);
   });
   document.getElementById("shell-continuity-claim-button").addEventListener("click", claimContinuityOnThisDevice);
 

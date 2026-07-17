@@ -2,6 +2,10 @@
   <PropertyGroup>
     <AssemblyName>Chummer.Play.Web</AssemblyName>
     <RootNamespace>Chummer.Play.Web</RootNamespace>
+    <!-- This host serves its owned wwwroot through UseStaticFiles; it does not use
+         the .NET 10 MapStaticAssets/fingerprinting pack, which is unavailable in
+         the hermetic package plane. -->
+    <RequiresAspNetWebAssets>false</RequiresAspNetWebAssets>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Chummer.Play.Core\Chummer.Play.Core.csproj" />

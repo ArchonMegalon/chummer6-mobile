@@ -21,9 +21,28 @@ namespace Chummer.Play.Web;
 
 public static class PlayWebApplication
 {
+    private static readonly HashSet<string> PublicPwaStaticAssetPaths = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "/mobile.css",
+        "/mobile-install-shell.js",
+        "/manifest.webmanifest",
+        "/manifest.player.webmanifest",
+        "/manifest.gm.webmanifest",
+        "/manifest.observer.webmanifest",
+        "/icons/icon-192.png",
+        "/icons/icon-512.png",
+        "/icons/icon-192.svg",
+        "/icons/icon-512.svg"
+    };
+
     public static WebApplication Build(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            Args = args,
+            ApplicationName = typeof(PlayWebApplication).Assembly.GetName().Name
+        });
+        PlayServiceKeyPolicy.ValidateProductionReadiness(builder.Configuration, builder.Environment);
         ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
 
         var app = builder.Build();
@@ -36,7 +55,9 @@ public static class PlayWebApplication
         IConfiguration configuration,
         IHostEnvironment hostEnvironment)
     {
-        services.AddRazorComponents();
+        services.AddRazorComponents()
+            .AddInteractiveServerComponents();
+        services.AddHttpContextAccessor();
         services.AddSingleton<IBrowserKeyValueStore>(_ =>
             new FileSystemBrowserKeyValueStore(ResolveBrowserStateRoot(configuration, hostEnvironment)));
         services.AddSingleton<BrowserSessionEventLogStore>();
@@ -52,6 +73,10 @@ public static class PlayWebApplication
 
     internal static void Configure(WebApplication app)
     {
+        app.Use(RequireTrustedMobileLiveGrantBoundaryAsync);
+        app.Use(RequirePrivateMobileDocumentBoundaryAsync);
+        app.Use(ApplyServiceWorkerHeadersAsync);
+        app.Use(ApplyPublicPwaStaticAssetHeadersAsync);
         app.UseDefaultFiles();
         app.UseStaticFiles();
         app.Use(RequireTrustedPlayApiBoundaryAsync);
@@ -436,7 +461,48 @@ public static class PlayWebApplication
                     cancellationToken
                 )
         );
-        app.MapRazorComponents<App>();
+        app.MapRazorComponents<App>()
+            .AddInteractiveServerRenderMode();
+    }
+
+    internal static async Task ApplyServiceWorkerHeadersAsync(HttpContext context, RequestDelegate next)
+    {
+        bool isWorker = context.Request.Path.Equals("/service-worker.js", StringComparison.OrdinalIgnoreCase)
+            || context.Request.Path.Equals("/mobile/service-worker.js", StringComparison.OrdinalIgnoreCase);
+        if (isWorker)
+        {
+            context.Response.OnStarting(() =>
+            {
+                context.Response.ContentType = "application/javascript; charset=utf-8";
+                context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+                context.Response.Headers.Pragma = "no-cache";
+                context.Response.Headers.Expires = "0";
+                context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                return Task.CompletedTask;
+            });
+        }
+
+        await next(context);
+    }
+
+    internal static async Task ApplyPublicPwaStaticAssetHeadersAsync(HttpContext context, RequestDelegate next)
+    {
+        string requestPath = context.Request.Path.Value ?? string.Empty;
+        bool isPublicPwaAsset = (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method))
+            && PublicPwaStaticAssetPaths.Contains(requestPath);
+        if (isPublicPwaAsset)
+        {
+            context.Response.OnStarting(() =>
+            {
+                context.Response.Headers.CacheControl = "public, max-age=300, must-revalidate";
+                context.Response.Headers.Remove("Pragma");
+                context.Response.Headers.Remove("Expires");
+                context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                return Task.CompletedTask;
+            });
+        }
+
+        await next(context);
     }
 
     private static string ResolveBrowserStateRoot(
@@ -462,10 +528,10 @@ public static class PlayWebApplication
             return;
         }
 
-        ApplyPrivateNoStoreHeaders(context.Response);
+        ApplyPrivateMobileDocumentHeaders(context.Response);
         context.Response.OnStarting(() =>
         {
-            ApplyPrivateNoStoreHeaders(context.Response);
+            ApplyPrivateMobileDocumentHeaders(context.Response);
             return Task.CompletedTask;
         });
 
@@ -483,6 +549,95 @@ public static class PlayWebApplication
         await next(context);
     }
 
+    internal static async Task RequirePrivateMobileDocumentBoundaryAsync(HttpContext context, RequestDelegate next)
+    {
+        if (!IsPrivateMobileDocumentPath(context.Request.Path)
+            || IsMobileLiveDocumentPath(context.Request.Path))
+        {
+            await next(context);
+            return;
+        }
+
+        ApplyPrivateMobileDocumentHeaders(context.Response);
+        context.Response.OnStarting(() =>
+        {
+            ApplyPrivateMobileDocumentHeaders(context.Response);
+            return Task.CompletedTask;
+        });
+
+        await next(context);
+    }
+
+    internal static async Task RequireTrustedMobileLiveGrantBoundaryAsync(
+        HttpContext context,
+        RequestDelegate next)
+    {
+        if (!IsMobileLiveDocumentPath(context.Request.Path))
+        {
+            await next(context);
+            return;
+        }
+
+        ApplyPrivateMobileLiveHeaders(context.Response);
+        context.Response.OnStarting(() =>
+        {
+            ApplyPrivateMobileLiveHeaders(context.Response);
+            return Task.CompletedTask;
+        });
+
+        if (!PlaySessionGrantPolicy.TryResolve(context, out PlaySessionGrant? grant, out string error))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "play_session_grant_required",
+                detail = error
+            });
+            return;
+        }
+
+        context.Items[PlaySessionGrantPolicy.HttpContextItemKey] = grant;
+        await next(context);
+    }
+
+    internal static bool IsMobileLiveDocumentPath(PathString path)
+    {
+        string value = (path.Value ?? string.Empty).TrimEnd('/');
+        return value.Equals("/mobile/live", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static bool IsPrivateMobileDocumentPath(PathString path)
+    {
+        string value = (path.Value ?? string.Empty).TrimEnd('/');
+        if (value.Equals("/mobile/service-worker.js", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return value.Equals("/mobile", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("/mobile/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ApplyPrivateMobileDocumentHeaders(HttpResponse response)
+    {
+        ApplyPrivateNoStoreHeaders(response);
+        response.Headers["Referrer-Policy"] = "no-referrer";
+        response.Headers["Content-Security-Policy"] = "default-src 'none'; base-uri 'none'; connect-src 'none'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'self'; script-src 'self'; style-src 'self'; worker-src 'self'";
+        response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+        response.Headers["X-Content-Type-Options"] = "nosniff";
+        response.Headers["X-Frame-Options"] = "DENY";
+    }
+
+    private static void ApplyPrivateMobileLiveHeaders(HttpResponse response)
+    {
+        ApplyPrivateNoStoreHeaders(response);
+        response.Headers["Referrer-Policy"] = "no-referrer";
+        response.Headers["Content-Security-Policy"] = "default-src 'none'; base-uri 'none'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'self'; script-src 'self'; style-src 'self'; worker-src 'self'";
+        response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+        response.Headers["X-Content-Type-Options"] = "nosniff";
+        response.Headers["X-Frame-Options"] = "DENY";
+    }
+
     private static void ApplyPrivateNoStoreHeaders(HttpResponse response)
     {
         response.Headers.CacheControl = "private, no-store";
@@ -494,13 +649,18 @@ public static class PlayWebApplication
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        IPAddress? remoteAddress = context.Connection.RemoteIpAddress;
+        if (remoteAddress is null)
+        {
+            return false;
+        }
+
         if (context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment())
         {
             return true;
         }
 
-        IPAddress? remoteAddress = context.Connection.RemoteIpAddress;
-        if (remoteAddress is null || IPAddress.IsLoopback(remoteAddress))
+        if (IPAddress.IsLoopback(remoteAddress))
         {
             return true;
         }

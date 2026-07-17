@@ -14,6 +14,8 @@ export DOTNET_CLI_TELEMETRY_OPTOUT=1
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 local_feed="${repo_root}/.artifacts/nuget-local"
 export NUGET_PACKAGES="${NUGET_PACKAGES:-${repo_root}/.artifacts/nuget-packages}"
+package_plane_lock_file="${CHUMMER_PACKAGE_PLANE_LOCK_FILE:-${repo_root}/.artifacts/package-plane/with-package-plane.lock}"
+package_plane_lock_timeout_seconds="${CHUMMER_PACKAGE_PLANE_LOCK_TIMEOUT_SECONDS:-600}"
 published_feed_sources="${CHUMMER_PUBLISHED_FEED_SOURCES:-}"
 published_engine_contracts_version="${CHUMMER_PUBLISHED_ENGINE_CONTRACTS_VERSION:-}"
 published_campaign_contracts_version="${CHUMMER_PUBLISHED_CAMPAIGN_CONTRACTS_VERSION:-}"
@@ -21,11 +23,19 @@ published_control_contracts_version="${CHUMMER_PUBLISHED_CONTROL_CONTRACTS_VERSI
 published_play_contracts_version="${CHUMMER_PUBLISHED_PLAY_CONTRACTS_VERSION:-}"
 published_ui_kit_version="${CHUMMER_PUBLISHED_UI_KIT_VERSION:-}"
 workspace_root="$(cd "${repo_root}/.." && pwd)"
-engine_contracts_project="${workspace_root}/chummer-core-engine/Chummer.Contracts/Chummer.Contracts.csproj"
-campaign_contracts_project="${workspace_root}/chummer.run-services/Chummer.Campaign.Contracts/Chummer.Campaign.Contracts.csproj"
-control_contracts_project="${workspace_root}/chummer.run-services/Chummer.Control.Contracts/Chummer.Control.Contracts.csproj"
-play_contracts_project="${workspace_root}/chummer.run-services/Chummer.Play.Contracts/Chummer.Play.Contracts.csproj"
-ui_kit_project="${workspace_root}/chummer-ui-kit/src/Chummer.Ui.Kit/Chummer.Ui.Kit.csproj"
+engine_contracts_project="${CHUMMER_PACKAGE_PLANE_ENGINE_CONTRACTS_PROJECT:-${workspace_root}/chummer-core-engine/Chummer.Contracts/Chummer.Contracts.csproj}"
+campaign_contracts_project="${CHUMMER_PACKAGE_PLANE_CAMPAIGN_CONTRACTS_PROJECT:-${workspace_root}/chummer.run-services/Chummer.Campaign.Contracts/Chummer.Campaign.Contracts.csproj}"
+control_contracts_project="${CHUMMER_PACKAGE_PLANE_CONTROL_CONTRACTS_PROJECT:-${workspace_root}/chummer.run-services/Chummer.Control.Contracts/Chummer.Control.Contracts.csproj}"
+play_contracts_project="${CHUMMER_PACKAGE_PLANE_PLAY_CONTRACTS_PROJECT:-${workspace_root}/chummer.run-services/Chummer.Play.Contracts/Chummer.Play.Contracts.csproj}"
+ui_kit_project="${CHUMMER_PACKAGE_PLANE_UI_KIT_PROJECT:-${workspace_root}/chummer-ui-kit/src/Chummer.Ui.Kit/Chummer.Ui.Kit.csproj}"
+
+mkdir -p "$(dirname "${package_plane_lock_file}")"
+# Keep the shared package cache locked through the final exec'd dotnet process.
+exec 9>"${package_plane_lock_file}"
+if ! flock -w "${package_plane_lock_timeout_seconds}" 9; then
+  echo "timed out waiting for package-plane lock: ${package_plane_lock_file}" >&2
+  exit 1
+fi
 
 restore_args=()
 skip_package_refresh=false

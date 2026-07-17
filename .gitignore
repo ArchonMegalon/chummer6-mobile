@@ -2,6 +2,7 @@ bin/
 obj/
 .vs/
 .artifacts/
+/.vexp/
 
 # Local agent and worker artifacts
 .agent-memory.md
@@ -14,6 +15,8 @@ AGENT_MEMORY.md
 .codex.boot.prompt.txt
 .codex.resume.boot.txt
 .tmp/
+_tmp/
+.state/
 .local/
 audit.md
 skillsneeded.txt
@@ -51,3 +54,4 @@ git/
 !/.codex-studio/published/
 !/.codex-studio/published/QUEUE.generated.yaml
 !/.codex-studio/published/WORKPACKAGES.generated.yaml
+/NEXT_SESSION_HANDOFF.md

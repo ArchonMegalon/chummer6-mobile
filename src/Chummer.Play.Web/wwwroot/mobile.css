@@ -118,6 +118,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 2.75rem;
   padding: 0.7rem 1rem;
   font-weight: 700;
   text-decoration: none;
@@ -128,6 +129,11 @@ body {
   background: linear-gradient(135deg, rgba(144, 219, 188, 0.96), rgba(159, 210, 255, 0.92));
   color: #071019;
   border-color: transparent;
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--turn-warning);
+  outline-offset: 3px;
 }
 
 .secondary-button {
@@ -205,6 +211,7 @@ h2 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 2.75rem;
   padding: 0.58rem 0.88rem;
   border-radius: 999px;
   border: 1px solid rgba(159, 210, 255, 0.2);
@@ -361,8 +368,8 @@ h2 {
 }
 
 .stepper button {
-  width: 2.35rem;
-  height: 2.35rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   font-size: 1.1rem;
 }
 
@@ -427,6 +434,7 @@ h2 {
 
 .field-input {
   width: 100%;
+  min-height: 2.75rem;
   border: 1px solid rgba(159, 210, 255, 0.18);
   border-radius: 14px;
   background: rgba(5, 14, 23, 0.58);
@@ -509,8 +517,49 @@ input:disabled {
   scroll-margin-top: calc(1rem + env(safe-area-inset-top, 0px));
 }
 
+.install-only-shell {
+  width: min(1180px, calc(100vw - 2rem));
+  padding-top: clamp(1rem, 4vw, 4rem);
+}
+
+.install-hero {
+  display: grid;
+  gap: 1.35rem;
+  padding: clamp(1.2rem, 4vw, 3rem);
+}
+
+.install-hero h1 {
+  max-width: 18ch;
+}
+
+.install-hero .lede {
+  max-width: 70ch;
+  font-size: clamp(1rem, 1.5vw, 1.18rem);
+}
+
+.install-actions {
+  padding-top: 0.25rem;
+}
+
+.install-boundary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.install-boundary-grid .turn-card {
+  min-height: 100%;
+}
+
+.role-warning {
+  margin-top: 1rem;
+  border-color: rgba(255, 209, 143, 0.34);
+}
+
 @media (max-width: 880px) {
   .turn-grid--two,
+  .install-boundary-grid,
   .metric-grid,
   .inventory-grid,
   .action-grid,
@@ -525,6 +574,11 @@ input:disabled {
       max(0.75rem, env(safe-area-inset-top, 0px))
       0
       calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .install-only-shell {
+    width: min(100vw - 1rem, 100%);
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
   }
 
   .hero-header {
@@ -574,5 +628,20 @@ input:disabled {
 @media (max-width: 460px) {
   .glance-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

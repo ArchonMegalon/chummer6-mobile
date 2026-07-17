@@ -17,6 +17,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -62,8 +63,9 @@ await RunCheckAsync(nameof(VerifyTurnCompanionObserverStaysReadOnlyAsync), Verif
 await RunCheckAsync(nameof(VerifyTurnCompanionClaimedDeviceStateIsolationAsync), VerifyTurnCompanionClaimedDeviceStateIsolationAsync);
 await RunCheckAsync(nameof(VerifyTurnCompanionRunsiteAnchorSelectionStaysDeviceScopedAsync), VerifyTurnCompanionRunsiteAnchorSelectionStaysDeviceScopedAsync);
 await RunCheckAsync(nameof(VerifyTurnCompanionReplayQueueRoundTripsAsync), VerifyTurnCompanionReplayQueueRoundTripsAsync);
-await RunCheckAsync(nameof(VerifyTurnCompanionRouteRendersBlazorShellAsync), VerifyTurnCompanionRouteRendersBlazorShellAsync);
-await RunCheckAsync(nameof(VerifyTurnCompanionClientRuntimeKeepsClaimedDeviceContinuityContractAsync), VerifyTurnCompanionClientRuntimeKeepsClaimedDeviceContinuityContractAsync);
+await RunCheckAsync(nameof(VerifyPublicMobileRoutesRenderInstallOnlyShellAsync), VerifyPublicMobileRoutesRenderInstallOnlyShellAsync);
+await RunCheckAsync(nameof(VerifyPublicInstallShellAccessibilityContractAsync), VerifyPublicInstallShellAccessibilityContractAsync);
+await RunCheckAsync(nameof(VerifyTurnCompanionClientRuntimeHardeningContractAsync), VerifyTurnCompanionClientRuntimeHardeningContractAsync);
 await RunCheckAsync(nameof(VerifyTurnCompanionManifestTargetsDirectMobilePwaAsync), VerifyTurnCompanionManifestTargetsDirectMobilePwaAsync);
 await RunCheckAsync(nameof(VerifyTurnCompanionAppShellDeclaresMobileInstallMetadataAsync), VerifyTurnCompanionAppShellDeclaresMobileInstallMetadataAsync);
 await RunCheckAsync(nameof(VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync), VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync);
@@ -1935,6 +1937,9 @@ static async Task VerifyIndexShellAccessibilityContractAsync()
     Assert(html.Contains("id=\"shell-session-chip\"", StringComparison.Ordinal), "play shell must expose a live session chip.");
     Assert(html.Contains("id=\"shell-network-chip\"", StringComparison.Ordinal), "play shell must expose a live network chip.");
     Assert(html.Contains("id=\"shell-install-chip\"", StringComparison.Ordinal), "play shell must expose a live install-status chip.");
+    Assert(html.Contains("id=\"shell-play-action-link\"", StringComparison.Ordinal), "play shell must expose a direct hero Play action.");
+    Assert(html.Contains("id=\"shell-hero-action-menu\"", StringComparison.Ordinal), "play shell must expose a hero action menu for immediate Play launch.");
+    Assert(html.Contains("<option value=\"play\">Play</option>", StringComparison.Ordinal), "play shell hero action menu must expose Play as a selectable immediate launch action.");
     Assert(html.Contains("id=\"shell-primary-action-link\"", StringComparison.Ordinal), "play shell must expose a hero primary action.");
     Assert(html.Contains("id=\"shell-secondary-action-link\"", StringComparison.Ordinal), "play shell must expose a hero secondary action.");
     Assert(html.Contains("id=\"shell-install-button\"", StringComparison.Ordinal), "play shell must expose an install action.");
@@ -2083,21 +2088,101 @@ static async Task VerifyServiceWorkerKeepsPrivatePlayApiNetworkOnlyAsync()
     var serviceWorkerPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "service-worker.js");
     var script = await File.ReadAllTextAsync(serviceWorkerPath);
 
+    Assert(script.Contains("const CACHE_VERSION = \"v21\";", StringComparison.Ordinal), "service worker cache version must identify the expiry- and response-boundary-hardened runtime.");
+    Assert(script.Contains("const CACHE_CONTRACT = \"play-source-v2\";", StringComparison.Ordinal), "the Play source worker must declare an implementation-specific cache contract.");
+    Assert(script.Contains("`${CACHE_FAMILY}-static-${CACHE_CONTRACT}-${CACHE_VERSION}`", StringComparison.Ordinal)
+        && script.Contains("`${CACHE_FAMILY}-media-${CACHE_CONTRACT}-${CACHE_VERSION}`", StringComparison.Ordinal)
+        && script.Contains("`${CACHE_FAMILY}-media-meta-${CACHE_CONTRACT}-${CACHE_VERSION}`", StringComparison.Ordinal), "all Play worker cache buckets must include the implementation contract token.");
+    Assert(script.Contains("const CACHE_FAMILY = IS_MOBILE_PLAY_SCOPE ? \"chummer-mobile-play\" : \"chummer-public-root\";", StringComparison.Ordinal), "root and mobile registrations must use disjoint cache families.");
+    Assert(script.Contains("const LEGACY_PRIVATE_CACHE_PREFIXES = [", StringComparison.Ordinal), "service worker must declare legacy private cache families for deletion.");
+    Assert(script.Contains("function isManagedWorkerCache(cacheName)", StringComparison.Ordinal), "service worker must keep cache cleanup scoped to its active family.");
+    Assert(script.Contains("function isLegacyPrivateCache(cacheName)", StringComparison.Ordinal), "service worker must purge legacy private navigation caches.");
     Assert(script.Contains("url.pathname.startsWith(\"/api/play/\")", StringComparison.Ordinal), "service worker must explicitly route private play API reads.");
     Assert(script.Contains("Private play state is network-only", StringComparison.Ordinal), "service worker must document the private API cache boundary.");
     Assert(script.Contains("play_api_network_unavailable", StringComparison.Ordinal), "service worker must return a typed offline failure for private play API reads.");
     Assert(script.Contains("\"cache-control\": \"no-store\"", StringComparison.Ordinal), "service worker private API fallback must be non-cacheable.");
-    Assert(script.Contains("\"/mobile\"", StringComparison.Ordinal), "service worker shell cache must include the mobile turn companion route.");
-    Assert(script.Contains("\"/mobile.css\"", StringComparison.Ordinal), "service worker shell cache must include the mobile turn companion stylesheet.");
-    Assert(script.Contains("\"/mobile-turn-companion.js\"", StringComparison.Ordinal), "service worker shell cache must include the mobile turn companion client runtime.");
-    Assert(script.Contains("\"/icons/apple-touch-icon.png\"", StringComparison.Ordinal), "service worker shell cache must include the apple touch icon for install-local relaunch.");
-    Assert(script.Contains("\"/icons/icon-192.png\"", StringComparison.Ordinal), "service worker shell cache must include the 192px raster icon.");
-    Assert(script.Contains("\"/icons/icon-512.png\"", StringComparison.Ordinal), "service worker shell cache must include the 512px raster icon.");
-    Assert(script.Contains("const MOBILE_NAV_FALLBACK = \"/mobile\";", StringComparison.Ordinal), "service worker must keep a dedicated mobile navigation fallback.");
-    Assert(!script.Contains("\"/_framework/blazor.web.js\"", StringComparison.Ordinal), "mobile turn companion shell cache must not depend on the Blazor interactive framework script.");
+    Assert(script.Contains("const NON_CACHEABLE_PATHS = new Set([", StringComparison.Ordinal), "service worker must declare root-scope public routes that stay network-only.");
+    Assert(script.Contains("\"/mobile/pwa/ledger.json\"", StringComparison.Ordinal), "root-scoped play service worker must not cache the personalized mobile ledger stream.");
+    Assert(script.Contains("const NON_CACHEABLE_PATH_PREFIXES = [", StringComparison.Ordinal), "root-scoped play service worker must declare private route prefixes that stay network-only.");
+    Assert(script.Contains("\"/account\"", StringComparison.Ordinal), "root-scoped play service worker must keep account routes out of shell cache storage.");
+    Assert(script.Contains("\"/api\"", StringComparison.Ordinal), "root-scoped play service worker must keep non-play API routes out of shell cache storage.");
+    Assert(script.Contains("function isNonCacheableRequest(url)", StringComparison.Ordinal), "service worker must classify non-cacheable public/private routes before generic shell caching.");
+    Assert(script.Contains("function isBuildOwnedRequest(url)", StringComparison.Ordinal)
+        && script.Contains("if (isBuildOwnedRequest(url))", StringComparison.Ordinal), "the Play worker must leave /blazor requests to the Build PWA owner.");
+    Assert(script.Contains("play_public_route_network_unavailable", StringComparison.Ordinal), "service worker must return a typed offline failure for non-cacheable public/private routes.");
+    Assert(!script.Contains("  \"/\",", StringComparison.Ordinal), "root-scoped play service worker must not precache the public portal root.");
+    Assert(!script.Contains("  \"/index.html\",", StringComparison.Ordinal), "root-scoped play service worker must not precache the portal index fallback.");
+    Assert(script.Contains("if (url.search) {", StringComparison.Ordinal), "runtime and media caches must reject query-bearing requests.");
+    Assert(script.Contains("function shouldCachePublicMediaResponse(request, response)", StringComparison.Ordinal), "media caching must use a dedicated public-media response boundary.");
+    Assert(script.Contains("PUBLIC_MEDIA_PATH_PREFIXES", StringComparison.Ordinal)
+        && script.Contains("PUBLIC_MEDIA_CONTENT_TYPES", StringComparison.Ordinal), "media caching must bind both public path and MIME allowlists.");
+    Assert(script.Contains("normalized === \"authorization\" || normalized === \"cookie\"", StringComparison.Ordinal), "media caching must reject identity-varying responses.");
+    Assert(!script.Contains("function cacheMobileNavigationPath", StringComparison.Ordinal), "service worker must not cache rendered mobile projection documents.");
+    Assert(!script.Contains("function cacheMobileNavigationResponse", StringComparison.Ordinal), "service worker must not materialize private navigation fallbacks in Cache Storage.");
+    const string navigationHandlerSignature = "async function handleNavigationRequest(event, request, url)";
+    int navigationHandlerStart = script.IndexOf(navigationHandlerSignature, StringComparison.Ordinal);
+    int navigationHandlerEnd = navigationHandlerStart < 0
+        ? -1
+        : script.IndexOf("\nfunction offlineNavigationResponse", navigationHandlerStart, StringComparison.Ordinal);
+    Assert(navigationHandlerStart >= 0 && navigationHandlerEnd > navigationHandlerStart, "navigation must remain network-first and keep a bounded handler.");
+    string navigationHandler = script[navigationHandlerStart..navigationHandlerEnd];
+    int preloadIndex = navigationHandler.IndexOf("const preloaded = await event.preloadResponse;", StringComparison.Ordinal);
+    int retryFetchIndex = navigationHandler.IndexOf("const response = await fetch(request);", StringComparison.Ordinal);
+    int offlineFallbackIndex = navigationHandler.IndexOf("return offlineNavigationResponse(url.pathname);", StringComparison.Ordinal);
+    Assert(preloadIndex >= 0, "navigation handler must consume the enabled preload instead of issuing duplicate requests.");
+    Assert(retryFetchIndex > preloadIndex, "navigation handler must retry the network after a missing or failed preload.");
+    Assert(offlineFallbackIndex > retryFetchIndex, "navigation handler must return the safe synthetic offline document only after its network retry fails.");
+    Assert(script.Contains("status: 503", StringComparison.Ordinal), "offline navigation must fail honestly with HTTP 503.");
+    Assert(script.Contains("Private table state is never restored from Cache Storage", StringComparison.Ordinal), "offline navigation copy must state the private-cache boundary.");
+    Assert(script.Contains("const CRITICAL_SHELL_ASSETS = [", StringComparison.Ordinal), "service worker must declare its bounded public critical shell.");
+    var criticalShellAssets = script
+        .Split("const CRITICAL_SHELL_ASSETS = [", 2, StringSplitOptions.None)[1]
+        .Split("];", 2, StringSplitOptions.None)[0];
+    Assert(criticalShellAssets.Contains("\"/mobile-install-shell.js\"", StringComparison.Ordinal), "service worker critical shell must include the public install bootstrap.");
+    Assert(criticalShellAssets.Contains("\"/manifest.webmanifest\"", StringComparison.Ordinal), "service worker critical shell must include the default install manifest.");
+    Assert(criticalShellAssets.Contains("\"/manifest.player.webmanifest\"", StringComparison.Ordinal), "service worker critical shell must include the player install manifest.");
+    Assert(criticalShellAssets.Contains("\"/manifest.gm.webmanifest\"", StringComparison.Ordinal), "service worker critical shell must include the GM install manifest.");
+    Assert(criticalShellAssets.Contains("\"/manifest.observer.webmanifest\"", StringComparison.Ordinal), "service worker critical shell must include the observer install manifest.");
+    Assert(criticalShellAssets.Contains("\"/icons/icon-192.svg\"", StringComparison.Ordinal), "service worker critical shell must include the 192px public icon.");
+    Assert(criticalShellAssets.Contains("\"/icons/icon-512.svg\"", StringComparison.Ordinal), "service worker critical shell must include the 512px public icon.");
+    Assert(!criticalShellAssets.Contains("\"/mobile-turn-companion.js\"", StringComparison.Ordinal), "service worker must not precache the private turn companion runtime.");
+    Assert(!criticalShellAssets.Contains("\"/_framework/blazor.web.js\"", StringComparison.Ordinal), "service worker must not precache the interactive Blazor runtime.");
+    Assert(!criticalShellAssets.Contains("\"/icons/apple-touch-icon.png\"", StringComparison.Ordinal), "service worker must not widen the critical shell to legacy install assets.");
     Assert(!script.Contains("API_CACHE", StringComparison.Ordinal), "service worker must not keep a Cache API bucket for private play API responses.");
     Assert(!script.Contains("cacheWithQuotaHandling(API_CACHE", StringComparison.Ordinal), "service worker must not persist private play API responses.");
     Assert(!script.Contains("caches.open(API_CACHE)", StringComparison.Ordinal), "service worker must not replay cached private play API responses.");
+}
+
+static async Task VerifyPublicInstallShellAccessibilityContractAsync()
+{
+    var repoRoot = GetRepoRoot();
+    var page = await File.ReadAllTextAsync(Path.Combine(
+        repoRoot,
+        "src",
+        "Chummer.Play.Web",
+        "Components",
+        "Pages",
+        "MobileTurnCompanionPage.razor"));
+    var stylesheet = await File.ReadAllTextAsync(Path.Combine(
+        repoRoot,
+        "src",
+        "Chummer.Play.Web",
+        "wwwroot",
+        "mobile.css"));
+
+    Assert(page.Contains("data-play-surface=\"install-only\"", StringComparison.Ordinal), "public install page must expose its bounded surface semantics");
+    Assert(page.Contains("aria-label=\"Public install boundary\"", StringComparison.Ordinal), "public install posture must have an accessible label");
+    Assert(page.Contains("role=\"status\" aria-live=\"polite\"", StringComparison.Ordinal), "install status must announce browser capability changes without stealing focus");
+    Assert(page.Contains("id=\"turn-manual-install-help\"", StringComparison.Ordinal)
+        && page.Contains("tabindex=\"-1\"", StringComparison.Ordinal), "manual install help must be programmatically focusable");
+    Assert(page.Contains("aria-label=\"How Chummer Play access works\"", StringComparison.Ordinal), "install, invitation, and join steps must have a named region");
+    Assert(page.Contains("role=\"note\"", StringComparison.Ordinal), "GM safety boundary must use note semantics");
+
+    Assert(stylesheet.Contains(":where(a, button, input, select, textarea):focus-visible", StringComparison.Ordinal), "mobile interactive controls must expose a shared visible keyboard focus treatment");
+    Assert(stylesheet.Contains("outline: 3px solid var(--turn-warning);", StringComparison.Ordinal), "mobile keyboard focus treatment must use the high-contrast warning token");
+    Assert(stylesheet.Contains("@media (prefers-reduced-motion: reduce)", StringComparison.Ordinal), "mobile shell must honor the operating-system reduced-motion preference");
+    Assert(stylesheet.Contains("scroll-behavior: auto;", StringComparison.Ordinal), "reduced-motion mode must disable smooth page scrolling");
+    Assert(stylesheet.Contains("transition-duration: 0.01ms !important;", StringComparison.Ordinal), "reduced-motion mode must suppress nonessential transitions");
 }
 
 static async Task VerifyPlayApiBoundaryRequiresTrustedContextAsync()
@@ -2107,7 +2192,7 @@ static async Task VerifyPlayApiBoundaryRequiresTrustedContextAsync()
 
     Assert(source.Contains("app.Use(RequireTrustedPlayApiBoundaryAsync);", StringComparison.Ordinal), "mobile app must register the play API trust boundary before route handlers.");
     Assert(source.Contains("context.Request.Path.StartsWithSegments(\"/api/play\")", StringComparison.Ordinal), "play API boundary must scope itself to private /api/play routes.");
-    Assert(source.Contains("ApplyPrivateNoStoreHeaders(context.Response)", StringComparison.Ordinal), "play API responses must be marked private and non-cacheable.");
+    Assert(source.Contains("ApplyPrivateMobileDocumentHeaders(context.Response)", StringComparison.Ordinal), "play API responses must be private, non-cacheable, and no-referrer.");
     Assert(source.Contains("context.Response.OnStarting(() =>", StringComparison.Ordinal), "play API no-store headers must be applied to successful and denied responses.");
     Assert(source.Contains("context.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment()", StringComparison.Ordinal), "development mode must remain explicit for local test/dev play API access.");
     Assert(source.Contains("IPAddress.IsLoopback(remoteAddress)", StringComparison.Ordinal), "loopback requests must remain the only implicit production trust case.");
@@ -2236,6 +2321,17 @@ static async Task VerifyIndexShellBindsContextualActionLabelsAsync()
     Assert(html.Contains("document.getElementById(\"shell-status\").textContent = payload.currentSceneSummary || \"No current scene summary is available yet.\";", StringComparison.Ordinal), "play shell must bind the hero status line to the current scene summary.");
     Assert(html.Contains("document.getElementById(\"shell-continuity-status\").textContent = payload.mobileCampaignCurrentState || \"No mobile continuity posture is available yet.\";", StringComparison.Ordinal), "play shell must bind the hero continuity status.");
     Assert(html.Contains("document.getElementById(\"shell-restore-status\").textContent = restorePayload.resumeSummary || \"No claimed-device recovery summary is available yet.\";", StringComparison.Ordinal), "play shell must bind the hero restore status.");
+    Assert(html.Contains("function normalizePlayRouteForMobileShell(href, roleFallback, sessionIdFallback, deviceFallback)", StringComparison.Ordinal), "play shell must normalize hero /play routes into role-specific mobile PWA routes with claimed-device context.");
+    Assert(html.Contains("function syncHeroActionMenu()", StringComparison.Ordinal), "play shell must sync the hero action menu to the same role-specific mobile PWA targets as the direct links.");
+    Assert(html.Contains("menu.dataset.playHref = document.getElementById(\"shell-play-action-link\").href;", StringComparison.Ordinal), "play shell hero action menu must snapshot the direct Play PWA href before selection.");
+    Assert(html.Contains("function navigateHeroAction(action)", StringComparison.Ordinal), "play shell must navigate immediately when a hero menu action is selected.");
+    Assert(html.Contains("case \"play\":\n        return menu.dataset.playHref || document.getElementById(\"shell-play-action-link\").href;", StringComparison.Ordinal), "play shell hero menu Play action must resolve to the direct Play PWA href.");
+    Assert(html.Contains("if (targetHref) {\n      window.location.assign(targetHref);\n    }", StringComparison.Ordinal), "play shell hero menu selection must assign the target href immediately.");
+    Assert(html.Contains("document.getElementById(\"shell-hero-action-menu\").addEventListener(\"change\"", StringComparison.Ordinal), "play shell must wire the hero action menu selection event.");
+    Assert(html.Contains("event.target.value = \"\";\n    navigateHeroAction(action);", StringComparison.Ordinal), "play shell hero action menu must reset the selector and launch the selected route in the same change handler.");
+    Assert(html.Contains("const deviceId = playParams.get(\"deviceId\") || deviceFallback || activeShellIdentity.deviceId || \"\";", StringComparison.Ordinal), "play shell mobile route normalization must preserve the active claimed-device id.");
+    Assert(html.Contains("playParams.set(\"deviceId\", deviceId);", StringComparison.Ordinal), "play shell mobile route normalization must write the claimed-device id into the mobile launch query.");
+    Assert(html.Contains("setLink(\"shell-play-action-link\", \"/play\", \"Play\", \"/play\", \"Play\");", StringComparison.Ordinal), "play shell hero Play action must launch the role-specific mobile PWA immediately.");
     Assert(html.Contains("setLink(\"shell-primary-action-link\", primaryActionHref, primaryActionText, \"/play\", \"Open safe next step\");", StringComparison.Ordinal), "play shell must bind the hero primary action to the safe-next-step route.");
     Assert(html.Contains("setLink(\"shell-secondary-action-link\", secondaryActionHref, secondaryActionText, \"/contact\", \"Open support route\");", StringComparison.Ordinal), "play shell must bind the hero secondary action to the support route.");
     Assert(html.Contains("document.getElementById(\"shell-install-button\").addEventListener(\"click\", async () => {", StringComparison.Ordinal), "play shell must bind the install action to the deferred PWA prompt.");
@@ -2343,13 +2439,18 @@ static async Task VerifyTurnCompanionProjectionStaysBoundedAndComputesOddsAsync(
     try
     {
         var service = app.Services.GetRequiredService<PlayTurnCompanionService>();
-        var projection = await service.GetProjectionAsync(sessionId, PlaySurfaceRole.Player);
+        var projection = await service.GetProjectionAsync(sessionId, PlaySurfaceRole.Player, "player-shell-main");
 
         Assert(projection.CanMutate, "player turn companion projection must stay editable on the claimed player lane");
         Assert(projection.ShellSummary.Contains("Claimed player actor", StringComparison.Ordinal), "turn companion must keep the claimed player actor explicit");
-        Assert(projection.LocalBoundarySummary.Contains("Install-local turn tracker", StringComparison.Ordinal), "turn companion must keep the local tracker boundary explicit");
+        Assert(projection.LocalBoundarySummary.Contains("Open-tab turn tracker", StringComparison.Ordinal), "turn companion must keep the memory-only open-tab tracker boundary explicit");
         Assert(projection.Trust.StatusLabel.Length > 0, "turn companion must expose a named trust posture");
-        Assert(projection.Trust.Labels.Any(item => item.Contains("Owner route:", StringComparison.Ordinal)), "turn companion trust posture must keep the owner route visible");
+        Assert(projection.Trust.Labels.Any(item =>
+            item.Contains("Owner route:", StringComparison.Ordinal)
+            && item.Contains("/mobile/player?sessionId=session-turn-projection", StringComparison.Ordinal)
+            && item.Contains("role=Player", StringComparison.Ordinal)
+            && item.Contains("deviceId=player-shell-main", StringComparison.Ordinal)), "turn companion trust posture must expose the role- and device-aware player PWA handoff route");
+        Assert(projection.Sync.ClaimedDeviceSummary.Contains("/mobile/player?sessionId=session-turn-projection", StringComparison.Ordinal), "turn companion sync surface must expose the player PWA handoff route instead of only the legacy play alias");
         Assert(projection.Now.StatCards.Any(item => item.MetricId == "physical"), "turn companion now surface must expose physical tracking");
         Assert(projection.Now.StatCards.Any(item => item.MetricId == "ammo"), "turn companion now surface must expose ammo tracking");
         Assert(projection.Act.Actions.Any(item => item.ActionId == "attack"), "turn companion act surface must expose a bounded attack rail");
@@ -2421,7 +2522,8 @@ static async Task VerifyTurnCompanionPlayerProjectionCoversRequestedLiveTrackers
             projection.Resolve.OddsSummary.Contains("1+ hit", StringComparison.Ordinal),
             "player turn companion must show fast odds before rolling");
         Assert(
-            projection.History.Entries.First().Detail.Contains("do not replace engine or GM authority", StringComparison.Ordinal),
+            projection.History.Entries.First().Detail.Contains("do not replace engine or GM authority", StringComparison.Ordinal)
+            && projection.History.Entries.First().Detail.Contains("discarded when this page closes or reloads", StringComparison.Ordinal),
             "player turn companion history seed must keep the shell explicitly bounded away from full character-builder authority");
         Assert(
             projection.Runsite.Anchors.Any(item => item.AnchorId == "server-room"),
@@ -2450,8 +2552,10 @@ static async Task VerifyTurnCompanionGmProjectionStaysBoundedAndRoleSpecificAsyn
         Assert(projection.CanMutate, "gm turn companion projection must stay editable on the claimed GM lane");
         Assert(projection.Now.ActorLabel.Contains("GM focus actor", StringComparison.Ordinal), "gm turn companion must keep the GM focus actor explicit");
         Assert(projection.Trust.Labels.Any(item =>
-            item.Contains("/play/", StringComparison.Ordinal)
-            && item.Contains("role=GameMaster", StringComparison.Ordinal)), "gm turn companion trust posture must keep the role-concrete GM owner route visible");
+            item.Contains("/mobile/gm?sessionId=session-turn-gm-projection", StringComparison.Ordinal)
+            && item.Contains("role=GameMaster", StringComparison.Ordinal)
+            && item.Contains("deviceId=gm-shell-main", StringComparison.Ordinal)), "gm turn companion trust posture must keep the role- and device-aware GM PWA handoff route visible");
+        Assert(!projection.Trust.Labels.Any(item => item.Contains("/play/session-turn-gm-projection", StringComparison.Ordinal)), "gm turn companion trust posture must not leak the legacy play alias as its visible PWA handoff");
         Assert(projection.Act.Actions.Any(item => item.ActionId == "advance-initiative"), "gm turn companion action rail must expose advance-initiative");
         Assert(projection.Act.Actions.Any(item => item.ActionId == "reveal-threat"), "gm turn companion action rail must expose reveal-threat");
         Assert(projection.Act.Actions.All(item => item.ActionId != "use-consumable"), "gm turn companion action rail must not expose player-only consumable actions");
@@ -2684,96 +2788,161 @@ static async Task VerifyTurnCompanionReplayQueueRoundTripsAsync()
     }
 }
 
-static async Task VerifyTurnCompanionRouteRendersBlazorShellAsync()
+static async Task VerifyPublicMobileRoutesRenderInstallOnlyShellAsync()
 {
-    var app = PlayWebApplication.Build([]);
+    var baseUrl = $"http://127.0.0.1:{FindFreeTcpPort()}";
+    var app = PlayWebApplication.Build(["--urls", baseUrl]);
 
     try
     {
-        var response = await ExecuteRouteBodyResponseAsync(
-            app,
-            HttpMethod.Get,
-            "/mobile",
-            "?sessionId=session-turn-route&role=Player&deviceId=player-shell-route");
+        await app.StartAsync();
+        using var client = new HttpClient
+        {
+            BaseAddress = new Uri(baseUrl)
+        };
 
-        Assert(response.StatusCode == StatusCodes.Status200OK, "mobile turn companion route must return a normal page response");
-        Assert(response.Body.Contains("Live-session turn companion", StringComparison.Ordinal), "mobile turn companion route must render the bounded shell headline");
-        Assert(response.Body.Contains("Choose one bounded action", StringComparison.Ordinal), "mobile turn companion route must render the action rail");
-        Assert(response.Body.Contains("Source-backed modifier stack", StringComparison.Ordinal), "mobile turn companion route must render the modifier surface");
-        Assert(response.Body.Contains("Replay and acknowledge with intent", StringComparison.Ordinal), "mobile turn companion route must render the reconnect and replay surface");
-        Assert(response.Body.Contains("Recent deltas and queued receipts", StringComparison.Ordinal), "mobile turn companion route must render the history surface");
-        Assert(response.Body.Contains("Claimed Device", StringComparison.Ordinal), "mobile turn companion route must render the claimed-device continuity card");
-        Assert(response.Body.Contains("turn-claim-device-button", StringComparison.Ordinal), "mobile turn companion route must render the continuity claim action");
-        Assert(response.Body.Contains("turn-owner-route-link", StringComparison.Ordinal), "mobile turn companion route must render the owner-route follow-through");
-        Assert(response.Body.Contains("turn-install-status", StringComparison.Ordinal), "mobile turn companion route must render the install-boundary status surface");
-        Assert(response.Body.Contains("turn-install-button", StringComparison.Ordinal), "mobile turn companion route must render the direct install action");
-        Assert(response.Body.Contains("turn-install-detail", StringComparison.Ordinal), "mobile turn companion route must render install guidance beside the action");
-        Assert(response.Body.Contains("turn-jump-nav", StringComparison.Ordinal), "mobile turn companion route must render the quick jump rail for handheld play.");
-        Assert(response.Body.Contains("turn-glance-grid", StringComparison.Ordinal), "mobile turn companion route must render the quick-glance tracker strip for handheld play.");
-        Assert(response.Body.Contains("turn-now-card", StringComparison.Ordinal), "mobile turn companion route must keep the live tracker card as a direct handheld anchor target.");
-        Assert(response.Body.Contains("data-device-id=\"player-shell-route\"", StringComparison.Ordinal), "mobile turn companion route must preserve the claimed-device id on the shell root");
-        Assert(response.Body.Contains("/mobile.css", StringComparison.Ordinal), "mobile turn companion route must bind the dedicated mobile stylesheet");
-        Assert(response.Body.Contains("/mobile-turn-companion.js", StringComparison.Ordinal), "mobile turn companion route must load the dedicated client runtime.");
-        Assert(response.Body.Contains("turn-companion-bootstrap", StringComparison.Ordinal), "mobile turn companion route must emit a client bootstrap payload.");
-        Assert(!response.Body.Contains("_framework/blazor.web.js", StringComparison.Ordinal), "mobile turn companion route must render without the Blazor interactive framework script.");
+        var httpResponse = await client.GetAsync("/mobile/player?sessionId=session-turn-route&role=Player&deviceId=player-shell-route");
+        var body = await httpResponse.Content.ReadAsStringAsync();
+
+        Assert((int)httpResponse.StatusCode == StatusCodes.Status200OK, "mobile turn companion route must return a normal page response");
+        Assert(httpResponse.Headers.CacheControl?.NoStore == true && httpResponse.Headers.CacheControl.Private == true, "mobile projection documents must be private and no-store");
+        Assert(httpResponse.Headers.TryGetValues("Referrer-Policy", out var playerReferrerPolicies)
+            && playerReferrerPolicies.Contains("no-referrer", StringComparer.OrdinalIgnoreCase), "mobile projection documents must not forward private session routes as referrers");
+        Assert(body.Contains("Chummer Play · install shell", StringComparison.Ordinal), "public mobile route must identify itself as the install-only shell");
+        Assert(body.Contains("Install the companion. Join play from a trusted invitation.", StringComparison.Ordinal), "public mobile route must explain the trusted invitation boundary");
+        Assert(body.Contains("data-play-surface=\"install-only\"", StringComparison.Ordinal), "public mobile route must declare its install-only surface");
+        Assert(body.Contains("data-live-session=\"unavailable\"", StringComparison.Ordinal), "public mobile route must not claim a live session");
+        Assert(body.Contains("data-authority=\"none\"", StringComparison.Ordinal), "public mobile route must not grant table authority");
+        Assert(body.Contains("turn-install-status", StringComparison.Ordinal), "public mobile route must render the install status surface");
+        Assert(body.Contains("turn-install-button", StringComparison.Ordinal), "public mobile route must render the direct install action");
+        Assert(body.Contains("turn-manual-install-help", StringComparison.Ordinal), "public mobile route must render platform-specific manual install guidance");
+        Assert(!body.Contains("session-turn-route", StringComparison.Ordinal), "public mobile route must not echo a query-supplied session id");
+        Assert(!body.Contains("player-shell-route", StringComparison.Ordinal), "public mobile route must not echo a query-supplied device id");
+        Assert(body.Contains("/manifest.player.webmanifest", StringComparison.Ordinal), "player mobile turn companion route must advertise the player-specific PWA manifest.");
+        Assert(body.Contains("/mobile.css", StringComparison.Ordinal), "mobile turn companion route must bind the dedicated mobile stylesheet");
+        Assert(body.Contains("/mobile-install-shell.js", StringComparison.Ordinal), "public mobile route must load only the bounded install runtime.");
+        Assert(!body.Contains("/mobile-turn-companion.js", StringComparison.Ordinal), "public mobile route must not load the private turn-companion runtime.");
+        Assert(!body.Contains("data-blazor-shell=\"interactive-server\"", StringComparison.Ordinal), "public mobile route must not claim an interactive live-session shell.");
+        Assert(!body.Contains("turn-companion-bootstrap", StringComparison.Ordinal), "public mobile route must not emit private session bootstrap state.");
+
+        var gmResponse = await client.GetAsync("/mobile/gm?sessionId=session-turn-route&role=GameMaster&deviceId=gm-shell-route");
+        var gmBody = await gmResponse.Content.ReadAsStringAsync();
+        Assert((int)gmResponse.StatusCode == StatusCodes.Status200OK, "GM mobile turn companion route must return a normal page response");
+        Assert(gmBody.Contains("/manifest.gm.webmanifest", StringComparison.Ordinal), "GM mobile turn companion route must advertise the GM-specific PWA manifest.");
+        Assert(gmBody.Contains("GM safety boundary", StringComparison.Ordinal), "GM-labeled install route must explain that its URL grants no GM authority.");
+        Assert(gmBody.Contains("data-authority=\"none\"", StringComparison.Ordinal), "GM-labeled install route must remain authority-free.");
+        Assert(!gmBody.Contains("gm-shell-route", StringComparison.Ordinal), "GM-labeled install route must not echo a query-supplied device id.");
+
+        var conflictingRoleResponse = await client.GetAsync("/mobile/gm?role=Player");
+        var conflictingRoleBody = await conflictingRoleResponse.Content.ReadAsStringAsync();
+        Assert(conflictingRoleBody.Contains("/manifest.gm.webmanifest", StringComparison.Ordinal), "the canonical path label must win over a conflicting legacy role query");
+        Assert(conflictingRoleBody.Contains("data-authority=\"none\"", StringComparison.Ordinal), "a conflicting role query must not grant table authority");
+
+        var unknownModeResponse = await client.GetAsync("/mobile/not-a-role?sessionId=private-route-sentinel");
+        var unknownModeBody = await unknownModeResponse.Content.ReadAsStringAsync();
+        Assert((int)unknownModeResponse.StatusCode == StatusCodes.Status404NotFound, "unknown mobile modes must fail closed instead of rendering a default projection");
+        Assert(unknownModeResponse.Headers.CacheControl?.NoStore == true && unknownModeResponse.Headers.CacheControl.Private == true, "unknown mobile document paths must still be private and no-store");
+        Assert(unknownModeResponse.Headers.TryGetValues("Referrer-Policy", out var unknownReferrerPolicies)
+            && unknownReferrerPolicies.Contains("no-referrer", StringComparer.OrdinalIgnoreCase), "unknown mobile document paths must retain the no-referrer boundary");
+        Assert(!unknownModeBody.Contains("private-route-sentinel", StringComparison.Ordinal), "unknown mobile responses must not echo private session parameters");
+
+        var scopedWorkerResponse = await client.GetAsync("/mobile/service-worker.js");
+        Assert((int)scopedWorkerResponse.StatusCode == StatusCodes.Status200OK, "the scoped public service-worker asset must remain available");
+        Assert(scopedWorkerResponse.Headers.CacheControl?.Private != true, "the scoped public service-worker asset must not be mislabeled as a private projection document");
     }
     finally
     {
+        await app.StopAsync();
         await app.DisposeAsync();
     }
 }
 
-static async Task VerifyTurnCompanionClientRuntimeKeepsClaimedDeviceContinuityContractAsync()
+static async Task VerifyTurnCompanionClientRuntimeHardeningContractAsync()
 {
     var scriptPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "mobile-turn-companion.js");
     var script = await File.ReadAllTextAsync(scriptPath);
 
-    Assert(script.Contains("function claimedTurnRoute(sessionId, roleName, deviceId)", StringComparison.Ordinal), "mobile turn companion runtime must keep a claimed-device owner-route helper.");
-    Assert(script.Contains("function observeRoute(sessionId)", StringComparison.Ordinal), "mobile turn companion runtime must keep a continuity observe-route helper.");
-    Assert(script.Contains("function setButtonText(id, text)", StringComparison.Ordinal), "mobile turn companion runtime must keep a continuity button-text helper.");
-    Assert(script.Contains("function setLink(id, href, text)", StringComparison.Ordinal), "mobile turn companion runtime must keep an owner-route link helper.");
-    Assert(script.Contains("continuityPayload: client.continuityPayload", StringComparison.Ordinal), "mobile turn companion runtime must persist claimed-device continuity inside the local snapshot.");
-    Assert(script.Contains("serviceWorkerStatus: client.serviceWorkerStatus", StringComparison.Ordinal), "mobile turn companion runtime must persist install-boundary status inside the local snapshot.");
-    Assert(script.Contains("case \"install-shell\":", StringComparison.Ordinal), "mobile turn companion runtime must expose a direct install-shell action.");
-    Assert(script.Contains("function renderInstallSurface(client)", StringComparison.Ordinal), "mobile turn companion runtime must render a dedicated install surface.");
-    Assert(script.Contains("function installShell(client)", StringComparison.Ordinal), "mobile turn companion runtime must handle direct install requests from the mobile shell.");
-    Assert(script.Contains("await promptEvent.prompt();", StringComparison.Ordinal), "mobile turn companion runtime must drive the deferred browser install prompt when it is available.");
-    Assert(script.Contains("window.matchMedia(\"(display-mode: standalone)\")", StringComparison.Ordinal), "mobile turn companion runtime must detect installed standalone display mode.");
-    Assert(script.Contains("var lastRouteKey = storagePrefix + \"last-route\";", StringComparison.Ordinal), "mobile turn companion runtime must keep a dedicated last-route storage key for installed relaunch.");
-    Assert(script.Contains("var resumeRoute = resolveResumeRoute(params);", StringComparison.Ordinal), "mobile turn companion runtime must derive resume posture from the current launch parameters.");
-    Assert(script.Contains("function resolveResumeRoute(params)", StringComparison.Ordinal), "mobile turn companion runtime must resolve generic and role-aware resume behavior.");
-    Assert(script.Contains("function lastRouteKeyForRole(roleName)", StringComparison.Ordinal), "mobile turn companion runtime must keep per-role last-route keys.");
-    Assert(script.Contains("writeStoredValue(lastRouteKeyForRole(client.roleName), payload);", StringComparison.Ordinal), "mobile turn companion runtime must persist a role-specific last route.");
-    Assert(script.Contains("function shouldPersistGlobalLastRoute()", StringComparison.Ordinal), "mobile turn companion runtime must keep a visibility-aware guard for the install-wide resume route.");
-    Assert(script.Contains("document.visibilityState === \"visible\" || document.hasFocus()", StringComparison.Ordinal), "mobile turn companion runtime must keep background tabs from stealing the global last-route resume lane.");
-    Assert(script.Contains("resumeSource: \"session-only\"", StringComparison.Ordinal), "mobile turn companion runtime must support role-shortcut session restore even before that role has a local device lane.");
-    Assert(script.Contains("function saveLastRoute(client)", StringComparison.Ordinal), "mobile turn companion runtime must persist the last live-session lane for relaunch.");
-    Assert(script.Contains("Resumed the last claimed-device route for this install.", StringComparison.Ordinal), "mobile turn companion runtime must surface when an installed launch resumed the last lane.");
-    Assert(script.Contains("Resumed the last \" + resumeRoute.roleName + \" claimed-device route for this install.", StringComparison.Ordinal), "mobile turn companion runtime must surface role-aware relaunch status.");
-    Assert(script.Contains("Resuming \" + resumeRoute.sessionId + \" in the \" + resumeRoute.roleName + \" lane on this install.", StringComparison.Ordinal), "mobile turn companion runtime must explain when a role shortcut resumes the session on a fresh role-specific lane.");
-    Assert(script.Contains("function renderQuickGlance(client)", StringComparison.Ordinal), "mobile turn companion runtime must keep the quick-glance tracker strip synchronized with live local state.");
-    Assert(script.Contains("setText(\"turn-glance-ammo\", String(statValue(projection, \"ammo\")));", StringComparison.Ordinal), "mobile turn companion runtime must surface the current magazine value in the quick-glance strip.");
-    Assert(script.Contains("Refreshing trust, queue, and claimed-device posture for this shell.", StringComparison.Ordinal), "mobile turn companion runtime must refresh claimed-device posture on a normal online load.");
-    Assert(script.Contains("setButtonDisabled(\"turn-claim-device-button\", client.networkBusy || !navigator.onLine || !hasContinuityCursor);", StringComparison.Ordinal), "mobile turn companion runtime must keep the claim action disabled until continuity posture is ready.");
-    Assert(script.Contains("navigator.serviceWorker.register(\"/service-worker.js\", { scope: \"/\" })", StringComparison.Ordinal), "mobile turn companion runtime must register the shared service worker when the mobile shell opens directly.");
-    Assert(script.Contains("window.addEventListener(\"beforeinstallprompt\"", StringComparison.Ordinal), "mobile turn companion runtime must listen for install-prompt availability on the direct mobile shell.");
+    Assert(!script.Contains("localStorage.setItem", StringComparison.Ordinal), "private projection, replay, continuity, and device state must not be written to localStorage");
+    Assert(!script.Contains("localStorage.getItem", StringComparison.Ordinal), "private state must not be restored from localStorage");
+    Assert(script.Contains("purgeLegacyPrivateDeviceStorage();", StringComparison.Ordinal), "startup must purge owned legacy private storage keys");
+    Assert(script.Contains("var ephemeralDeviceIds = Object.create(null);", StringComparison.Ordinal), "generated device ids must remain in open-page memory");
+    Assert(script.Contains("localReplayQueue: []", StringComparison.Ordinal), "the replay queue must begin as open-tab memory only");
+    Assert(script.Contains("continuityPayload: null", StringComparison.Ordinal), "continuity secrets must begin as open-tab memory only");
+    Assert(script.Contains("params.delete(\"sessionId\")", StringComparison.Ordinal)
+        && script.Contains("params.delete(\"deviceId\")", StringComparison.Ordinal)
+        && script.Contains("params.delete(\"role\")", StringComparison.Ordinal), "private launch identity must be removed from the visible route after bootstrap");
+    Assert(script.IndexOf("inferRoleFromPath(window.location.pathname)", StringComparison.Ordinal)
+        < script.IndexOf("params.get(\"role\")", StringComparison.Ordinal), "canonical role paths must win over conflicting legacy role queries");
+    Assert(script.Contains("function isClickHandledTurnKind(turnKind)", StringComparison.Ordinal), "delegated clicks must be restricted to click-native controls");
+    Assert(script.Contains("turnKind !== \"toggle-modifier\" && turnKind !== \"select-anchor\"", StringComparison.Ordinal), "checkboxes and selects must retain native change behavior");
+    Assert(script.Contains("var logicalFocus = captureLogicalFocus();", StringComparison.Ordinal)
+        && script.Contains("restoreLogicalFocus(logicalFocus);", StringComparison.Ordinal), "dynamic rendering must restore logical control focus");
+    Assert(script.Contains("aria-pressed=\\\"\" + (action.selected ? \"true\" : \"false\")", StringComparison.Ordinal), "dynamic action choices must expose aria-pressed state");
+    Assert(script.Contains("Decrease \" + card.label + \", currently ", StringComparison.Ordinal)
+        && script.Contains("Increase \" + card.label + \", currently ", StringComparison.Ordinal), "dynamic steppers must expose specific accessible names");
+    Assert(script.Contains("if (window[windowListenersBoundName])", StringComparison.Ordinal), "window lifecycle listeners must be bound once");
+    Assert(script.Contains("cancelTurnCompanionInitializationRetries();", StringComparison.Ordinal), "successful initialization must cancel retry timers");
+    Assert(!script.Contains("window.location.assign(href);", StringComparison.Ordinal), "role analytics must not hijack native modified-link navigation");
+    Assert(script.Contains("navigator.serviceWorker.register(\"/mobile/service-worker.js\", { scope: \"/mobile/\" })", StringComparison.Ordinal), "Play must register only its narrow mobile service-worker scope");
+    Assert(script.Contains("Private table state stays in memory for this open page only.", StringComparison.Ordinal), "runtime copy must state the open-tab privacy boundary");
+    Assert(script.Contains("This handoff remains available only while this page stays open", StringComparison.Ordinal), "handoff copy must not claim install-local persistence");
+    Assert(script.Contains("case \"clear-private-device-data\":", StringComparison.Ordinal), "users must have an explicit private-data clear action");
+    Assert(script.Contains("function sessionHandoffHref(ownerRoute, client)", StringComparison.Ordinal)
+        && !script.Contains("handoffParams.set(\"deviceId\"", StringComparison.Ordinal), "shared handoffs must preserve session role without copying sender device identity");
+    Assert(script.Contains("function isAnalyticsBlocked()", StringComparison.Ordinal)
+        && script.Contains("navigator.globalPrivacyControl === true", StringComparison.Ordinal), "bounded analytics must honor DNT and Global Privacy Control");
 }
 
 static async Task VerifyTurnCompanionManifestTargetsDirectMobilePwaAsync()
 {
     var manifestPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "manifest.webmanifest");
+    var playerManifestPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "manifest.player.webmanifest");
+    var gmManifestPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "manifest.gm.webmanifest");
+    var turnCompanionPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "Components", "Pages", "MobileTurnCompanionPage.razor");
+    var serviceWorkerPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "wwwroot", "service-worker.js");
     var manifestText = await File.ReadAllTextAsync(manifestPath);
+    var playerManifestText = await File.ReadAllTextAsync(playerManifestPath);
+    var gmManifestText = await File.ReadAllTextAsync(gmManifestPath);
+    var turnCompanionSource = await File.ReadAllTextAsync(turnCompanionPath);
+    var serviceWorkerSource = await File.ReadAllTextAsync(serviceWorkerPath);
     using JsonDocument manifest = JsonDocument.Parse(manifestText);
+    using JsonDocument playerManifest = JsonDocument.Parse(playerManifestText);
+    using JsonDocument gmManifest = JsonDocument.Parse(gmManifestText);
     JsonElement root = manifest.RootElement;
+    JsonElement playerRoot = playerManifest.RootElement;
+    JsonElement gmRoot = gmManifest.RootElement;
+    static bool ManifestHasAdaptivePngIcon(JsonElement manifestRoot, string src)
+    {
+        return manifestRoot.TryGetProperty("icons", out JsonElement manifestIcons)
+            && manifestIcons.ValueKind == JsonValueKind.Array
+            && manifestIcons.EnumerateArray().Any(item =>
+                string.Equals(item.GetProperty("src").GetString(), src, StringComparison.Ordinal)
+                && string.Equals(item.GetProperty("type").GetString(), "image/png", StringComparison.Ordinal)
+                && (item.GetProperty("purpose").GetString() ?? string.Empty)
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Any(token => string.Equals(token, "any", StringComparison.Ordinal))
+                && (item.GetProperty("purpose").GetString() ?? string.Empty)
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Any(token => string.Equals(token, "maskable", StringComparison.Ordinal)));
+    }
+    static bool ManifestHasShortcut(JsonElement manifestRoot, string url)
+    {
+        return manifestRoot.TryGetProperty("shortcuts", out JsonElement manifestShortcuts)
+            && manifestShortcuts.ValueKind == JsonValueKind.Array
+            && manifestShortcuts.EnumerateArray().Any(item =>
+                string.Equals(item.GetProperty("url").GetString(), url, StringComparison.Ordinal));
+    }
 
     Assert(root.TryGetProperty("id", out JsonElement idElement), "mobile manifest must declare a stable app id.");
     Assert(string.Equals(idElement.GetString(), "/mobile", StringComparison.Ordinal), "mobile manifest id must target the direct turn companion shell.");
     Assert(root.TryGetProperty("start_url", out JsonElement startUrlElement), "mobile manifest must declare a start_url.");
-    Assert(string.Equals(startUrlElement.GetString(), "/mobile", StringComparison.Ordinal), "mobile manifest start_url must launch the generic mobile shell so installed relaunch can resume the last claimed-device lane.");
+    Assert(string.Equals(startUrlElement.GetString(), "/mobile/player", StringComparison.Ordinal), "mobile manifest start_url must launch the player mobile shell.");
+    Assert(root.TryGetProperty("scope", out JsonElement scopeElement), "mobile manifest must declare an explicit scope.");
+    Assert(string.Equals(scopeElement.GetString(), "/mobile/", StringComparison.Ordinal), "mobile manifest scope must stay constrained to mobile turn-companion routes.");
     Assert(root.TryGetProperty("shortcuts", out JsonElement shortcutsElement) && shortcutsElement.ValueKind == JsonValueKind.Array, "mobile manifest must expose direct launch shortcuts.");
     Assert(shortcutsElement.GetArrayLength() >= 2, "mobile manifest must expose both player and GM launch shortcuts.");
-    Assert(shortcutsElement.EnumerateArray().Any(item => string.Equals(item.GetProperty("url").GetString(), "/mobile?role=Player", StringComparison.Ordinal)), "mobile manifest must keep a direct player companion shortcut.");
-    Assert(shortcutsElement.EnumerateArray().Any(item => string.Equals(item.GetProperty("url").GetString(), "/mobile?role=GameMaster", StringComparison.Ordinal)), "mobile manifest must keep a direct GM companion shortcut.");
+    Assert(shortcutsElement.EnumerateArray().Any(item => string.Equals(item.GetProperty("url").GetString(), "/mobile/player", StringComparison.Ordinal)), "mobile manifest must expose the query-free player install-shell shortcut.");
+    Assert(shortcutsElement.EnumerateArray().Any(item => string.Equals(item.GetProperty("url").GetString(), "/mobile/gm", StringComparison.Ordinal)), "mobile manifest must expose the query-free GM install-shell shortcut.");
     Assert(root.TryGetProperty("icons", out JsonElement iconsElement) && iconsElement.ValueKind == JsonValueKind.Array, "mobile manifest must declare install icons.");
     Assert(iconsElement.EnumerateArray().Any(item =>
         string.Equals(item.GetProperty("src").GetString(), "/icons/icon-192.png", StringComparison.Ordinal)
@@ -2783,19 +2952,73 @@ static async Task VerifyTurnCompanionManifestTargetsDirectMobilePwaAsync()
         string.Equals(item.GetProperty("src").GetString(), "/icons/icon-512.png", StringComparison.Ordinal)
         && string.Equals(item.GetProperty("type").GetString(), "image/png", StringComparison.Ordinal)),
         "mobile manifest must expose a 512px PNG install icon.");
+    Assert(ManifestHasAdaptivePngIcon(root, "/icons/icon-192.png"), "mobile manifest must expose an adaptive 192px any+maskable PNG install icon.");
+    Assert(ManifestHasAdaptivePngIcon(root, "/icons/icon-512.png"), "mobile manifest must expose an adaptive 512px any+maskable PNG install icon.");
+
+    Assert(string.Equals(playerRoot.GetProperty("id").GetString(), "/mobile/player", StringComparison.Ordinal), "player manifest must declare a role-specific player app id.");
+    Assert(string.Equals(playerRoot.GetProperty("start_url").GetString(), "/mobile/player", StringComparison.Ordinal), "player manifest must launch the query-free player install shell directly.");
+    Assert(string.Equals(playerRoot.GetProperty("scope").GetString(), "/mobile/", StringComparison.Ordinal), "player manifest scope must stay constrained to mobile turn-companion routes.");
+    Assert(ManifestHasShortcut(playerRoot, "/mobile/player"), "player manifest must expose a query-free player self-launch shortcut.");
+    Assert(ManifestHasShortcut(playerRoot, "/mobile/gm"), "player manifest must expose a query-free GM install-shell shortcut.");
+    Assert(ManifestHasAdaptivePngIcon(playerRoot, "/icons/icon-192.png"), "player manifest must expose an adaptive 192px any+maskable PNG install icon.");
+    Assert(ManifestHasAdaptivePngIcon(playerRoot, "/icons/icon-512.png"), "player manifest must expose an adaptive 512px any+maskable PNG install icon.");
+    Assert(string.Equals(gmRoot.GetProperty("id").GetString(), "/mobile/gm", StringComparison.Ordinal), "GM manifest must declare a role-specific GM app id.");
+    Assert(string.Equals(gmRoot.GetProperty("start_url").GetString(), "/mobile/gm", StringComparison.Ordinal), "GM manifest must launch the query-free GM install shell directly.");
+    Assert(string.Equals(gmRoot.GetProperty("scope").GetString(), "/mobile/", StringComparison.Ordinal), "GM manifest scope must stay constrained to mobile turn-companion routes.");
+    Assert(ManifestHasShortcut(gmRoot, "/mobile/gm"), "GM manifest must expose a query-free GM self-launch shortcut.");
+    Assert(ManifestHasShortcut(gmRoot, "/mobile/player"), "GM manifest must expose a query-free player install-shell shortcut.");
+    Assert(ManifestHasAdaptivePngIcon(gmRoot, "/icons/icon-192.png"), "GM manifest must expose an adaptive 192px any+maskable PNG install icon.");
+    Assert(ManifestHasAdaptivePngIcon(gmRoot, "/icons/icon-512.png"), "GM manifest must expose an adaptive 512px any+maskable PNG install icon.");
+    Assert(turnCompanionSource.Contains("<link rel=\"manifest\" href=\"@ManifestHref\" />", StringComparison.Ordinal), "public install shell must advertise the manifest selected from its canonical path label.");
+    Assert(turnCompanionSource.Contains("@page \"/mobile\"", StringComparison.Ordinal)
+        && turnCompanionSource.Contains("@page \"/mobile/player\"", StringComparison.Ordinal)
+        && turnCompanionSource.Contains("@page \"/mobile/gm\"", StringComparison.Ordinal)
+        && turnCompanionSource.Contains("@page \"/mobile/observer\"", StringComparison.Ordinal)
+        && !turnCompanionSource.Contains("/mobile/{Mode?}", StringComparison.Ordinal), "public install shell must fail closed to the explicit supported install-label routes.");
+    Assert(turnCompanionSource.Contains("private string RoutePath => new Uri(NavigationManager.Uri).AbsolutePath", StringComparison.Ordinal), "public install shell must derive its label only from the canonical path and ignore query-supplied roles.");
+    Assert(turnCompanionSource.Contains("private string ManifestHref => RoutePath switch", StringComparison.Ordinal), "public install shell must choose its manifest from the canonical path label.");
+    Assert(turnCompanionSource.Contains("\"/mobile/gm\" => \"/manifest.gm.webmanifest\"", StringComparison.Ordinal), "public install shell must select the GM manifest for the GM-labeled path.");
+    Assert(turnCompanionSource.Contains("\"/mobile/player\" => \"/manifest.player.webmanifest\"", StringComparison.Ordinal), "public install shell must select the player manifest for the player-labeled path.");
+    Assert(turnCompanionSource.Contains("\"/mobile/observer\" => \"/manifest.observer.webmanifest\"", StringComparison.Ordinal), "public install shell must select the observer manifest for the observer-labeled path.");
+    Assert(turnCompanionSource.Contains("<script src=\"/mobile-install-shell.js\" defer></script>", StringComparison.Ordinal), "public install shell must load only the bounded install runtime.");
+    Assert(turnCompanionSource.Contains("data-play-surface=\"install-only\"", StringComparison.Ordinal)
+        && turnCompanionSource.Contains("data-live-session=\"unavailable\"", StringComparison.Ordinal)
+        && turnCompanionSource.Contains("data-authority=\"none\"", StringComparison.Ordinal), "public install shell must declare that it carries no live session or table authority.");
+    Assert(turnCompanionSource.Contains("Use an invitation issued by your table.", StringComparison.Ordinal), "public install shell must direct users through the trusted invitation boundary.");
+    Assert(turnCompanionSource.Contains("private bool IsGmLabel => RoutePath == \"/mobile/gm\";", StringComparison.Ordinal)
+        && turnCompanionSource.Contains("GM safety boundary", StringComparison.Ordinal), "GM-labeled install path must explain that the URL grants no GM authority.");
+    Assert(!turnCompanionSource.Contains("/mobile-turn-companion.js", StringComparison.Ordinal), "public install shell must not load the private turn-companion runtime.");
+    Assert(!turnCompanionSource.Contains("turn-companion-bootstrap", StringComparison.Ordinal), "public install shell must not emit private session bootstrap state.");
+    Assert(!turnCompanionSource.Contains("chummer-play-analytics-config", StringComparison.Ordinal)
+        && !turnCompanionSource.Contains("RYBBIT_CHUMMER_PLAY", StringComparison.Ordinal), "public install shell must not emit route-local analytics configuration.");
+    Assert(serviceWorkerSource.Contains("\"/manifest.player.webmanifest\"", StringComparison.Ordinal), "service worker must precache the player-specific manifest.");
+    Assert(serviceWorkerSource.Contains("\"/manifest.gm.webmanifest\"", StringComparison.Ordinal), "service worker must precache the GM-specific manifest.");
+    Assert(serviceWorkerSource.Contains("\"/manifest.observer.webmanifest\"", StringComparison.Ordinal), "service worker must precache the observer-specific manifest.");
+    Assert(!serviceWorkerSource.Contains("function cacheMobileNavigationPath", StringComparison.Ordinal), "service worker must not cache rendered role-route projections.");
+    Assert(!serviceWorkerSource.Contains("function cacheMobileNavigationResponse", StringComparison.Ordinal), "service worker must not store private navigation fallbacks.");
+    Assert(!serviceWorkerSource.Contains("\"/mobile/player?role=Player\"", StringComparison.Ordinal), "service worker must not precache exact player PWA start URLs with query state.");
+    Assert(!serviceWorkerSource.Contains("\"/mobile/gm?role=GameMaster\"", StringComparison.Ordinal), "service worker must not precache exact GM PWA start URLs with query state.");
 }
 
 static async Task VerifyTurnCompanionAppShellDeclaresMobileInstallMetadataAsync()
 {
     var appPath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "Components", "App.razor");
+    var installPagePath = Path.Combine(GetRepoRoot(), "src", "Chummer.Play.Web", "Components", "Pages", "MobileTurnCompanionPage.razor");
     var appShell = await File.ReadAllTextAsync(appPath);
+    var installPage = await File.ReadAllTextAsync(installPagePath);
 
     Assert(appShell.Contains("<meta name=\"theme-color\" content=\"#0f1b26\" />", StringComparison.Ordinal), "mobile app shell must declare the PWA theme color.");
     Assert(appShell.Contains("<meta name=\"mobile-web-app-capable\" content=\"yes\" />", StringComparison.Ordinal), "mobile app shell must declare standard standalone capability.");
     Assert(appShell.Contains("<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />", StringComparison.Ordinal), "mobile app shell must declare Apple standalone capability.");
     Assert(appShell.Contains("<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\" />", StringComparison.Ordinal), "mobile app shell must declare Apple status-bar posture.");
-    Assert(appShell.Contains("<meta name=\"apple-mobile-web-app-title\" content=\"Chummer Play\" />", StringComparison.Ordinal), "mobile app shell must declare an Apple install title.");
+    Assert(!appShell.Contains("apple-mobile-web-app-title", StringComparison.Ordinal), "shared app shell must not hard-code one Apple title ahead of the route-specific install label.");
+    Assert(installPage.Contains("<meta name=\"apple-mobile-web-app-title\" content=\"@AppleAppTitle\" />", StringComparison.Ordinal), "public install page must declare its route-specific Apple install title.");
+    Assert(installPage.Contains("private string AppleAppTitle => RoutePath switch", StringComparison.Ordinal)
+        && installPage.Contains("\"/mobile/gm\" => \"Chummer GM\"", StringComparison.Ordinal)
+        && installPage.Contains("\"/mobile/player\" => \"Chummer Player\"", StringComparison.Ordinal)
+        && installPage.Contains("\"/mobile/observer\" => \"Chummer Observer\"", StringComparison.Ordinal), "public install page must bind distinct Apple titles to the canonical install-label paths.");
     Assert(appShell.Contains("<link rel=\"apple-touch-icon\" href=\"/icons/apple-touch-icon.png\" />", StringComparison.Ordinal), "mobile app shell must declare the Apple touch icon.");
+    Assert(!appShell.Contains("href=\"/manifest.webmanifest\"", StringComparison.Ordinal), "mobile app shell must not hard-code the generic manifest ahead of the role-specific route manifest.");
 }
 
 static async Task VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync()
@@ -4504,62 +4727,6 @@ static async Task<(int StatusCode, string Location)> ExecuteRouteResponseAsync(
     return (context.Response.StatusCode, context.Response.Headers.Location.ToString());
 }
 
-static async Task<(int StatusCode, string Body)> ExecuteRouteBodyResponseAsync(
-    WebApplication app,
-    HttpMethod method,
-    string route,
-    string query = "",
-    string? jsonBody = null,
-    IReadOnlyDictionary<string, string>? routeValues = null)
-{
-    var endpointRouteBuilder = (IEndpointRouteBuilder)app;
-    var endpoint = endpointRouteBuilder
-        .DataSources
-        .SelectMany(static source => source.Endpoints)
-        .OfType<RouteEndpoint>()
-        .FirstOrDefault(candidate =>
-            candidate.RequestDelegate is not null
-            && MethodMatches(candidate, method)
-            && RouteMatches(candidate, route));
-    if (endpoint is null)
-    {
-        throw new InvalidOperationException($"Could not resolve endpoint for route '{route}' and method '{method.Method}'.");
-    }
-
-    var context = new DefaultHttpContext
-    {
-        RequestServices = app.Services,
-    };
-    context.Request.Method = method.Method;
-    context.Request.Scheme = "http";
-    context.Request.Host = new HostString("localhost");
-    context.Request.Path = NormalizePath(route);
-    context.Request.QueryString = new QueryString(query);
-    context.Response.Body = new MemoryStream();
-    context.SetEndpoint(endpoint);
-    if (routeValues is not null)
-    {
-        foreach (var routeValue in routeValues)
-        {
-            context.Request.RouteValues[routeValue.Key] = routeValue.Value;
-        }
-    }
-
-    if (!string.IsNullOrWhiteSpace(jsonBody))
-    {
-        var bytes = Encoding.UTF8.GetBytes(jsonBody);
-        context.Request.Body = new MemoryStream(bytes);
-        context.Request.ContentLength = bytes.Length;
-        context.Request.ContentType = "application/json";
-    }
-
-    await endpoint.RequestDelegate!(context);
-    context.Response.Body.Position = 0;
-    using var reader = new StreamReader(context.Response.Body, Encoding.UTF8);
-    string body = await reader.ReadToEndAsync();
-    return (context.Response.StatusCode, body);
-}
-
 static (string Route, string Query) SplitHref(string href)
 {
     int separator = href.IndexOf('?', StringComparison.Ordinal);
@@ -4569,6 +4736,13 @@ static (string Route, string Query) SplitHref(string href)
     }
 
     return (href[..separator], href[separator..]);
+}
+
+static int FindFreeTcpPort()
+{
+    using var listener = new TcpListener(IPAddress.Loopback, 0);
+    listener.Start();
+    return ((IPEndPoint)listener.LocalEndpoint).Port;
 }
 
 static bool MethodMatches(RouteEndpoint endpoint, HttpMethod method)
