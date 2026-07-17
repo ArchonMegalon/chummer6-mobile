@@ -61,6 +61,14 @@ Run ad hoc `dotnet` restore/build/run commands through the repo package-plane he
 bash scripts/ai/with-package-plane.sh build Chummer.Play.slnx --nologo
 ```
 
+The helper now serializes access to the shared `.artifacts/nuget-packages` cache with an internal `flock`, so concurrent package-plane runs do not delete each other's extracted contract packages mid-build. Override the defaults only when you need a separate lock scope or a shorter wait:
+
+```bash
+CHUMMER_PACKAGE_PLANE_LOCK_FILE=/tmp/chummer-play-alt.lock \
+CHUMMER_PACKAGE_PLANE_LOCK_TIMEOUT_SECONDS=120 \
+  bash scripts/ai/with-package-plane.sh build Chummer.Play.slnx --nologo
+```
+
 To run the published-feed package-plane cutover path for `Chummer.Play.Contracts` and `Chummer.Ui.Kit`, provide semicolon-delimited restore sources:
 
 ```bash

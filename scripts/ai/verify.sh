@@ -12,6 +12,16 @@ published_feed_sources="${CHUMMER_PUBLISHED_FEED_SOURCES:-}"
 
 cd "${repo_root}"
 
+mobile_cross_surface_refreshed=0
+materialize_mobile_release_proof() {
+  if [[ "${mobile_cross_surface_refreshed}" -eq 0 ]]; then
+    python3 scripts/materialize_mobile_cross_surface_readiness.py >/dev/null
+    mobile_cross_surface_refreshed=1
+  fi
+  python3 scripts/materialize_mobile_release_boundary.py >/dev/null
+  python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
+}
+
 test -f README.md
 test -f AGENTS.md
 test -f WORKLIST.md
@@ -53,6 +63,8 @@ test -f src/Chummer.Play.Web/BrowserState/PlayBrowserStateKeys.cs
 test -f src/Chummer.Play.Web/BrowserState/RuntimeBundleCacheEntry.cs
 test -f src/Chummer.Play.Web/wwwroot/index.html
 test -f src/Chummer.Play.Web/wwwroot/manifest.webmanifest
+test -f src/Chummer.Play.Web/wwwroot/manifest.player.webmanifest
+test -f src/Chummer.Play.Web/wwwroot/manifest.gm.webmanifest
 test -f src/Chummer.Play.Web/wwwroot/service-worker.js
 test -f src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js
 test -f src/Chummer.Play.Web/wwwroot/mobile.css
@@ -61,9 +73,16 @@ test -f src/Chummer.Play.Web/wwwroot/icons/icon-192.png
 test -f src/Chummer.Play.Web/wwwroot/icons/icon-512.png
 test -f src/Chummer.Play.Web/wwwroot/icons/icon-192.svg
 test -f src/Chummer.Play.Web/wwwroot/icons/icon-512.svg
+test -f scripts/cleanup_mobile_disposable_artifacts.py
 test -f scripts/materialize_mobile_local_release_proof.py
+test -f scripts/materialize_mobile_cross_surface_readiness.py
+test -f scripts/materialize_mobile_release_boundary.py
+test -f scripts/release/verify_mobile_release_proof.sh
+test -f scripts/run_mobile_strict_public_edge_follow_through.py
 test -f scripts/verify_mobile_pwa_runtime_smoke.py
 test -f scripts/verify_mobile_pwa_viewport_smoke.py
+test -f scripts/verify_mobile_pwa_analytics_smoke.py
+test -f scripts/verify_mobile_pwa_performance_budget.py
 test -f scripts/verify_next90_m112_mobile_campaign_continuity.py
 test -f scripts/verify_next90_m119_mobile_onboarding_continuity.py
 test -f scripts/verify_next90_m121_mobile_live_combat_confidence.py
@@ -72,6 +91,20 @@ test -f scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py
 test -f scripts/ai/repair_design_mirror.sh
 test -f scripts/ai/with-package-plane.sh
 test -f scripts/ai/verify_design_mirror.py
+test -f tests/test_with_package_plane_locking.py
+python3 -m unittest discover -s tests -p 'test_with_package_plane_locking.py' >/dev/null
+test -f tests/test_cleanup_mobile_disposable_artifacts.py
+python3 -m unittest discover -s tests -p 'test_cleanup_mobile_disposable_artifacts.py' >/dev/null
+test -f tests/test_mobile_strict_public_edge_follow_through.py
+python3 -m unittest discover -s tests -p 'test_mobile_strict_public_edge_follow_through.py' >/dev/null
+test -f tests/test_mobile_release_boundary.py
+python3 -m unittest discover -s tests -p 'test_mobile_release_boundary.py' >/dev/null
+test -f tests/test_mobile_pwa_performance_budget.py
+python3 -m unittest discover -s tests -p 'test_mobile_pwa_performance_budget.py' >/dev/null
+python3 scripts/verify_mobile_pwa_performance_budget.py >/dev/null
+test -f .codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json
+rg -n '"contract_name": "chummer_play.mobile_pwa_performance_budget.v1"' .codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json >/dev/null
+rg -n '"status": "pass"' .codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json >/dev/null
 test -f src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj
 test -f src/Chummer.Play.RegressionChecks/Program.cs
 test -f src/Chummer.Play.Core/Chummer.Play.Core.csproj
@@ -281,7 +314,7 @@ if rg -n 'DeepLinkOwnerRoute:\s*"/play/\{sessionId\}"|PlayContinuityClaimRespons
   echo "templated owner routes are not allowed in live resume/workspace responses" >&2
   exit 1
 fi
-python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
+materialize_mobile_release_proof
 python3 scripts/verify_next90_m117_mobile_artifact_shelf.py >/dev/null
 python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
 python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
@@ -355,21 +388,188 @@ rg -n 'RemoveAsync\(' src/Chummer.Play.Web/BrowserSessionOfflineCacheService.cs 
 rg -n 'PlayCachePressureSnapshot' src >/dev/null
 rg -n 'PlayResumeResponse' src >/dev/null
 rg -n 'Chummer\.Campaign\.Contracts' README.md >/dev/null
+: <<'LEGACY_QUERY_AUTHORITY_MOBILE_CONTRACT'
 rg -n '"id": "/mobile"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
-rg -n '"start_url": "/mobile"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
-rg -n '"url": "/mobile\?role=Player"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
-rg -n '"url": "/mobile\?role=GameMaster"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
-rg -n 'apple-mobile-web-app-capable|apple-mobile-web-app-title|rel="apple-touch-icon"|rel="manifest"' src/Chummer.Play.Web/Components/App.razor >/dev/null
+rg -n '"start_url": "/mobile/player"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"scope": "/mobile/"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"url": "/mobile/player\?role=Player"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"url": "/mobile/gm\?role=GameMaster"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"id": "/mobile/player"' src/Chummer.Play.Web/wwwroot/manifest.player.webmanifest >/dev/null
+rg -n '"start_url": "/mobile/player\?role=Player"' src/Chummer.Play.Web/wwwroot/manifest.player.webmanifest >/dev/null
+rg -n '"scope": "/mobile/"' src/Chummer.Play.Web/wwwroot/manifest.player.webmanifest >/dev/null
+rg -n '"purpose": "any maskable"' src/Chummer.Play.Web/wwwroot/manifest.player.webmanifest >/dev/null
+rg -n '"id": "/mobile/gm"' src/Chummer.Play.Web/wwwroot/manifest.gm.webmanifest >/dev/null
+rg -n '"start_url": "/mobile/gm\?role=GameMaster"' src/Chummer.Play.Web/wwwroot/manifest.gm.webmanifest >/dev/null
+rg -n '"scope": "/mobile/"' src/Chummer.Play.Web/wwwroot/manifest.gm.webmanifest >/dev/null
+rg -n '"purpose": "any maskable"' src/Chummer.Play.Web/wwwroot/manifest.gm.webmanifest >/dev/null
+rg -n 'apple-mobile-web-app-capable|apple-mobile-web-app-title|rel="apple-touch-icon"' src/Chummer.Play.Web/Components/App.razor >/dev/null
+rg -n 'rel="manifest" href="@RoleManifestHref"' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'manifest\.player\.webmanifest' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'manifest\.gm\.webmanifest' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'turn-share-owner-route-button' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'turn-owner-route-share-status' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'chummer-play-analytics-config' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n '@if \(RybbitAnalyticsEnabled\)' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n '=> !string.IsNullOrWhiteSpace\(RybbitAnalyticsSiteId\)' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'RYBBIT_CHUMMER_PLAY_SITE_ID' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'RYBBIT_CHUMMER_PLAY_SCRIPT_URL' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'RYBBIT_CHUMMER_PLAY_ALLOW_SAME_HOST_PROXY' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'IsAllowedRybbitEndpoint\(parsedScriptUrl\)' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'endpoint.Scheme == Uri.UriSchemeHttps' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'endpoint.IsLoopback \|\| string.Equals\(endpoint.Host, "localhost"' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'SkipPatterns:' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'MaskPatterns:' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n '/mobile/\*\*' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n '/api/play/\*\*' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'var analyticsQueueName = "ChummerPlayAnalyticsQueue";' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'function initializeMobileAnalytics\(client, resumeRoute\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'rybbit\.dataset\.skipPatterns = config\.skipPatterns' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'rybbit\.dataset\.maskPatterns = config\.maskPatterns' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'rybbit\.dataset\.replayBlockSelector = config\.replayBlockSelector' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'function isAnalyticsBlocked\(\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'window\.doNotTrack === "1"' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'navigator\.doNotTrack === "1"' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'navigator\.globalPrivacyControl === true' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'mobile_shell_open' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'mobile_install_prompt_available' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'mobile_install_prompt_open' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'mobile_install_prompt_choice' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'mobile_install_prompt_unavailable' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'mobile_role_switch' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'var resumeRoute = resolveResumeRoute\(params, requestedRoleName\);' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'function resolveResumeRoute\(params, requestedRoleName\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'var scopedRoleName = String\(requestedRoleName \|\| params\.get\("role"\) \|\| ""\)\.trim\(\);' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'function persistClientState\(client\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'document\.visibilityState === "hidden"' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'window\.addEventListener\("pagehide"' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'window\.addEventListener\("beforeunload"' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'var targetDeviceId = roleSegmentForAnalytics\(roleName\) === roleSegmentForAnalytics\(client\.roleName\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'if \(deviceId\) \{' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'if \(role == Role && !string.IsNullOrWhiteSpace\(ActiveDeviceId\)\)' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'case "share-owner-route":' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'function shareOwnerRoute\(client\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'navigator\.clipboard\.writeText\(shareUrl\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'function writeHandoffLink\(shareUrl\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'function sessionHandoffHref\(ownerRoute, client\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n ': readStoredValue\(deviceIdStorageKey\(roleName\)\);' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'window\.location\.assign\(href\);' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n '__chummerPlaySuppressRoleNavigation' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js scripts/verify_mobile_pwa_analytics_smoke.py >/dev/null
+rg -n 'window\.ChummerPlayInstallPromptForTest' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js scripts/verify_mobile_pwa_analytics_smoke.py >/dev/null
+rg -n 'window\.ChummerPlayInstallShellForTest' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js scripts/verify_mobile_pwa_analytics_smoke.py >/dev/null
+rg -n 'handoffParams\.set\("sessionId", sessionId\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'handoffParams\.set\("role", roleName\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+if rg -n 'handoffParams\.set\("deviceId"' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null 2>&1; then
+  echo "shared session handoff routes must not copy sender deviceId" >&2
+  exit 1
+fi
+rg -n 'mobile_session_handoff_share' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'return /session\|device\|token\|continuity\|owner\|secret\|key\|href\|url/i\.test\(key\);' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'function isSensitiveAnalyticsValue\(value\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'isSensitiveAnalyticsValue\(safeValue\)' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n '\(\?:session\|device\|token\|secret\|key\|continuity\|owner\)\[_-\]' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
 rg -n 'navigator\.serviceWorker\.register' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
 rg -n 'role="status" aria-live="polite" aria-atomic="true"' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
-rg -n 'CACHE_VERSION' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'min-height: 2.75rem;' src/Chummer.Play.Web/wwwroot/mobile.css >/dev/null
+rg -n 'min-width: 2.75rem;' src/Chummer.Play.Web/wwwroot/mobile.css >/dev/null
+rg -n 'stepper button' src/Chummer.Play.Web/wwwroot/mobile.css >/dev/null
+rg -n 'id="shell-play-action-link"' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'id="shell-hero-action-menu"' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'function normalizePlayRouteForMobileShell\(href, roleFallback, sessionIdFallback, deviceFallback\)' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'function syncHeroActionMenu\(\)' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'function navigateHeroAction\(action\)' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'document\.getElementById\("shell-hero-action-menu"\)\.addEventListener\("change"' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'const deviceId = playParams\.get\("deviceId"\) \|\| deviceFallback \|\| activeShellIdentity\.deviceId \|\| "";' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'playParams\.set\("deviceId", deviceId\);' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'setLink\("shell-play-action-link", "/play", "Play", "/play", "Play"\);' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'const CACHE_VERSION = "play-shell-v16";' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'function cacheMobileNavigationPath\(pathname\)' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'chummer-play-cache-current-route' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'if \(url\.search\) \{' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'event\.waitUntil\(cacheMobileNavigationPath\(url\.pathname\)\.catch\(\(\) => undefined\)\);' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'event\.waitUntil\(cacheMobileNavigationResponse\(url\.pathname, response\.clone\(\)\)\.catch\(\(\) => undefined\)\);' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+! rg -n '  "/index\.html",' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n '"/_framework/blazor\.web\.js"' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'AddInteractiveServerComponents' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
+rg -n 'AddInteractiveServerRenderMode' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
+rg -n 'StaticWebAssetsLoader\.UseStaticWebAssets' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
+rg -n 'app\.MapStaticAssets\(\);' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
+rg -n 'script src="/_framework/blazor\.web\.js"' src/Chummer.Play.Web/Components/App.razor >/dev/null
+rg -n 'data-blazor-shell="interactive-server"' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'data-enhance-nav="false"' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'page\.wait_for_selector\("#workspace-shell:not\(\[hidden\]\)", timeout=NAVIGATION_TIMEOUT_MS\)' scripts/verify_mobile_pwa_runtime_smoke.py >/dev/null
+rg -n 'page\.wait_for_selector\("\[data-turn-root\]\[data-blazor-shell='\''interactive-server'\''\]", timeout=NAVIGATION_TIMEOUT_MS\)' scripts/verify_mobile_pwa_runtime_smoke.py >/dev/null
+rg -n 'page\.wait_for_selector\("script\[src='\''/_framework/blazor\.web\.js'\''\]", state="attached", timeout=NAVIGATION_TIMEOUT_MS\)' scripts/verify_mobile_pwa_runtime_smoke.py >/dev/null
+rg -n 'const MANAGED_CACHE_PREFIXES = \[' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'function isManagedPlayCache\(cacheName\)' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n '\.filter\(\(key\) => isManagedPlayCache\(key\) && !\[SHELL_CACHE, MEDIA_CACHE, MEDIA_META_CACHE\]\.includes\(key\)\)' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'MEDIA_CACHE' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'MEDIA_MAX_ENTRIES' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'pruneMediaCache' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'QuotaExceededError|NS_ERROR_DOM_QUOTA_REACHED' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 rg -n 'play_api_network_unavailable' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'const NON_CACHEABLE_PATHS = new Set\(\[' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n '"/mobile/pwa/ledger\.json"' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'const NON_CACHEABLE_PATH_PREFIXES = \[' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n '"/account"' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n '"/api"' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'function isNonCacheableRequest\(url\)' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'play_public_route_network_unavailable' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
 if rg -n 'API_CACHE|cacheWithQuotaHandling\(API_CACHE|caches\.open\(API_CACHE\)' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null 2>&1; then
   echo "private /api/play responses must not use Cache API storage" >&2
+  exit 1
+fi
+LEGACY_QUERY_AUTHORITY_MOBILE_CONTRACT
+
+# Public install routes are role labels only. The distinct live document is
+# server-grant backed and neither query strings nor PWA shortcuts confer access.
+rg -n '"id": "/mobile"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"start_url": "/mobile/player"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"url": "/mobile/player"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"url": "/mobile/gm"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+rg -n '"url": "/mobile/observer"' src/Chummer.Play.Web/wwwroot/manifest.webmanifest >/dev/null
+for role in player gm observer; do
+  manifest="src/Chummer.Play.Web/wwwroot/manifest.${role}.webmanifest"
+  rg -n "\"id\": \"/mobile/${role}\"" "${manifest}" >/dev/null
+  rg -n "\"start_url\": \"/mobile/${role}\"" "${manifest}" >/dev/null
+  rg -n '"scope": "/mobile/"' "${manifest}" >/dev/null
+  rg -n '"purpose": "any maskable"' "${manifest}" >/dev/null
+  if rg -n 'sessionId=|deviceId=|\?role=' "${manifest}" >/dev/null 2>&1; then
+    echo "public ${role} manifest must not encode live authority" >&2
+    exit 1
+  fi
+done
+rg -n '@page "/mobile"|@page "/mobile/player"|@page "/mobile/gm"|@page "/mobile/observer"' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'data-play-surface="install-only"' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'data-authority="none"' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+rg -n 'mobile-install-shell\.js' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null
+if rg -n 'data-turn-root|mobile-turn-companion\.js|sessionId|deviceId' src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor >/dev/null 2>&1; then
+  echo "public mobile install pages must not render live-session state" >&2
+  exit 1
+fi
+rg -n '@page "/mobile/live"' src/Chummer.Play.Web/Components/Pages/MobileLiveTurnCompanionPage.razor >/dev/null
+rg -n 'data-session-grant-backed="true"' src/Chummer.Play.Web/Components/Pages/MobileLiveTurnCompanionPage.razor >/dev/null
+rg -n 'PlaySessionGrantPolicy\.ResolveCurrent' src/Chummer.Play.Web/Components/Pages/MobileLiveTurnCompanionPage.razor >/dev/null
+rg -n 'PlayRouteHandlers\.BuildMobileOwnerRoute\(\)' src/Chummer.Play.Web/Components/Pages/MobileLiveTurnCompanionPage.razor >/dev/null
+rg -n 'chummer-play-analytics-config|RYBBIT_CHUMMER_PLAY_SITE_ID|RYBBIT_CHUMMER_PLAY_SCRIPT_URL' src/Chummer.Play.Web/Components/Pages/MobileLiveTurnCompanionPage.razor >/dev/null
+rg -n 'RequireTrustedMobileLiveGrantBoundaryAsync|PlaySessionGrantPolicy\.TryResolve' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
+rg -n 'play_session_grant_required' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
+rg -n 'GrantIdHeader|SessionIdHeader|RoleHeader|DeviceIdHeader' src/Chummer.Play.Web/PlaySessionGrant.cs >/dev/null
+rg -n 'return "/mobile/live";' src/Chummer.Play.Web/PlayRouteHandlers.cs src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'void sessionIdFallback;|void deviceFallback;|return `/mobile/\$\{mode\}`;' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'function analyticsRoute\(client, config\)|return "/mobile/live";' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'function isAnalyticsBlocked\(\)|navigator\.globalPrivacyControl === true' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
+rg -n 'const CACHE_VERSION = "v21";' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'const CRITICAL_SHELL_ASSETS = \[' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n '"/manifest\.observer\.webmanifest"' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n 'const NON_CACHEABLE_PATH_PREFIXES = \[' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+rg -n '"/api"' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
+if rg -n 'CRITICAL_SHELL_ASSETS[\s\S]*mobile-turn-companion\.js|API_CACHE|cacheWithQuotaHandling\(API_CACHE|caches\.open\(API_CACHE\)' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null 2>&1; then
+  echo "private live state and APIs must not enter the public Cache API contract" >&2
+  exit 1
+fi
+rg -n '<RequiresAspNetWebAssets>false</RequiresAspNetWebAssets>' src/Chummer.Play.Web/Chummer.Play.Web.csproj >/dev/null
+if rg -n 'StaticWebAssetsLoader\.UseStaticWebAssets|app\.MapStaticAssets\(\)' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null 2>&1; then
+  echo "the hermetic web build must not require the unsupported static-web-assets pack" >&2
   exit 1
 fi
 rg -n 'request\.Cursor\.Session' src/Chummer.Play.Web >/dev/null
@@ -400,9 +600,16 @@ bash "${package_plane_runner}" build src/Chummer.Play.Gm/Chummer.Play.Gm.csproj 
 bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo
 bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo >/dev/null
 bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
+python3 scripts/verify_mobile_pwa_analytics_smoke.py >/dev/null
 python3 scripts/verify_mobile_pwa_runtime_smoke.py >/dev/null
 python3 scripts/verify_mobile_pwa_viewport_smoke.py >/dev/null
-python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
+python3 scripts/cleanup_mobile_disposable_artifacts.py >/dev/null
+python3 scripts/run_mobile_strict_public_edge_follow_through.py >/dev/null
+test -f .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json
+rg -n '"contract_name": "chummer6-mobile.strict_public_edge_follow_through.v1"' .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json >/dev/null
+rg -n '"generated_at_utc": "' .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json >/dev/null
+rg -n '"strict_follow_through": \{' .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json >/dev/null
+materialize_mobile_release_proof
 python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
 python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
 python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
@@ -411,6 +618,10 @@ python3 scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py >/dev/n
 test -f .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json
 rg -n '"contract_name": "chummer6-mobile.local_release_proof"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"status": "passed"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"generated_at": "' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"generated_at_utc": "' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"source_file_digests": \[' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"sha256": "' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"journeys_passed": \[' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"install_claim_restore_continue"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"campaign_session_recover_recap"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
@@ -418,6 +629,7 @@ rg -n '"recover_from_sync_conflict"' .codex-studio/published/MOBILE_LOCAL_RELEAS
 rg -n '"quality_release_hardening"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"pwa_runtime_smoke"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"mobile_pwa_viewport_smoke"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"mobile_pwa_analytics_smoke"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"turn_companion_live_session"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"migration_boundary_evidence"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n '"mobile_campaign_continuity"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
@@ -436,14 +648,113 @@ rg -n 'VerifyTurnCompanionRunsiteAnchorSelectionStaysDeviceScopedAsync' .codex-s
 rg -n 'RUNSITE stays orientation-only here: room, zone, and hotspot anchors are inspectable context, not token authority.' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'mobile_pwa_runtime_smoke ok' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'mobile_pwa_viewport_smoke ok' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'mobile_pwa_analytics_smoke ok' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+: <<'LEGACY_QUERY_AUTHORITY_RECEIPT_CONTRACT'
+rg -n 'normalized_role_fallbacks_cached: player / gm' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'shell_open_role_analytics: player / gm' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'shell_open_display_mode: browser / standalone' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'standalone_shell_open_analytics: player / gm' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'install_prompt_analytics: available / open / accepted' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'install_prompt_role_analytics: player / gm' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'role_switch_analytics: player->gm / gm->player' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'copied_session_handoff:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'receiver_device: <minted-device>' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_copied_session_handoff:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_receiver_device: <minted-device>' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'native_session_handoff:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'native_receiver_device: <minted-device>' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'native_share_method: native' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_native_session_handoff:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_native_receiver_device: <minted-device>' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_native_share_method: native' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'link_session_handoff:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'link_receiver_device: <minted-device>' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'link_share_method: link' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_link_session_handoff:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_link_receiver_device: <minted-device>' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_link_share_method: link' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'privacy_blocked: dnt_gpc' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'privacy_provider_requests: 0' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'privacy_event_count: 0' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'analytics_default_disabled: true' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'default_provider_requests: 0' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'default_event_count: 0' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'secret_leak_free: true' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'service_worker_controlled: true' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'blazor_shell: interactive-server' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'blazor_boot_script: /_framework/blazor.web.js' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'data-blazor-shell=\\"interactive-server\\"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'AddInteractiveServerRenderMode' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'service_worker_cache: chummer-shell-play-shell-v16' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'cached_manifest_start_urls: player / gm' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'cached_manifest_shortcuts: player / gm' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'cached_manifest_icon_purpose: any maskable' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'stale_cache_cleanup: chummer-shell-play-shell-v14 -> removed' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'legacy_cache_cleanup: chummer-shell-play-shell-v10 -> removed' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'foreign_cache_preserved: foreign-origin-cache-smoke' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'hero_player_launch:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'hero_gm_launch:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'hero_menu_player_launch:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'hero_menu_gm_launch:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'compact_layout:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_overflow_free:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_key_bounds:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_compact_layout:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_touch_target_min:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'narrow_viewport: 360x740 player lane' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'narrow_overflow_free:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'narrow_key_bounds:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'narrow_compact_layout:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'narrow_touch_target_min:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'status_pill_style:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'installability_errors:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'manifest_scope: /mobile/' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'manifest_icon_purpose: any maskable' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_viewport: 390x844 gm lane' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_manifest_url:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_manifest_scope: /mobile/' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_manifest_icon_purpose: any maskable' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_installability_errors:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'query_role_manifest: player / gm' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_query_manifest_url:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'gm_query_installability_errors:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'standalone_install_ui: player / gm' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'standalone_install_button: player Installed / gm Installed' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'player_interactions:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'lifecycle_persisted:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'replay_ack: local 3->0 / server 0->3->0' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'player_resume_snapshot:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'path_gm_resume:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'role_switch_device_isolated:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'reverse_role_switch_device_isolated:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'gm_interactions: fire-stairs / reveal-threat / local 3->0 / server 0->3->0' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'gm_resume_snapshot:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'offline_fresh_launch:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'offline_player_queue_replay: local 1->0 / server 0->1->0 / ammo 8->7' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'offline_gm_queue_replay: local 1->0 / server 0->1->0 / gm-advance-initiative' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'offline_handoff_receiver:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'private_api_boundary:' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'play_api_network_unavailable' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+LEGACY_QUERY_AUTHORITY_RECEIPT_CONTRACT
+rg -n 'public_install_boundary: /mobile /mobile/player /mobile/gm /mobile/observer' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'public_authority: none' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'query_parameters_grant_access: false' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'live_session_boundary: /mobile/live' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'live_grant_source: trusted_server_headers' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'live_owner_route: /mobile/live' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'public_install_phone_layouts: player / gm / observer' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'public_install_desktop_layout: 3 columns' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'manifest_start_urls: clean player / gm / observer' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'live_session_viewport: 390x844 /mobile/live' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'public_install_analytics: disabled' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'live_analytics_route: /mobile/live' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'live_analytics_role_source: trusted_server_headers' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'privacy_blocked: dnt_gpc' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'analytics_default_disabled: true' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n 'secret_leak_free: true' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"contract_name": "chummer6-mobile.role_pwa_contract.v2"' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"live_route_requires_trusted_server_grant": true' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+rg -n '"query_parameters_cannot_grant_live_access": true' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'Post-closure completion criteria \(M12\)' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'Post-closure hardening criteria \(M13\)' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
@@ -457,6 +768,7 @@ rg -n 'VerifyReconnectLineageTransitionContinuityAsync' .codex-studio/published/
 rg -n 'VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'replace old `Chummer.Presentation` project references with package-only dependencies' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'preserve local-first event log, runtime bundle, and offline cache ownership here' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
+bash scripts/release/verify_mobile_release_proof.sh >/dev/null
 
 if [[ -n "${published_feed_sources}" ]]; then
   echo "running published-feed compatibility restore/build checks"
@@ -473,7 +785,11 @@ if [[ -n "${published_feed_sources}" ]]; then
   bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
-  python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
+  python3 scripts/verify_mobile_pwa_analytics_smoke.py >/dev/null
+  python3 scripts/cleanup_mobile_disposable_artifacts.py >/dev/null
+  python3 scripts/run_mobile_strict_public_edge_follow_through.py >/dev/null
+  test -f .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json
+  materialize_mobile_release_proof
   python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
   python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
   python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
@@ -495,7 +811,11 @@ else
   bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-restore >/dev/null
   bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
-  python3 scripts/materialize_mobile_local_release_proof.py >/dev/null
+  python3 scripts/verify_mobile_pwa_analytics_smoke.py >/dev/null
+  python3 scripts/cleanup_mobile_disposable_artifacts.py >/dev/null
+  python3 scripts/run_mobile_strict_public_edge_follow_through.py >/dev/null
+  test -f .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json
+  materialize_mobile_release_proof
   python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
   python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
   python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null

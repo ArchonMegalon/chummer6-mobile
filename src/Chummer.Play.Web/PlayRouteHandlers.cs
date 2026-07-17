@@ -16,6 +16,9 @@ public static class PlayRouteHandlers
         return $"/play/{Uri.EscapeDataString(sessionId)}?role={Uri.EscapeDataString(role.ToString())}";
     }
 
+    public static string BuildMobileOwnerRoute()
+        => "/mobile/live";
+
     public static async Task<IResult> HandleReconnectAsync(
         PlayReconnectRequest request,
         IPlayEventLogStore eventLogStore,

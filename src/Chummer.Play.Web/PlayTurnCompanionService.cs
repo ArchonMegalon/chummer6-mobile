@@ -48,7 +48,7 @@ public sealed class PlayTurnCompanionService
         string? deviceId = null,
         CancellationToken cancellationToken = default)
     {
-        PlayTurnCompanionContext context = await BuildContextAsync(sessionId, role, cancellationToken);
+        PlayTurnCompanionContext context = await BuildContextAsync(sessionId, role, deviceId, cancellationToken);
         PlayTurnCompanionState state = await GetOrCreateStateAsync(sessionId, role, deviceId, cancellationToken);
         return PlayTurnCompanionProjector.Project(context, state);
     }
@@ -140,7 +140,7 @@ public sealed class PlayTurnCompanionService
             return await GetProjectionAsync(sessionId, role, deviceId, cancellationToken);
         }
 
-        PlayTurnCompanionContext context = await BuildContextAsync(sessionId, role, cancellationToken);
+        PlayTurnCompanionContext context = await BuildContextAsync(sessionId, role, deviceId, cancellationToken);
         PlayTurnCompanionState updated = PlayTurnCompanionProjector.ResolveAction(context, state, request);
         await SaveStateAsync(sessionId, role, deviceId, updated, cancellationToken);
         return PlayTurnCompanionProjector.Project(context, updated);
@@ -314,6 +314,7 @@ public sealed class PlayTurnCompanionService
     private async Task<PlayTurnCompanionContext> BuildContextAsync(
         string sessionId,
         PlaySurfaceRole role,
+        string? deviceId,
         CancellationToken cancellationToken)
     {
         PlayResumeState resumeState = await PlayWebApplication.ResolveResumeStateAsync(
@@ -345,7 +346,7 @@ public sealed class PlayTurnCompanionService
             cachePressure,
             projection.Timeline,
             quickActions,
-            PlayRouteHandlers.BuildOwnerRoute(sessionId, role),
+            PlayRouteHandlers.BuildMobileOwnerRoute(),
             resumeState.Ledger.PendingEvents.Count
         );
     }
@@ -398,7 +399,7 @@ public sealed class PlayTurnCompanionService
         string? deviceId,
         CancellationToken cancellationToken)
     {
-        PlayTurnCompanionContext context = await BuildContextAsync(sessionId, role, cancellationToken);
+        PlayTurnCompanionContext context = await BuildContextAsync(sessionId, role, deviceId, cancellationToken);
         PlayTurnCompanionProjection projection = PlayTurnCompanionProjector.Project(
             context,
             await GetOrCreateStateAsync(sessionId, role, deviceId, cancellationToken));

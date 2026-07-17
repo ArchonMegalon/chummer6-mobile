@@ -167,7 +167,9 @@ IMPLEMENTATION_MARKERS = {
         '`${payload.travelCampaignStaleState || ""} ${payload.travelCampaignCurrentState || ""}`',
         'syncContinuityStateBreakdown(\\n      "workspace-mobile-campaign-cached-state",',
         'syncContinuityStateBreakdown(\\n      "restore-travel-campaign-cached-state",',
-        '"generated_at": iso_now(),',
+        "generated_at = iso_now()",
+        '"generated_at": generated_at,',
+        '"generated_at_utc": generated_at,',
         "Fleet freshness gates key off this timestamp",
     ),
     "scripts/ai/verify.sh": (

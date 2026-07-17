@@ -7,23 +7,40 @@ Purpose: keep the mobile/play share of `F0` explicit now that `E1` is already ma
 `chummer6-mobile` stays release-complete for the current player/GM shell when `scripts/ai/verify.sh` keeps the following evidence executable:
 
 - accessibility proof via `VerifyIndexShellAccessibilityContractAsync` and `VerifyBootstrapRoleShellEntryPointsAsync`
-- performance-budget proof via `VerifyCachePressureBudgetContractAsync`
+- performance-budget proof via `VerifyCachePressureBudgetContractAsync` and the fail-closed source-owned install-payload gate in `scripts/verify_mobile_pwa_performance_budget.py`
 - replay/rejoin safety via the regression checks already tied into `M10` and `M11`
 - real-host/browser PWA proof via `scripts/verify_mobile_pwa_runtime_smoke.py`, `scripts/verify_mobile_pwa_viewport_smoke.py`, plus `VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync`
 - package-only shared boundary consumption for `Chummer.Engine.Contracts`, `Chummer.Play.Contracts`, and `Chummer.Ui.Kit`
+
+## Integration handoff contract
+
+The Player/GM Blazor PWA handoff is integration-ready only when the mobile release proof is backed by source-visible artifacts, not loose local files:
+
+- New source/proof artifacts that must be carried with the change: `scripts/materialize_mobile_cross_surface_readiness.py`, `scripts/verify_mobile_pwa_analytics_smoke.py`, `src/Chummer.Play.Web/wwwroot/manifest.player.webmanifest`, `src/Chummer.Play.Web/wwwroot/manifest.gm.webmanifest`, `src/Chummer.Play.Web/Dockerfile`, and the generated receipts under `.codex-studio/published/MOBILE_*_SMOKE.generated.json` plus `.codex-studio/published/MOBILE_CROSS_SURFACE_READINESS.generated.json`.
+- The review boundary itself must stay materialized via `scripts/materialize_mobile_release_boundary.py` into `.codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json`, listing the owned mobile/PWA source files, owned proof receipts, disposable local smoke artifacts, and any current external preflight/postdeploy blockers without sweeping unrelated repo work into the release handoff.
+- Disposable browser screenshots produced under `_tmp/` are local smoke artifacts only and must not be treated as release evidence.
+- Repo-tracked local receipts must scrub ephemeral localhost ports to `http://127.0.0.1:<port>` and minted receiver device ids to `<minted-device>` so reruns refresh proof without machine-local noise.
+- Cross-surface readiness must fail closed on the public-edge postdeploy gate. It must not accept `pass_with_nonmobile_release_marker_drift`, release-marker drift exceptions, or any other degraded public-edge status.
+- Public deployment evidence remains separate from local proof: the local proof can certify the mobile behavior, but final public-edge promotion still needs a clean public-edge preflight/postdeploy receipt when deployment locks and release-version truth are available.
+- When the strict public-edge gate is blocked by live deploy state outside `chummer6-mobile`, `.codex-studio/published/MOBILE_CROSS_SURFACE_READINESS.generated.json` should still materialize with `status: "fail"` and explicit `public_edge.failures[]` details so the blocker is recorded instead of masquerading as a local shell regression.
+- Strict public-edge promotion must not waive foreign active build-lane blockers. If `check_public_edge_deploy_preflight.py` reports active foreign `build-chummer6-linux` lanes, the mobile handoff remains externally blocked until those lanes exit and the strict preflight is rerun cleanly.
+- Full-repo verification still depends on `.codex-design` mirror freshness. If `scripts/ai/verify.sh` stops at `verify_design_mirror.py` for stale `WEEKLY_PRODUCT_PULSE.generated.json` or `GOLDEN_JOURNEY_RELEASE_GATES.yaml`, that is a design-sync blocker outside the owned mobile/PWA change boundary, not evidence of a mobile shell regression.
 
 ## Release budgets
 
 - Accessibility: the installable shell must keep `<html lang="en">` and the polite live-status region in `src/Chummer.Play.Web/wwwroot/index.html`.
 - Localization: the shell must keep explicit document-language and role-entry semantics instead of relying on implicit browser defaults.
-- Performance: runtime-bundle cache pressure must preserve the current bounded quota budget (`RuntimeBundleQuota == 8`) and continue to report backpressure when the budget is saturated.
+- Performance: runtime-bundle cache pressure must preserve the current bounded quota budget (`RuntimeBundleQuota == 8`) and continue to report backpressure when the budget is saturated. The service-worker's source-owned install assets must also remain within the fixed 180 KiB raw / 72 KiB deterministic-gzip aggregate budget; any newly precached asset must be explicitly budgeted. The SDK-owned `/_framework/blazor.web.js` loader is disclosed as an unmeasured exception in the generated receipt rather than being counted as source-owned proof.
 
 ## Real-Host PWA Runtime Criteria
 
 - Real-host pipeline criteria: the Kestrel-hosted `/mobile` shell must render without a 500 and keep antiforgery middleware enabled through `app.UseAntiforgery();` and `VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync`.
-- Runtime smoke criteria: `scripts/verify_mobile_pwa_runtime_smoke.py` must keep service-worker control, claimed-device local tracker edits, RUNSITE anchor selection, manual resolve/history, replay-plus-ack queue behavior, generic `/mobile` resume, role-aware Player/GM shortcut resume, and offline reopen executable against a real host instead of only through in-memory regression routing.
+- Runtime smoke criteria: `scripts/verify_mobile_pwa_runtime_smoke.py` must keep service-worker control, claimed-device local tracker edits, RUNSITE anchor selection, manual resolve/history, replay-plus-ack queue behavior, generic `/mobile` resume, role-aware Player/GM shortcut resume, offline reopen, offline Player and GM local replay/ack, and device-neutral session handoff receivers executable against a real host instead of only through in-memory regression routing.
+- Hero launch criteria: selecting `Play` from the hero action dropdown must immediately navigate to the role-specific mobile PWA target, with Player landing on `/mobile/player` and GM landing on `/mobile/gm`; this remains covered by the `hero_menu_player_launch:` and `hero_menu_gm_launch:` receipts in `scripts/verify_mobile_pwa_runtime_smoke.py`.
+- Role-specific manifest criteria: the generic manifest must launch Player mode by default while `manifest.player.webmanifest` and `manifest.gm.webmanifest` keep distinct app ids, start URLs, shortcuts, adaptive icons, and `/mobile/` scope; `scripts/verify_mobile_pwa_viewport_smoke.py` and `VerifyTurnCompanionManifestTargetsDirectMobilePwaAsync` must keep browser installability and source-level manifest selection green for both modes.
 - Installability criteria: the same Chromium-hosted shell must keep app-manifest parse errors and `Page.getInstallabilityErrors` empty through `scripts/verify_mobile_pwa_viewport_smoke.py`, so installability is proven by the browser’s PWA checks rather than only by metadata presence.
-- Quick-glance criteria: `scripts/verify_mobile_pwa_viewport_smoke.py` must keep the 390px-wide player shell overflow-free, show the quick-jump rail plus six-card glance strip, keep the live tracker card above lower-context trust/RUNSITE detail, and collapse the action and odds rails to a single handheld column.
+- Quick-glance criteria: `scripts/verify_mobile_pwa_viewport_smoke.py` must keep the 390px-wide player and GM shells overflow-free, show the quick-jump rail plus six-card glance strip, keep the live tracker card above lower-context trust/RUNSITE detail, and collapse the action and odds rails to a single handheld column.
+- Rybbit analytics criteria: `scripts/verify_mobile_pwa_analytics_smoke.py` must keep Rybbit default-disabled unless explicitly configured, reject DNT/GPC collection, avoid session/device/secret leakage, carry bounded role/display/install posture, and prove copy/native/link session handoff events for both Player and GM lanes.
 
 ## Mobile turn companion criteria
 

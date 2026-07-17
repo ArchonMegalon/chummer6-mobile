@@ -232,7 +232,7 @@ public static class PlayTurnCompanionProjector
                 new PlayTurnHistoryEntry(
                     "seeded",
                     "Turn tracker seeded",
-                    "Install-local values are editable here and do not replace engine or GM authority.",
+                    "Open-tab values are editable here and do not replace engine or GM authority; they are discarded when this page closes or reloads.",
                     DateTimeOffset.UtcNow,
                     Queued: false,
                     Manual: false,
@@ -254,7 +254,7 @@ public static class PlayTurnCompanionProjector
         ActionDefinition selectedAction = GetSelectedActionDefinition(context.Role, state.SelectedActionId);
         int modifierTotal = state.Modifiers.Where(static item => item.Enabled).Sum(static item => item.DiceModifier);
         int dicePool = Math.Max(0, selectedAction.BaseDicePool + modifierTotal);
-        string latestTimeline = context.Timeline.LastOrDefault() ?? "No local action receipt is pinned yet.";
+        string latestTimeline = context.Timeline.LastOrDefault() ?? "No open-tab action receipt is pinned yet.";
         string statusLabel = BuildTrustStatusLabel(context);
         string queueLabel = context.PendingQueueCount == 0
             ? "No queued replay-safe mutations are pending."
@@ -273,10 +273,10 @@ public static class PlayTurnCompanionProjector
         };
         string weaponLabel = selectedAction.AmmoCost > 0
             ? $"Active action: {selectedAction.Label} · magazine {state.AmmoInMagazine} · reserve {state.AmmoReserve}"
-            : $"Active action: {selectedAction.Label} · queue-safe local tracking";
+            : $"Active action: {selectedAction.Label} · queue-safe open-tab tracking";
         string shellSummary = $"{actorLabel} on {context.Session.SceneId} · {latestTimeline}";
         string localBoundarySummary = canMutate
-            ? "Install-local turn tracker: adjust these values freely during play, but treat them as mobile shell truth until the wider session confirms them."
+            ? "Open-tab turn tracker: adjust these values during play, but replay or confirm them before closing or reloading this page."
             : "Observer mode is read-mostly: this mirror can inspect trust, anchors, and recent deltas, but it must not mutate player or GM state.";
         string currentSceneSummary = $"Scene {context.Session.SceneId} · revision {context.Session.SceneRevision} · runtime {context.Session.RuntimeFingerprint}.";
         string oddsSummary = BuildOddsSummary(dicePool);
@@ -309,7 +309,7 @@ public static class PlayTurnCompanionProjector
                 actorLabel,
                 weaponLabel,
                 [
-                    new PlayTurnStatCard("physical", "Physical", state.PhysicalDamage, "Damage marked locally on this shell.", "critical"),
+                    new PlayTurnStatCard("physical", "Physical", state.PhysicalDamage, "Damage marked in this open page.", "critical"),
                     new PlayTurnStatCard("stun", "Stun", state.StunDamage, "Stun carry-forward for the next exchange.", "warning"),
                     new PlayTurnStatCard("edge", "Edge", state.Edge, "Spend-now currency for quick calls.", "accent"),
                     new PlayTurnStatCard("ammo", "Magazine", state.AmmoInMagazine, "Active firing posture.", "cool"),
@@ -340,8 +340,8 @@ public static class PlayTurnCompanionProjector
                 dicePool,
                 oddsSummary,
                 BuildOddsBadges(dicePool),
-                "Physical dice are first-class here: enter the hit count you rolled at the table, or use the digital resolver for a bounded local receipt.",
-                state.History.FirstOrDefault()?.Detail ?? "No local resolution receipt is recorded yet."),
+                "Physical dice are first-class here: enter the hit count you rolled at the table, or use the digital resolver for a bounded open-tab receipt.",
+                state.History.FirstOrDefault()?.Detail ?? "No open-tab resolution receipt is recorded yet."),
             new PlayTurnHistorySurface(
                 BuildHistorySummary(state.History, context.PendingQueueCount),
                 state.History.Take(8).Select(item => new PlayTurnHistoryItem(
@@ -653,10 +653,10 @@ public static class PlayTurnCompanionProjector
 
         if (context.PendingQueueCount > 0)
         {
-            return "Queued locally";
+            return "Server queue pending";
         }
 
-        return "Grounded local tracker";
+        return "Grounded open-tab tracker";
     }
 
     private static string BuildTrustSummary(PlayTurnCompanionContext context, string latestTimeline)
@@ -707,7 +707,7 @@ public static class PlayTurnCompanionProjector
 
     private static string BuildPendingSummary(PlayTurnCompanionContext context)
         => context.PendingQueueCount == 0
-            ? "Server replay queue is empty. Device-local receipts can stay local until you are ready to replay them."
+            ? "Server replay queue is empty. Open-tab receipts must be replayed before this page closes or reloads."
             : $"{context.PendingQueueCount} replay-safe event(s) are pending on the server queue. Acknowledge sync only after the owner lane confirms the handoff.";
 
     private static string BuildReconnectSummary(PlayTurnCompanionContext context)
@@ -719,14 +719,14 @@ public static class PlayTurnCompanionProjector
 
         if (context.RuntimeBundle is null || context.Checkpoint is null)
         {
-            return "Reconnect once before you replay local receipts so the claimed-device lane has a grounded runtime proof and continuity checkpoint.";
+            return "Reconnect once before you replay open-tab receipts so the claimed-device lane has a grounded runtime proof and continuity checkpoint.";
         }
 
-        return "When the device reconnects, replay local receipts into the server queue first, then acknowledge sync after the owner route or GM confirms the accepted handoff.";
+        return "When the device reconnects, replay open-tab receipts into the server queue first, then acknowledge sync after the owner route or GM confirms the accepted handoff.";
     }
 
     private static string BuildClaimedDeviceSummary(PlayTurnCompanionContext context)
-        => $"Claimed-device route: {context.OwnerRoute}. Keep this install-local shell as the bounded turn companion, and treat replay acknowledgement as a deliberate handoff instead of background sync magic.";
+        => $"Claimed-device route: {context.OwnerRoute}. Use this open page as the bounded turn companion, keep it open until its receipts are replayed, and treat replay acknowledgement as a deliberate handoff instead of background sync magic.";
 
     private static string BuildQuickActionSummary(string requiredCapability)
         => requiredCapability switch
@@ -776,13 +776,13 @@ public static class PlayTurnCompanionProjector
         if (latest is null)
         {
             return pendingQueueCount == 0
-                ? "No local history is recorded yet."
-                : $"{pendingQueueCount} queued replay-safe mutation(s) are pending without a local turn receipt yet.";
+                ? "No open-tab history is recorded yet."
+                : $"{pendingQueueCount} queued replay-safe mutation(s) are pending without an open-tab turn receipt yet.";
         }
 
         return pendingQueueCount == 0
-            ? $"Latest local receipt: {latest.Title}."
-            : $"Latest local receipt: {latest.Title}. {pendingQueueCount} queued replay-safe mutation(s) still need sync.";
+            ? $"Latest open-tab receipt: {latest.Title}."
+            : $"Latest open-tab receipt: {latest.Title}. {pendingQueueCount} queued replay-safe mutation(s) still need sync.";
     }
 
     private static string BuildInventoryAdjustmentDetail(PlayTurnCompanionState state, string itemId, int delta)

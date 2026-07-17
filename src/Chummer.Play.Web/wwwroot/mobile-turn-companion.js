@@ -1,15 +1,86 @@
 (function () {
   "use strict";
 
-  var storagePrefix = "chummer-play-turn-companion:";
-  var lastRouteKey = storagePrefix + "last-route";
+  var legacyPrivateStoragePrefixes = [
+    "chummer-play-turn-companion:",
+    "chummer-play-mobile-device-id:",
+    "chummer-play-mobile-handoff-device-id:"
+  ];
+  var legacyPrivateStorageExactKeys = ["chummer-play-mobile-observer-id"];
+  var analyticsQueueName = "ChummerPlayAnalyticsQueue";
+  var activeClientName = "__chummerPlayActiveClient";
+  var initializationTimerName = "__chummerPlayInitializationTimer";
+  var initializationRetryTimersName = "__chummerPlayInitializationRetryTimers";
+  var initializationObserverName = "__chummerPlayInitializationObserver";
+  var windowListenersBoundName = "__chummerPlayWindowListenersBound";
+  var shellOpenKeyName = "__chummerPlayShellOpenKey";
+  var serviceWorkerNetworkAckName = "__chummerPlayServiceWorkerNetworkStateAck";
+  var serviceWorkerNetworkMessageBoundName = "__chummerPlayServiceWorkerNetworkMessageBound";
   var magazineCapacity = 12;
   var historyLimit = 8;
+  var ephemeralDeviceIds = Object.create(null);
+  var ephemeralObserverId = "";
 
-  document.addEventListener("DOMContentLoaded", function () {
+  purgeLegacyPrivateDeviceStorage();
+  exposePrivateDeviceDataLifecycle();
+  scheduleTurnCompanionInitialization();
+
+  function scheduleTurnCompanionInitialization() {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializeTurnCompanion, { once: true });
+    } else {
+      initializeTurnCompanion();
+    }
+
+    window.addEventListener("load", initializeTurnCompanion);
+    window.addEventListener("pageshow", initializeTurnCompanion);
+    window[initializationRetryTimersName] = [0, 250, 1000, 2500].map(function (delay) {
+      return window.setTimeout(initializeTurnCompanion, delay);
+    });
+
+    if ("MutationObserver" in window && !window[initializationObserverName]) {
+      var target = document.documentElement || document.body;
+      if (target) {
+        window[initializationObserverName] = new MutationObserver(queueTurnCompanionInitialization);
+        window[initializationObserverName].observe(target, { childList: true, subtree: true });
+      }
+    }
+  }
+
+  function queueTurnCompanionInitialization() {
+    var readyRoot = document.querySelector("[data-turn-root][data-client-ready=\"true\"]");
+    if (readyRoot && (readyRoot.__chummerPlayClient || window[activeClientName])) {
+      return;
+    }
+
+    if (window[initializationTimerName]) {
+      window.clearTimeout(window[initializationTimerName]);
+    }
+
+    window[initializationTimerName] = window.setTimeout(function () {
+      window[initializationTimerName] = null;
+      initializeTurnCompanion();
+    }, 0);
+  }
+
+  function cancelTurnCompanionInitializationRetries() {
+    var retryTimers = window[initializationRetryTimersName] || [];
+    for (var index = 0; index < retryTimers.length; index += 1) {
+      window.clearTimeout(retryTimers[index]);
+    }
+    window[initializationRetryTimersName] = [];
+  }
+
+  function initializeTurnCompanion() {
     var root = document.querySelector("[data-turn-root]");
     var bootstrapNode = document.getElementById("turn-companion-bootstrap");
     if (!root || !bootstrapNode) {
+      return;
+    }
+
+    if (root.getAttribute("data-client-ready") === "true") {
+      cancelTurnCompanionInitializationRetries();
+      rehydrateReadyRoot(root);
       return;
     }
 
@@ -19,28 +90,18 @@
     }
 
     var params = new URLSearchParams(window.location.search || "");
-    var requestedRoleName = params.get("role") || "";
-    var resumeRoute = resolveResumeRoute(params);
-    var sessionId = params.get("sessionId") || (resumeRoute && resumeRoute.sessionId) || bootstrap.sessionId || root.getAttribute("data-session-id") || "session-main";
-    var roleName = requestedRoleName || (resumeRoute && resumeRoute.roleName) || bootstrap.roleName || root.getAttribute("data-role") || "Player";
-    var explicitDeviceId = params.get("deviceId") || (resumeRoute && resumeRoute.deviceId) || root.getAttribute("data-device-id") || "";
-    var deviceId = resolveStableDeviceId(roleName, explicitDeviceId);
+    var requestedRoleName = bootstrap.roleName || root.getAttribute("data-role") || "Player";
+    var resumeRoute = resolveResumeRoute(params, requestedRoleName);
+    var sessionId = bootstrap.sessionId || root.getAttribute("data-session-id") || "";
+    var roleName = requestedRoleName;
+    var explicitDeviceId = bootstrap.deviceId || root.getAttribute("data-device-id") || "";
+    var deviceId = resolveStableDeviceId(sessionId, roleName, explicitDeviceId);
     var observerId = resolveObserverId();
-    if (!params.get("sessionId")) {
-      params.set("sessionId", sessionId);
-    }
-    if (!params.get("role")) {
-      params.set("role", roleName);
-    }
-    if (!params.get("deviceId")) {
-      params.set("deviceId", deviceId);
-    }
-    window.history.replaceState({}, "", window.location.pathname + "?" + params.toString());
+    removePrivateIdentityFromVisibleRoute(params, roleName);
 
-    var restored = loadSnapshot(sessionId, roleName, deviceId);
-    var projection = mergeProjectionState(bootstrap.projection, restored && restored.projection ? restored.projection : null);
+    var projection = mergeProjectionState(bootstrap.projection, null);
     var bootstrapMismatch = bootstrap.sessionId && bootstrap.sessionId !== sessionId;
-    if (bootstrapMismatch && !restored) {
+    if (bootstrapMismatch) {
       applyRequestedRouteFallback(projection, sessionId, roleName);
     }
     var client = {
@@ -49,47 +110,30 @@
       deviceId: deviceId,
       observerId: observerId,
       projection: projection,
-      statusMessage: buildInitialStatusMessage(bootstrapMismatch, restored, bootstrap, resumeRoute),
-      manualHits: restored && typeof restored.manualHits === "number" ? restored.manualHits : 0,
-      manualGlitch: restored ? restored.manualGlitch === true : false,
-      restoredFromStorage: !!restored,
-      localReplayQueue: restored && Array.isArray(restored.localReplayQueue) ? restored.localReplayQueue : [],
-      continuityPayload: restored && restored.continuityPayload ? restored.continuityPayload : null,
-      serviceWorkerStatus: restored && restored.serviceWorkerStatus
-        ? restored.serviceWorkerStatus
-        : "Checking service worker and install cache posture for this shell.",
+      statusMessage: buildInitialStatusMessage(bootstrapMismatch, bootstrap, resumeRoute),
+      manualHits: 0,
+      manualGlitch: false,
+      localReplayQueue: [],
+      continuityPayload: null,
+      serviceWorkerStatus: "Checking service worker and install cache posture for this shell.",
       installPromptEvent: null,
       installBusy: false,
-      networkBusy: false
+      networkBusy: false,
+      visibleHandoffUrl: "",
+      ownerRouteShareStatus: ""
     };
 
+    initializeMobileAnalytics(client, resumeRoute);
+    window[activeClientName] = client;
+    root.__chummerPlayClient = client;
+    bindTurnCompanionWindowListeners();
     normalizeProjection(client.projection);
     render(client);
     attachHandlers(root, client);
     void bootInstallBoundary(client);
-    document.addEventListener("visibilitychange", function () {
-      if (shouldPersistGlobalLastRoute()) {
-        saveLastRoute(client);
-      }
-    });
-    window.addEventListener("online", function () {
-      void refreshNetworkSurfaces(client, "Reconnect detected. Refreshing trust, queue, and claimed-device posture for this shell.");
-    });
-    window.addEventListener("offline", function () {
-      client.statusMessage = "Offline mode: device-local play tracking remains available from this install cache.";
-      render(client);
-    });
-    window.addEventListener("beforeinstallprompt", function (event) {
-      event.preventDefault();
-      client.installPromptEvent = event;
-      client.serviceWorkerStatus = "This shell is installable from the browser prompt on this device.";
-      render(client);
-    });
-    window.addEventListener("appinstalled", function () {
-      client.installPromptEvent = null;
-      client.serviceWorkerStatus = "This shell is installed and can reopen from the local app icon.";
-      render(client);
-    });
+    root.setAttribute("data-client-ready", "true");
+    root.__chummerPlayClient = client;
+    cancelTurnCompanionInitializationRetries();
     if (navigator.onLine) {
       void refreshNetworkSurfaces(
         client,
@@ -98,35 +142,489 @@
           : "Refreshing trust, queue, and claimed-device posture for this shell."
       );
     }
-  });
+  }
+
+  function bindTurnCompanionWindowListeners() {
+    if (window[windowListenersBoundName]) {
+      return;
+    }
+
+    window[windowListenersBoundName] = true;
+    window.addEventListener("online", function () {
+      var client = window[activeClientName];
+      if (!client) {
+        return;
+      }
+
+      publishNetworkStateToServiceWorker();
+      void refreshNetworkSurfaces(client, "Reconnect detected. Refreshing trust, queue, and claimed-device posture for this shell.");
+    });
+    window.addEventListener("offline", function () {
+      var client = window[activeClientName];
+      if (!client) {
+        return;
+      }
+
+      publishNetworkStateToServiceWorker();
+      client.statusMessage = "Offline mode: play tracking remains available in this open tab. Private table state is discarded when the page closes or reloads.";
+      render(client);
+    });
+
+    var handleInstallPromptAvailable = function (event) {
+      var client = window[activeClientName];
+      if (!client) {
+        return;
+      }
+
+      event.preventDefault();
+      client.installPromptEvent = event;
+      client.serviceWorkerStatus = "This shell is installable from the browser prompt on this device.";
+      trackMobileEvent("mobile_install_prompt_available", client, { installPrompt: "available" });
+      render(client);
+    };
+    window.ChummerPlayInstallPromptForTest = handleInstallPromptAvailable;
+    window.ChummerPlayInstallShellForTest = function () {
+      var client = window[activeClientName];
+      return client ? installShell(client) : Promise.resolve();
+    };
+    window.addEventListener("beforeinstallprompt", handleInstallPromptAvailable);
+    window.addEventListener("appinstalled", function () {
+      var client = window[activeClientName];
+      if (!client) {
+        return;
+      }
+
+      client.installPromptEvent = null;
+      client.serviceWorkerStatus = "This shell is installed and can reopen from the local app icon. Private table state still remains open-tab only.";
+      trackMobileEvent("mobile_shell_installed", client, { installPrompt: "installed" });
+      render(client);
+    });
+  }
+
+  function rehydrateReadyRoot(root) {
+    var client = root.__chummerPlayClient || window[activeClientName];
+    if (!client) {
+      return;
+    }
+
+    root.__chummerPlayClient = client;
+    attachHandlers(root, client);
+    restoreHandoffSurface(client);
+  }
+
+  function removePrivateIdentityFromVisibleRoute(params, roleName) {
+    var hadPrivateIdentity = params.has("sessionId") || params.has("deviceId") || params.has("role");
+    params.delete("sessionId");
+    params.delete("deviceId");
+    params.delete("role");
+    if (!hadPrivateIdentity) {
+      return;
+    }
+
+    var safeQuery = params.toString();
+    var safePath = "/mobile/live";
+    var safeRoute = safePath
+      + (safeQuery ? "?" + safeQuery : "")
+      + (window.location.hash || "");
+    window.history.replaceState({}, "", safeRoute);
+  }
+
+  function restoreHandoffSurface(client) {
+    if (!client) {
+      return;
+    }
+
+    var statusElement = document.getElementById("turn-owner-route-share-status");
+    var linkElement = document.getElementById("turn-owner-route-link");
+    if (!statusElement && !linkElement) {
+      return;
+    }
+
+    var expectedStatus = client.ownerRouteShareStatus || "";
+    var currentStatus = statusElement ? (statusElement.textContent || "").trim() : "";
+    var needsStatus = statusElement && currentStatus !== expectedStatus;
+    var needsLink = false;
+    if (client.visibleHandoffUrl && linkElement) {
+      var currentHref = absoluteMobileUrl(linkElement.getAttribute("href") || "");
+      var currentLabel = (linkElement.textContent || "").trim();
+      needsLink = currentHref !== client.visibleHandoffUrl || currentLabel !== "Open session handoff link";
+    }
+
+    if (needsStatus || needsLink) {
+      renderClaimedDeviceSurface(client);
+    }
+  }
+
+  function initializeMobileAnalytics(client, resumeRoute) {
+    window.ChummerPlayAnalytics = {
+      track: function (name, payload) {
+        trackMobileEvent(name, client, payload || {});
+      },
+      flush: flushAnalyticsQueue
+    };
+
+    var config = readAnalyticsConfig();
+    if (!config || isAnalyticsBlocked()) {
+      return;
+    }
+
+    window.ChummerPlayAnalyticsConfig = config;
+    loadRybbitProvider(config);
+    var shellOpenKey = analyticsRoute(client, config)
+      + "|"
+      + analyticsRole(client && client.roleName ? client.roleName : config.role)
+      + "|"
+      + (client && client.sessionId ? client.sessionId : "")
+      + "|"
+      + (client && client.deviceId ? client.deviceId : "");
+    if (window[shellOpenKeyName] !== shellOpenKey) {
+      window[shellOpenKeyName] = shellOpenKey;
+      trackMobileEvent("mobile_shell_open", client, {
+        resumeSource: resumeRoute && resumeRoute.resumeSource ? resumeRoute.resumeSource : "direct",
+        privateStateLifetime: "open_tab",
+        installed: isInstalledShell() ? "true" : "false"
+      });
+    }
+  }
+
+  function readAnalyticsConfig() {
+    if (window.ChummerPlayAnalyticsConfig && window.ChummerPlayAnalyticsConfig.enabled === true) {
+      return window.ChummerPlayAnalyticsConfig;
+    }
+
+    var node = document.getElementById("chummer-play-analytics-config");
+    if (!node) {
+      return null;
+    }
+
+    var parsed = parseJson(node.textContent);
+    if (!parsed || parsed.enabled !== true || !parsed.scriptUrl || !parsed.siteId) {
+      return null;
+    }
+
+    return {
+      enabled: true,
+      scriptUrl: String(parsed.scriptUrl),
+      siteId: String(parsed.siteId),
+      tag: String(parsed.tag || "mobile_play_shell"),
+      route: String(parsed.route || ""),
+      mode: String(parsed.mode || ""),
+      role: String(parsed.role || ""),
+      skipPatterns: String(parsed.skipPatterns || "[\"/mobile\",\"/mobile/**\"]"),
+      maskPatterns: String(parsed.maskPatterns || "[\"/mobile\",\"/mobile/**\",\"/api/play/**\"]"),
+      replayBlockSelector: String(parsed.replayBlockSelector || "[data-turn-root]")
+    };
+  }
+
+  function loadRybbitProvider(config) {
+    if (!config || !config.scriptUrl || !config.siteId || isAnalyticsBlocked()) {
+      return;
+    }
+
+    if (document.querySelector("script[data-rybbit='analytics'][data-tag='mobile_play_shell']")) {
+      flushAnalyticsQueue();
+      return;
+    }
+
+    var loadRybbit = function () {
+      if (document.querySelector("script[data-rybbit='analytics'][data-tag='mobile_play_shell']")) {
+        flushAnalyticsQueue();
+        return;
+      }
+
+      var rybbit = document.createElement("script");
+      rybbit.src = config.scriptUrl;
+      rybbit.async = true;
+      rybbit.dataset.siteId = config.siteId;
+      rybbit.dataset.rybbit = "analytics";
+      rybbit.dataset.tag = config.tag || "mobile_play_shell";
+      rybbit.dataset.skipPatterns = config.skipPatterns || "[\"/mobile\",\"/mobile/**\"]";
+      rybbit.dataset.maskPatterns = config.maskPatterns || "[\"/mobile\",\"/mobile/**\",\"/api/play/**\"]";
+      rybbit.dataset.replayBlockSelector = config.replayBlockSelector || "[data-turn-root]";
+      rybbit.dataset.replayMaskAllInputs = "true";
+      rybbit.referrerPolicy = "strict-origin-when-cross-origin";
+      rybbit.addEventListener("load", flushAnalyticsQueue, { once: true });
+      document.head.appendChild(rybbit);
+    };
+
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(loadRybbit, { timeout: 1500 });
+      return;
+    }
+
+    window.setTimeout(loadRybbit, 250);
+  }
+
+  function trackMobileEvent(name, client, payload) {
+    var config = readAnalyticsConfig();
+    if (!config || isAnalyticsBlocked()) {
+      return;
+    }
+
+    var eventName = normalizeAnalyticsToken(name);
+    if (!eventName) {
+      return;
+    }
+
+    var record = {
+      event: eventName,
+      ts: new Date().toISOString(),
+      surface: "mobile_turn_companion",
+      route: analyticsRoute(client, config),
+      role: analyticsRole(client && client.roleName ? client.roleName : config.role),
+      mode: analyticsMode(client && client.roleName ? client.roleName : config.role, config),
+      online: navigator.onLine ? "true" : "false",
+      displayMode: currentDisplayMode()
+    };
+
+    var safePayload = sanitizeAnalyticsPayload(payload || {});
+    Object.keys(safePayload).forEach(function (key) {
+      record[key] = safePayload[key];
+    });
+
+    ensureAnalyticsQueue().push(record);
+    window.dispatchEvent(new CustomEvent("chummer-play:analytics", { detail: record }));
+    flushAnalyticsQueue();
+  }
+
+  function flushAnalyticsQueue() {
+    var queue = ensureAnalyticsQueue();
+    if (!queue.length) {
+      return;
+    }
+
+    var retained = [];
+    for (var index = 0; index < queue.length; index += 1) {
+      if (!sendRybbitRecord(queue[index])) {
+        retained.push(queue[index]);
+      }
+    }
+
+    queue.length = 0;
+    for (var retainedIndex = 0; retainedIndex < retained.length; retainedIndex += 1) {
+      queue.push(retained[retainedIndex]);
+    }
+  }
+
+  function sendRybbitRecord(record) {
+    var rybbitApi = window.rybbit;
+    if (!rybbitApi || !record || !record.event) {
+      return false;
+    }
+
+    var properties = {};
+    Object.keys(record).forEach(function (key) {
+      if (key !== "event") {
+        properties[key] = record[key];
+      }
+    });
+
+    try {
+      if (typeof rybbitApi.event === "function") {
+        rybbitApi.event(record.event, properties);
+        return true;
+      }
+
+      if (typeof rybbitApi.track === "function") {
+        rybbitApi.track(record.event, properties);
+        return true;
+      }
+    } catch (error) {
+      void error;
+    }
+
+    return false;
+  }
+
+  function ensureAnalyticsQueue() {
+    if (!Array.isArray(window[analyticsQueueName])) {
+      window[analyticsQueueName] = [];
+    }
+
+    return window[analyticsQueueName];
+  }
+
+  function sanitizeAnalyticsPayload(payload) {
+    var output = {};
+    Object.keys(payload || {}).forEach(function (key) {
+      var normalizedKey = normalizeAnalyticsToken(key);
+      if (!normalizedKey || isSensitiveAnalyticsKey(normalizedKey)) {
+        return;
+      }
+
+      var value = payload[key];
+      if (typeof value === "boolean") {
+        output[normalizedKey] = value ? "true" : "false";
+      } else if (typeof value === "number" && Number.isFinite(value)) {
+        output[normalizedKey] = value;
+      } else if (typeof value === "string") {
+        var safeValue = safeAnalyticsValue(value);
+        if (!safeValue || isSensitiveAnalyticsValue(safeValue)) {
+          return;
+        }
+
+        output[normalizedKey] = safeValue;
+      }
+    });
+
+    return output;
+  }
+
+  function normalizeAnalyticsToken(value) {
+    return String(value || "").trim().replace(/[^a-zA-Z0-9_:-]/g, "_").slice(0, 80);
+  }
+
+  function safeAnalyticsValue(value) {
+    return String(value || "").trim().replace(/[?&#=]/g, "_").slice(0, 120);
+  }
+
+  function isSensitiveAnalyticsKey(key) {
+    return /session|device|token|continuity|owner|secret|key|href|url/i.test(key);
+  }
+
+  function isSensitiveAnalyticsValue(value) {
+    var text = String(value || "").trim().toLowerCase();
+    if (!text) {
+      return false;
+    }
+
+    return /^https?:\/\//.test(text)
+      || /(?:^|[/\s])(?:session|device|token|secret|key|continuity|owner)[_-][a-z0-9_-]+/.test(text)
+      || /(?:^|[?&])(sessionid|deviceid|token|key|secret|ownerroute)=/i.test(text)
+      || text.indexOf("/play/") >= 0
+      || text.indexOf("/mobile?") >= 0
+      || (text.indexOf("/mobile/") >= 0 && text.indexOf("?") >= 0);
+  }
+
+  function analyticsRole(roleName) {
+    if (isGameMasterRole(roleName)) {
+      return "GameMaster";
+    }
+    var lowered = String(roleName || "").toLowerCase();
+    if (lowered.indexOf("observer") >= 0) {
+      return "Observer";
+    }
+    return "Player";
+  }
+
+  function analyticsMode(roleName, config) {
+    var configuredMode = String(config && config.mode ? config.mode : "").toLowerCase();
+    if (configuredMode === "gm" || configuredMode === "observer" || configuredMode === "player") {
+      return configuredMode;
+    }
+
+    return roleSegmentForAnalytics(roleName);
+  }
+
+  function analyticsRoute(client, config) {
+    void client;
+    void config;
+    return "/mobile/live";
+  }
+
+  function roleSegmentForAnalytics(roleName) {
+    if (isGameMasterRole(roleName)) {
+      return "gm";
+    }
+    var lowered = String(roleName || "").toLowerCase();
+    if (lowered.indexOf("observer") >= 0) {
+      return "observer";
+    }
+    return "player";
+  }
+
+  function isGameMasterRole(roleName) {
+    var lowered = String(roleName || "").toLowerCase();
+    return lowered === "gm"
+      || lowered.indexOf("gamemaster") >= 0
+      || lowered.indexOf("game master") >= 0;
+  }
+
+  function currentDisplayMode() {
+    if (isInstalledShell()) {
+      return "standalone";
+    }
+
+    return "browser";
+  }
+
+  function isAnalyticsBlocked() {
+    return window.doNotTrack === "1"
+      || navigator.doNotTrack === "1"
+      || navigator.msDoNotTrack === "1"
+      || navigator.globalPrivacyControl === true;
+  }
 
   function makeStableId(prefix) {
     return prefix + "-" + Math.random().toString(36).slice(2, 10);
   }
 
-  function readStoredValue(key) {
+  function exposePrivateDeviceDataLifecycle() {
+    window.ChummerPlayPrivateDeviceData = {
+      clear: function () {
+        clearPrivateDeviceData(window[activeClientName] || null, true);
+      },
+      purgeLegacyStorage: purgeLegacyPrivateDeviceStorage
+    };
+
+    window.addEventListener("chummer-play:clear-private-device-data", function () {
+      clearPrivateDeviceData(window[activeClientName] || null, true);
+    });
+  }
+
+  function purgeLegacyPrivateDeviceStorage() {
     try {
-      return window.localStorage.getItem(key) || "";
+      var keysToRemove = [];
+      for (var index = 0; index < window.localStorage.length; index += 1) {
+        var key = window.localStorage.key(index);
+        if (!key) {
+          continue;
+        }
+
+        if (legacyPrivateStorageExactKeys.indexOf(key) >= 0
+          || legacyPrivateStoragePrefixes.some(function (prefix) { return key.indexOf(prefix) === 0; })) {
+          keysToRemove.push(key);
+        }
+      }
+
+      for (var removeIndex = 0; removeIndex < keysToRemove.length; removeIndex += 1) {
+        window.localStorage.removeItem(keysToRemove[removeIndex]);
+      }
+      return keysToRemove.length;
     } catch (error) {
       void error;
-      return "";
+      return 0;
     }
   }
 
-  function writeStoredValue(key, value) {
-    try {
-      window.localStorage.setItem(key, value);
-    } catch (error) {
-      void error;
+  function clearPrivateDeviceData(client, navigateToCleanShell) {
+    purgeLegacyPrivateDeviceStorage();
+    ephemeralDeviceIds = Object.create(null);
+    ephemeralObserverId = "";
+
+    if (client) {
+      client.localReplayQueue = [];
+      client.continuityPayload = null;
+      client.visibleHandoffUrl = "";
+      client.ownerRouteShareStatus = "";
+      client.manualHits = 0;
+      client.manualGlitch = false;
+      client.statusMessage = "Private play state was cleared from this device. Reopen a trusted session link to continue.";
+    }
+
+    if (navigateToCleanShell === true && window.location) {
+      var roleName = client && client.roleName ? client.roleName : inferRoleFromPath(window.location.pathname);
+      var cleanRoute = "/mobile/" + mobileModeSegment(roleName || "Player");
+      window.location.replace(cleanRoute);
     }
   }
 
   function devicePrefixForRole(roleName) {
-    var lowered = String(roleName || "").toLowerCase();
-    if (lowered.indexOf("gm") >= 0) {
+    if (isGameMasterRole(roleName)) {
       return "gm-shell";
     }
 
+    var lowered = String(roleName || "").toLowerCase();
     if (lowered.indexOf("observer") >= 0) {
       return "observer-shell";
     }
@@ -134,147 +632,94 @@
     return "player-shell";
   }
 
-  function resolveStableDeviceId(roleName, explicitDeviceId) {
+  function resolveStableDeviceId(sessionId, roleName, explicitDeviceId) {
+    var normalizedSessionId = String(sessionId || "").trim();
     if (explicitDeviceId) {
-      writeStoredValue("chummer-play-mobile-device-id", explicitDeviceId);
       return explicitDeviceId;
     }
 
-    var stored = readStoredValue("chummer-play-mobile-device-id");
-    if (stored) {
-      return stored;
+    var memoryKey = normalizedSessionId + ":" + deviceRoleSegment(roleName);
+    if (!ephemeralDeviceIds[memoryKey]) {
+      ephemeralDeviceIds[memoryKey] = makeStableId(devicePrefixForRole(roleName));
     }
-
-    var generated = makeStableId(devicePrefixForRole(roleName));
-    writeStoredValue("chummer-play-mobile-device-id", generated);
-    return generated;
+    return ephemeralDeviceIds[memoryKey];
   }
 
-  function resolveResumeRoute(params) {
-    if (params.get("sessionId") || params.get("deviceId")) {
-      return null;
+  function deviceRoleSegment(roleName) {
+    if (isGameMasterRole(roleName)) {
+      return "gm";
     }
-
-    var requestedRoleName = params.get("role") || "";
-    if (!requestedRoleName) {
-      var genericRoute = loadLastRoute();
-      if (genericRoute) {
-        genericRoute.resumeSource = "generic";
-      }
-      return genericRoute;
+    var lowered = String(roleName || "").toLowerCase();
+    if (lowered.indexOf("observer") >= 0) {
+      return "observer";
     }
-
-    var roleRoute = loadLastRoute(requestedRoleName);
-    if (roleRoute) {
-      roleRoute.resumeSource = "role";
-      return roleRoute;
-    }
-
-    var globalRoute = loadLastRoute();
-    if (!globalRoute || !globalRoute.sessionId) {
-      return null;
-    }
-
-    return {
-      sessionId: globalRoute.sessionId,
-      roleName: requestedRoleName,
-      deviceId: "",
-      resumeSource: "session-only"
-    };
+    return "player";
   }
 
-  function lastRouteKeyForRole(roleName) {
-    return lastRouteKey + ":" + String(roleName || "").trim().toLowerCase();
+  function inferRoleFromPath(pathname) {
+    var normalized = String(pathname || "").toLowerCase().replace(/\/+$/, "");
+    if (normalized === "/mobile/gm") {
+      return "GameMaster";
+    }
+    if (normalized === "/mobile/observer") {
+      return "Observer";
+    }
+    if (normalized === "/mobile/player") {
+      return "Player";
+    }
+    return "";
   }
 
-  function loadLastRoute(roleName) {
-    var scopedRoleName = String(roleName || "").trim();
-    var stored = readStoredValue(scopedRoleName ? lastRouteKeyForRole(scopedRoleName) : lastRouteKey);
-    if (!stored) {
-      return null;
-    }
-
-    var parsed = parseJson(stored);
-    if (!parsed || !parsed.sessionId || !parsed.roleName || !parsed.deviceId) {
-      return null;
-    }
-
-    if (scopedRoleName && String(parsed.roleName).toLowerCase() !== scopedRoleName.toLowerCase()) {
-      return null;
-    }
-
-    return parsed;
+  function resolveResumeRoute(params, requestedRoleName) {
+    void params;
+    void requestedRoleName;
+    return null;
   }
 
   function saveLastRoute(client) {
-    if (!client || !client.sessionId || !client.roleName || !client.deviceId) {
-      return;
-    }
-
-    var payload = JSON.stringify({
-      sessionId: client.sessionId,
-      roleName: client.roleName,
-      deviceId: client.deviceId,
-      savedAtUtc: new Date().toISOString()
-    });
-    writeStoredValue(lastRouteKeyForRole(client.roleName), payload);
-    if (!shouldPersistGlobalLastRoute()) {
-      return;
-    }
-
-    writeStoredValue(lastRouteKey, payload);
+    void client;
   }
 
-  function shouldPersistGlobalLastRoute() {
-    if (typeof document === "undefined" || typeof document.visibilityState !== "string") {
-      return true;
-    }
-
-    return document.visibilityState === "visible" || document.hasFocus();
+  function persistClientState(client) {
+    void client;
   }
 
-  function buildInitialStatusMessage(bootstrapMismatch, restored, bootstrap, resumeRoute) {
-    if (bootstrapMismatch && !restored) {
-      if (resumeRoute && resumeRoute.resumeSource === "session-only") {
-        return "Resuming " + resumeRoute.sessionId + " in the " + resumeRoute.roleName + " lane on this install. Reconnect once to seed a local snapshot.";
-      }
-
-      if (resumeRoute) {
-        return "Resuming " + resumeRoute.sessionId + " on this install, but no local snapshot is cached for the requested route yet. Reconnect once to seed it.";
-      }
-
-      return "This cached shell has no session-local snapshot for the requested route yet. Reconnect once to seed it.";
+  function buildInitialStatusMessage(bootstrapMismatch, bootstrap, resumeRoute) {
+    void resumeRoute;
+    if (bootstrapMismatch) {
+      return "The requested session differs from the server shell. Reconnect through a trusted session link; Chummer did not restore private state from browser storage.";
     }
 
-    if (resumeRoute && restored) {
-      return resumeRoute.resumeSource === "role"
-        ? "Resumed the last " + resumeRoute.roleName + " claimed-device route for this install."
-        : "Resumed the last claimed-device route for this install.";
-    }
-
-    return restored && restored.statusMessage ? restored.statusMessage : (bootstrap.statusMessage || "Turn companion loaded.");
+    return bootstrap.statusMessage || "Turn companion loaded. Private play state stays in memory for this open page only.";
   }
 
   function resolveObserverId() {
-    var stored = readStoredValue("chummer-play-mobile-observer-id");
-    if (stored) {
-      return stored;
+    if (!ephemeralObserverId) {
+      ephemeralObserverId = makeStableId("observer");
     }
-
-    var generated = makeStableId("observer");
-    writeStoredValue("chummer-play-mobile-observer-id", generated);
-    return generated;
+    return ephemeralObserverId;
   }
 
   function attachHandlers(root, client) {
+    if (root.getAttribute("data-handlers-attached") === "true") {
+      attachRoleLinkAnalytics(client);
+      return;
+    }
+
+    root.setAttribute("data-handlers-attached", "true");
     root.addEventListener("click", function (event) {
       var control = event.target.closest("[data-turn-kind]");
       if (!control || control.disabled) {
         return;
       }
 
+      var turnKind = control.getAttribute("data-turn-kind");
+      if (!isClickHandledTurnKind(turnKind)) {
+        return;
+      }
+
       stopEvent(event);
-      switch (control.getAttribute("data-turn-kind")) {
+      switch (turnKind) {
         case "adjust-metric":
           adjustMetric(client, control.getAttribute("data-metric-id"), parseInt(control.getAttribute("data-delta") || "0", 10));
           break;
@@ -302,6 +747,12 @@
         case "install-shell":
           void installShell(client);
           break;
+        case "share-owner-route":
+          void shareOwnerRoute(client);
+          break;
+        case "clear-private-device-data":
+          clearPrivateDeviceData(client, true);
+          break;
       }
     }, true);
 
@@ -311,8 +762,13 @@
         return;
       }
 
+      var turnKind = control.getAttribute("data-turn-kind");
+      if (turnKind !== "toggle-modifier" && turnKind !== "select-anchor") {
+        return;
+      }
+
       stopEvent(event);
-      switch (control.getAttribute("data-turn-kind")) {
+      switch (turnKind) {
         case "toggle-modifier":
           toggleModifier(client, control.getAttribute("data-modifier-id"), control.checked === true);
           break;
@@ -327,15 +783,59 @@
     if (manualHits) {
       manualHits.addEventListener("input", function () {
         client.manualHits = Math.max(0, parseInt(manualHits.value || "0", 10) || 0);
-        saveSnapshot(client);
       });
     }
 
     if (manualGlitch) {
       manualGlitch.addEventListener("change", function () {
         client.manualGlitch = manualGlitch.checked === true;
-        saveSnapshot(client);
       });
+    }
+
+    attachRoleLinkAnalytics(client);
+  }
+
+  function isClickHandledTurnKind(turnKind) {
+    switch (turnKind) {
+      case "adjust-metric":
+      case "select-action":
+      case "resolve-digital":
+      case "resolve-manual":
+      case "queue-quick-action":
+      case "replay-local-queue":
+      case "ack-server-queue":
+      case "claim-device":
+      case "install-shell":
+      case "share-owner-route":
+      case "clear-private-device-data":
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  function attachRoleLinkAnalytics(client) {
+    var links = document.querySelectorAll("[data-role-name]");
+    for (var index = 0; index < links.length; index += 1) {
+      if (links[index].dataset.analyticsAttached === "true") {
+        continue;
+      }
+
+      links[index].dataset.analyticsAttached = "true";
+      links[index].addEventListener("click", function (event) {
+        var targetRole = event.currentTarget.getAttribute("data-role-name") || "";
+        var targetMode = roleSegmentForAnalytics(targetRole);
+        if (targetMode !== roleSegmentForAnalytics(client.roleName)) {
+          trackMobileEvent("mobile_role_switch", client, {
+            targetRole: analyticsRole(targetRole),
+            targetMode: targetMode
+          });
+        }
+
+        if (window.__chummerPlaySuppressRoleNavigation === true) {
+          event.preventDefault();
+        }
+      }, true);
     }
   }
 
@@ -471,6 +971,7 @@
   }
 
   function render(client) {
+    var logicalFocus = captureLogicalFocus();
     normalizeProjection(client.projection);
     recomputeProjection(client.projection);
 
@@ -529,6 +1030,59 @@
 
     saveLastRoute(client);
     saveSnapshot(client);
+    restoreLogicalFocus(logicalFocus);
+  }
+
+  function captureLogicalFocus() {
+    var active = document.activeElement;
+    if (!active || typeof active.getAttribute !== "function" || !active.getAttribute("data-turn-kind")) {
+      return null;
+    }
+
+    var attributeNames = [
+      "data-turn-kind",
+      "data-metric-id",
+      "data-delta",
+      "data-action-id",
+      "data-modifier-id"
+    ];
+    var attributes = {};
+    for (var index = 0; index < attributeNames.length; index += 1) {
+      attributes[attributeNames[index]] = active.getAttribute(attributeNames[index]);
+    }
+
+    return attributes;
+  }
+
+  function restoreLogicalFocus(logicalFocus) {
+    if (!logicalFocus) {
+      return;
+    }
+
+    var candidates = document.querySelectorAll("[data-turn-kind]");
+    var attributeNames = Object.keys(logicalFocus);
+    for (var index = 0; index < candidates.length; index += 1) {
+      var matches = true;
+      for (var attributeIndex = 0; attributeIndex < attributeNames.length; attributeIndex += 1) {
+        var attributeName = attributeNames[attributeIndex];
+        if (candidates[index].getAttribute(attributeName) !== logicalFocus[attributeName]) {
+          matches = false;
+          break;
+        }
+      }
+
+      if (!matches || candidates[index].disabled || typeof candidates[index].focus !== "function") {
+        continue;
+      }
+
+      try {
+        candidates[index].focus({ preventScroll: true });
+      } catch (error) {
+        void error;
+        candidates[index].focus();
+      }
+      return;
+    }
   }
 
   function recomputeProjection(projection) {
@@ -654,7 +1208,8 @@
     var links = document.querySelectorAll("[data-role-name]");
     for (var index = 0; index < links.length; index += 1) {
       var roleName = links[index].getAttribute("data-role-name") || client.roleName;
-      links[index].setAttribute("href", mobileHref(client.sessionId, roleName, client.deviceId));
+      var isCurrentRole = roleSegmentForAnalytics(roleName) === roleSegmentForAnalytics(client.roleName);
+      links[index].setAttribute("href", isCurrentRole ? mobileHref() : mobileRoleHref(roleName));
     }
   }
 
@@ -664,14 +1219,28 @@
     var ownerRoute = continuityPayload && continuityPayload.continuityOwnerRoute
       ? continuityPayload.continuityOwnerRoute
       : claimedTurnRoute(client.sessionId, client.roleName, client.deviceId);
+    var normalizedOwnerRoute = normalizePlayRouteForMobileShell(
+      ownerRoute,
+      client.roleName,
+      client.sessionId,
+      client.deviceId
+    ) || claimedTurnRoute(client.sessionId, client.roleName, client.deviceId);
     var claimMatchesThisDevice = continuity && continuity.deviceId === client.deviceId;
     var hasContinuityCursor = continuityPayload
       && continuityPayload.projection
       && continuityPayload.projection.cursor;
 
     setText("turn-continuity-device", client.deviceId);
-    setText("turn-owner-route-copy", "Owner route: " + ownerRoute + ". Keep the claimed-device handoff visible on the same install-local shell.");
-    setLink("turn-owner-route-link", ownerRoute, "Open owner route");
+    var visibleOwnerRoute = client.visibleHandoffUrl || normalizedOwnerRoute;
+    var visibleOwnerRouteLabel = client.visibleHandoffUrl ? "Open session handoff link" : "Open owner route";
+    var visibleOwnerRoutePrefix = client.visibleHandoffUrl ? "Session handoff" : "Owner route";
+    setText(
+      "turn-owner-route-copy",
+      visibleOwnerRoutePrefix + ": " + visibleOwnerRoute + ". This handoff remains available only while this page stays open; reopening requires a trusted session link."
+    );
+    setLink("turn-owner-route-link", visibleOwnerRoute, visibleOwnerRouteLabel);
+    setText("turn-owner-route-share-status", client.ownerRouteShareStatus || "");
+    setButtonDisabled("turn-share-owner-route-button", !normalizedOwnerRoute);
 
     if (continuity && continuity.continuityToken) {
       setText("turn-continuity-status", claimMatchesThisDevice ? "Claimed on this device" : ("Claimed on " + continuity.deviceId));
@@ -686,7 +1255,7 @@
       setText("turn-continuity-status", "Not claimed on this device");
       setText(
         "turn-continuity-detail",
-        "Claim this device before the next handoff so the owner route and replay-safe sequence stay attached to one install-local shell."
+        "Claim this open-tab session before the next handoff so the owner route and replay-safe sequence remain available while this page stays open. Reopening requires a trusted session link."
       );
       setText("turn-continuity-token", "Pending");
       setText("turn-continuity-sequence", "0");
@@ -724,7 +1293,7 @@
     appendHistory(
       client.projection,
       "Quick action queued",
-      actionId + " is staged on this device and can be replayed when the owner route reconnects.",
+      actionId + " is staged in this open tab and can be replayed when the owner route reconnects. It will be discarded if this page closes or reloads first.",
       false,
       null
     );
@@ -736,7 +1305,7 @@
 
   async function replayLocalQueue(client) {
     if (!client.localReplayQueue.length) {
-      client.statusMessage = "No local replay receipts are queued on this device.";
+      client.statusMessage = "No local replay receipts are queued in this open tab.";
       render(client);
       return;
     }
@@ -850,7 +1419,7 @@
       client.statusMessage = payload.message || "Queue status refreshed.";
     } catch (error) {
       void error;
-      client.statusMessage = "Queue status refresh failed. Local tracking stays available on this shell.";
+      client.statusMessage = "Queue status refresh failed. Local tracking stays available in this open tab until the page closes or reloads.";
     } finally {
       client.networkBusy = false;
       render(client);
@@ -876,47 +1445,124 @@
 
   async function bootInstallBoundary(client) {
     if (!("serviceWorker" in navigator)) {
-      client.serviceWorkerStatus = "This browser cannot register the install-local service worker boundary for the mobile shell.";
+      client.serviceWorkerStatus = "This browser cannot register the public-shell service worker boundary for the mobile app.";
       render(client);
       return;
     }
 
+    bindServiceWorkerNetworkMessages();
     try {
-      await navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
+      await navigator.serviceWorker.register("/mobile/service-worker.js", { scope: "/mobile/" });
+      publishNetworkStateToServiceWorker();
+      publishCurrentRouteToServiceWorker();
       client.serviceWorkerStatus = navigator.serviceWorker.controller
-        ? "Service worker is active on this device; install-local shell caching is ready."
-        : "Service worker registered now; the install-local cache boundary becomes active after the next shell load.";
+        ? "Service worker is active; public shell assets can be cached, while private table state remains open-tab only."
+        : "Service worker registered; public shell asset caching begins after the next load, and private table state remains open-tab only.";
     } catch (error) {
       console.error("service worker registration failed", error);
-      client.serviceWorkerStatus = "Service worker registration failed, so install-local cache trust is reduced until this shell reloads cleanly.";
+      client.serviceWorkerStatus = "Service worker registration failed, so public shell asset caching is unavailable until this page reloads cleanly. Private table state was not cached.";
     }
 
     render(client);
   }
 
+  function bindServiceWorkerNetworkMessages() {
+    if (!("serviceWorker" in navigator) || window[serviceWorkerNetworkMessageBoundName]) {
+      return;
+    }
+
+    window[serviceWorkerNetworkMessageBoundName] = true;
+    navigator.serviceWorker.addEventListener("message", function (event) {
+      var data = event && event.data ? event.data : {};
+      if (data.type === "chummer-play-network-state-ack") {
+        window[serviceWorkerNetworkAckName] = data.online === true;
+      }
+    });
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      publishNetworkStateToServiceWorker();
+      publishCurrentRouteToServiceWorker();
+    });
+  }
+
+  function publishNetworkStateToServiceWorker() {
+    if (!("serviceWorker" in navigator)) {
+      return;
+    }
+
+    var message = {
+      type: "chummer-play-network-state",
+      online: navigator.onLine === true
+    };
+    window[serviceWorkerNetworkAckName] = null;
+    if (navigator.serviceWorker.controller && typeof navigator.serviceWorker.controller.postMessage === "function") {
+      navigator.serviceWorker.controller.postMessage(message);
+    }
+
+    if (navigator.serviceWorker.ready && typeof navigator.serviceWorker.ready.then === "function") {
+      navigator.serviceWorker.ready
+        .then(function (registration) {
+          var worker = registration && (registration.active || registration.waiting || registration.installing);
+          if (worker && worker !== navigator.serviceWorker.controller && typeof worker.postMessage === "function") {
+            worker.postMessage(message);
+          }
+        })
+        .catch(function () {
+          window[serviceWorkerNetworkAckName] = null;
+        });
+    }
+  }
+
+  function publishCurrentRouteToServiceWorker() {
+    if (!("serviceWorker" in navigator)) {
+      return;
+    }
+
+    var message = {
+      type: "chummer-play-cache-current-route",
+      pathname: window.location && window.location.pathname ? window.location.pathname : "/mobile/player"
+    };
+
+    if (navigator.serviceWorker.controller && typeof navigator.serviceWorker.controller.postMessage === "function") {
+      navigator.serviceWorker.controller.postMessage(message);
+    }
+
+    if (navigator.serviceWorker.ready && typeof navigator.serviceWorker.ready.then === "function") {
+      navigator.serviceWorker.ready
+        .then(function (registration) {
+          var worker = registration && (registration.active || registration.waiting || registration.installing);
+          if (worker && worker !== navigator.serviceWorker.controller && typeof worker.postMessage === "function") {
+            worker.postMessage(message);
+          }
+        })
+        .catch(function () {
+          // Route warming is best-effort; the shell still works online without it.
+        });
+    }
+  }
+
   function renderInstallSurface(client) {
     var installed = isInstalledShell();
     var buttonLabel = "Install app";
-    var detail = "Install this shell so the bounded turn companion can reopen from the device during play.";
+    var detail = "Install the public shell assets for quick reopening. Private table state remains in this open tab only.";
     var disabled = false;
 
     if (installed) {
       buttonLabel = "Installed";
-      detail = "This device already has the bounded turn companion installed. Reopen it from the app icon during play.";
+      detail = "This device has the public turn-companion shell installed. Reopen it from the app icon, then use a trusted session link; private table state is not restored from the install cache.";
       disabled = true;
     } else if (client.installBusy) {
       buttonLabel = "Opening install prompt";
-      detail = "Confirm the browser install flow to pin this shell on the device.";
+      detail = "Confirm the browser install flow to pin the public shell assets on the device. Private table state remains in this open tab only.";
       disabled = true;
     } else if (client.installPromptEvent && typeof client.installPromptEvent.prompt === "function") {
       buttonLabel = "Install app";
-      detail = "Use the browser install prompt to pin this bounded shell before the next play session.";
+      detail = "Use the browser install prompt to pin the public shell assets before the next play session. Private table state is never installed.";
     } else if (isAppleMobileBrowser()) {
       buttonLabel = "Add to Home Screen";
-      detail = "Use Safari Share and choose Add to Home Screen because this browser does not expose the inline install prompt.";
+      detail = "Use Safari Share and choose Add to Home Screen to install the public shell assets. Private table state remains in this open tab only.";
     } else {
       buttonLabel = "Install from browser menu";
-      detail = "The inline install prompt is not available yet. Use the browser install menu after the service worker finishes registering.";
+      detail = "The inline prompt is not available yet. Use the browser install menu after the service worker registers; it caches public shell assets, never private table state.";
     }
 
     setButtonText("turn-install-button", buttonLabel);
@@ -934,6 +1580,7 @@
     if (client.installPromptEvent && typeof client.installPromptEvent.prompt === "function") {
       client.installBusy = true;
       client.serviceWorkerStatus = "Opening the install prompt for this device.";
+      trackMobileEvent("mobile_install_prompt_open", client, { installPrompt: "open" });
       render(client);
 
       try {
@@ -942,13 +1589,16 @@
         var choice = promptEvent.userChoice ? await promptEvent.userChoice : null;
         if (choice && choice.outcome === "accepted") {
           client.serviceWorkerStatus = "Install accepted. Finish the browser flow to pin this shell on the device.";
+          trackMobileEvent("mobile_install_prompt_choice", client, { installPrompt: "accepted" });
         } else {
           client.serviceWorkerStatus = "Install dismissed. You can reopen the prompt from this shell when the browser offers it again.";
+          trackMobileEvent("mobile_install_prompt_choice", client, { installPrompt: "dismissed" });
         }
         client.installPromptEvent = null;
       } catch (error) {
         console.error("install prompt failed", error);
         client.serviceWorkerStatus = "Install prompt failed. Use the browser install menu until this shell can prompt again.";
+        trackMobileEvent("mobile_install_prompt_choice", client, { installPrompt: "failed" });
       } finally {
         client.installBusy = false;
         render(client);
@@ -959,7 +1609,131 @@
     client.serviceWorkerStatus = isAppleMobileBrowser()
       ? "Open Safari Share and choose Add to Home Screen to install this shell on this device."
       : "Use the browser install menu to add this shell to the device because the inline prompt is not available yet.";
+    trackMobileEvent("mobile_install_prompt_unavailable", client, {
+      installPrompt: isAppleMobileBrowser() ? "ios_manual" : "browser_menu"
+    });
     render(client);
+  }
+
+  async function shareOwnerRoute(client) {
+    var ownerRoute = readOwnerRouteHref();
+    if (!ownerRoute) {
+      client.ownerRouteShareStatus = "Owner route is not ready yet.";
+      setText("turn-owner-route-share-status", client.ownerRouteShareStatus);
+      saveSnapshot(client);
+      return;
+    }
+
+    var shareUrl = absoluteMobileUrl(sessionHandoffHref(ownerRoute, client));
+    var shareTitle = "Chummer " + analyticsRole(client && client.roleName ? client.roleName : "Player") + " session handoff";
+    if (navigator.share && typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          url: shareUrl
+        });
+        client.ownerRouteShareStatus = "Session handoff shared.";
+        setText("turn-owner-route-share-status", client.ownerRouteShareStatus);
+        saveSnapshot(client);
+        trackMobileEvent("mobile_session_handoff_share", client, { shareMethod: "native" });
+        return;
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          client.ownerRouteShareStatus = "Share cancelled.";
+          setText("turn-owner-route-share-status", client.ownerRouteShareStatus);
+          saveSnapshot(client);
+          return;
+        }
+      }
+    }
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        client.ownerRouteShareStatus = "Session handoff copied to clipboard.";
+        setText("turn-owner-route-share-status", client.ownerRouteShareStatus);
+        saveSnapshot(client);
+        trackMobileEvent("mobile_session_handoff_share", client, { shareMethod: "clipboard" });
+        return;
+      } catch (error) {
+        void error;
+      }
+    }
+
+    writeHandoffLink(shareUrl);
+    trackMobileEvent("mobile_session_handoff_share", client, { shareMethod: "link" });
+  }
+
+  function writeHandoffLink(shareUrl) {
+    var client = window[activeClientName];
+    if (!client) {
+      return;
+    }
+
+    client.visibleHandoffUrl = shareUrl;
+    client.ownerRouteShareStatus = "Session handoff is ready in the link above.";
+    setLink("turn-owner-route-link", shareUrl, "Open session handoff link");
+    setText("turn-owner-route-share-status", client.ownerRouteShareStatus);
+    render(client);
+    saveSnapshot(client);
+  }
+
+  function readOwnerRouteHref() {
+    var ownerRouteLink = document.getElementById("turn-owner-route-link");
+    if (!ownerRouteLink) {
+      return "";
+    }
+
+    return ownerRouteLink.getAttribute("href") || "";
+  }
+
+  function absoluteMobileUrl(href) {
+    try {
+      return new URL(href, window.location.origin).toString();
+    } catch {
+      return String(href || "");
+    }
+  }
+
+  function sessionHandoffHref(ownerRoute, client) {
+    void ownerRoute;
+    try {
+      var roleName = (client && client.roleName) || "Player";
+      return "/mobile/" + mobileModeSegment(roleName);
+    } catch {
+      return "/mobile/player";
+    }
+  }
+
+  function sanitizeVisibleHandoffUrl(value) {
+    if (!value) {
+      return "";
+    }
+
+    try {
+      var url = new URL(String(value), window.location.origin);
+      if (url.origin !== window.location.origin || url.pathname.indexOf("/mobile/") !== 0) {
+        return "";
+      }
+
+      return url.toString();
+    } catch {
+      return "";
+    }
+  }
+
+  function sanitizeShareStatus(value) {
+    var status = String(value || "");
+    switch (status) {
+      case "Owner route is not ready yet.":
+      case "Session handoff shared.":
+      case "Session handoff copied to clipboard.":
+      case "Session handoff is ready in the link above.":
+      case "Share cancelled.":
+        return status;
+      default:
+        return "";
+    }
   }
 
   function isInstalledShell() {
@@ -989,7 +1763,7 @@
       client.statusMessage = queuePayload.message || "Queue and claimed-device status refreshed.";
     } catch (error) {
       void error;
-      client.statusMessage = "Network refresh failed. Local tracking stays available on this shell.";
+      client.statusMessage = "Network refresh failed. Local tracking remains available only while this page stays open.";
     } finally {
       client.networkBusy = false;
       render(client);
@@ -998,7 +1772,7 @@
 
   async function claimContinuityOnThisDevice(client) {
     if (!navigator.onLine) {
-      client.statusMessage = "Reconnect first, then claim this install-local device.";
+      client.statusMessage = "Reconnect first, then claim this open-tab session.";
       render(client);
       return;
     }
@@ -1010,7 +1784,7 @@
     }
 
     client.networkBusy = true;
-    client.statusMessage = "Claiming this install-local device.";
+    client.statusMessage = "Claiming this open-tab session.";
     render(client);
 
     try {
@@ -1046,7 +1820,7 @@
       client.statusMessage = (claimStatus + (continuityToken ? ". " + continuityToken : "")).trim();
     } catch (error) {
       void error;
-      client.statusMessage = "Claim refresh failed. Keep using the current owner route until this shell reconnects cleanly.";
+      client.statusMessage = "Claim refresh failed. Keep this page open and use the current owner route until it reconnects cleanly.";
     } finally {
       client.networkBusy = false;
       render(client);
@@ -1088,8 +1862,20 @@
         + "<div class=\"metric-meta\"><span class=\"metric-label\">" + escapeHtml(card.label) + "</span><span class=\"metric-value\">" + escapeHtml(String(card.value)) + "</span></div>"
         + "<p class=\"metric-detail\">" + escapeHtml(card.detail) + "</p>"
         + "<div class=\"stepper\">"
-        + buildActionButton("adjust-metric", "-", { "metric-id": card.metricId, delta: "-1" }, projection.canMutate)
-        + buildActionButton("adjust-metric", "+", { "metric-id": card.metricId, delta: "1" }, projection.canMutate)
+        + buildActionButton(
+          "adjust-metric",
+          "-",
+          { "metric-id": card.metricId, delta: "-1" },
+          projection.canMutate,
+          "Decrease " + card.label + ", currently " + card.value
+        )
+        + buildActionButton(
+          "adjust-metric",
+          "+",
+          { "metric-id": card.metricId, delta: "1" },
+          projection.canMutate,
+          "Increase " + card.label + ", currently " + card.value
+        )
         + "</div></article>";
     }).join("");
   }
@@ -1115,8 +1901,20 @@
         + "<div class=\"metric-meta\"><span class=\"metric-label\">" + escapeHtml(card.label) + "</span><span class=\"metric-value\">" + escapeHtml(String(card.quantity)) + "</span></div>"
         + "<p class=\"metric-detail\">" + escapeHtml(card.detail) + "</p>"
         + "<div class=\"stepper\">"
-        + buildActionButton("adjust-metric", "-", { "metric-id": "inventory:" + card.itemId, delta: "-1" }, projection.canMutate)
-        + buildActionButton("adjust-metric", "+", { "metric-id": "inventory:" + card.itemId, delta: "1" }, projection.canMutate)
+        + buildActionButton(
+          "adjust-metric",
+          "-",
+          { "metric-id": "inventory:" + card.itemId, delta: "-1" },
+          projection.canMutate,
+          "Decrease " + card.label + ", currently " + card.quantity
+        )
+        + buildActionButton(
+          "adjust-metric",
+          "+",
+          { "metric-id": "inventory:" + card.itemId, delta: "1" },
+          projection.canMutate,
+          "Increase " + card.label + ", currently " + card.quantity
+        )
         + "</div></article>";
     }).join("");
   }
@@ -1129,7 +1927,7 @@
 
     element.innerHTML = (projection.act.actions || []).map(function (action) {
       var classes = action.selected ? "action-tile action-tile--selected" : "action-tile";
-      return "<button type=\"button\" class=\"" + classes + "\" data-turn-kind=\"select-action\" data-action-id=\"" + escapeAttribute(action.actionId) + "\""
+      return "<button type=\"button\" class=\"" + classes + "\" data-turn-kind=\"select-action\" data-action-id=\"" + escapeAttribute(action.actionId) + "\" aria-pressed=\"" + (action.selected ? "true" : "false") + "\""
         + (action.enabled ? "" : " disabled") + ">"
         + "<span class=\"action-label\">" + escapeHtml(action.label) + "</span>"
         + "<span class=\"action-summary\">" + escapeHtml(action.summary) + "</span>"
@@ -1200,56 +1998,49 @@
 
     if (!navigator.onLine) {
       banner.setAttribute("data-tone", "offline");
-      title.textContent = "Offline: device-local tracker is active.";
-      copy.textContent = "This cached shell is running from local storage. " + client.localReplayQueue.length + " local receipt(s) stay on this device until you reconnect.";
+      title.textContent = "Offline: open-tab tracker is active.";
+      copy.textContent = "This page holds " + client.localReplayQueue.length + " local receipt(s) in memory only while this tab stays open. Reconnect and replay them before closing or reloading.";
       return;
     }
 
     if (client.localReplayQueue.length > 0) {
       banner.setAttribute("data-tone", "restored");
       title.textContent = "Local replay queue is waiting.";
-      copy.textContent = client.localReplayQueue.length + " device-local receipt(s) are staged for replay when the owner route reconnects.";
-      return;
-    }
-
-    if (client.restoredFromStorage) {
-      banner.setAttribute("data-tone", "restored");
-      title.textContent = "Device-local snapshot restored.";
-      copy.textContent = "Stored revision " + client.projection.localRevision + " is live on this shell and will survive reloads, install reopen, and temporary reconnect churn.";
+      copy.textContent = client.localReplayQueue.length + " receipt(s) remain in this open tab only. Reconnect and replay them before closing or reloading this page.";
       return;
     }
 
     banner.setAttribute("data-tone", "ready");
-    title.textContent = "Grounded local tracker is ready.";
-      copy.textContent = "This shell persists the bounded session tracker locally so the mobile lane can reopen quickly from the install cache.";
+    title.textContent = "Grounded open-tab tracker is ready.";
+    copy.textContent = "Private table state stays in memory for this open page only. Installation caches public shell assets, never table state.";
   }
 
   function applyRequestedRouteFallback(projection, sessionId, roleName) {
     projection.sessionId = sessionId;
     projection.role = roleName;
     projection.pendingQueueCount = 0;
-    projection.shellSummary = "Claimed-device fallback · " + sessionId;
-    projection.localBoundarySummary = "This cached fallback has no route-specific snapshot yet. Reconnect once to seed " + sessionId + " on this device, or continue with a fresh local tracker.";
-    projection.currentSceneSummary = "Route-specific scene lineage is not cached for this requested shell yet.";
+    projection.shellSummary = "Open-tab fallback · " + sessionId;
+    projection.localBoundarySummary = "This open page has no route-specific server projection yet. Reconnect to load " + sessionId + ", or continue with a temporary tracker that is discarded when this page closes or reloads.";
+    projection.currentSceneSummary = "Route-specific scene lineage is unavailable until this page reconnects.";
     projection.trust = {
       statusLabel: "Reconnect before trust",
-      summary: "This offline fallback opened without a route-specific snapshot, so trust and scene lineage must be refreshed once the device reconnects.",
+      summary: "This open-tab fallback has no route-specific server projection, so trust and scene lineage must be refreshed once the device reconnects.",
       checkpointLabel: "Checkpoint pending",
       runtimeLabel: "Runtime bundle proof pending",
       queueLabel: "No queued replay-safe mutations are pinned for this route yet.",
       labels: [
         "Requested route: " + sessionId + ".",
-        "Reconnect once to seed a grounded runtime bundle and continuity checkpoint.",
-        "Until then, this shell stays a bounded local tracker only."
+        "Reconnect to load a grounded runtime bundle and continuity checkpoint.",
+        "Until then, this page stays a bounded temporary tracker only."
       ]
     };
     projection.sync.pendingSummary = "Server replay queue is not confirmed for this route until reconnect.";
     projection.sync.reconnectSummary = "Reconnect once before you replay or acknowledge any queue state for the requested route.";
-    projection.sync.claimedDeviceSummary = "Claimed-device fallback is active for " + sessionId + ". Route-specific sync posture will appear after reconnect.";
+    projection.sync.claimedDeviceSummary = "Open-tab fallback is active for " + sessionId + ". Route-specific sync posture will appear after reconnect.";
     projection.history.entries = [
       {
-        title: "Requested route not cached yet",
-        detail: "Reconnect once on this device to seed a route-local snapshot for " + sessionId + ".",
+        title: "Requested route not loaded yet",
+        detail: "Reconnect on this page to load the server projection for " + sessionId + ".",
         when: formatUtcTime(new Date()),
         queued: false,
         manual: false
@@ -1328,14 +2119,70 @@
       + "&deviceId=" + encodeURIComponent(deviceId);
   }
 
-  function mobileHref(sessionId, roleName, deviceId) {
-    return "/mobile?sessionId=" + encodeURIComponent(sessionId)
-      + "&role=" + encodeURIComponent(roleName)
-      + "&deviceId=" + encodeURIComponent(deviceId);
+  function mobileHref() {
+    return "/mobile/live";
+  }
+
+  function mobileRoleHref(roleName) {
+    return "/mobile/" + mobileModeSegment(roleName);
+  }
+
+  function mobileModeSegment(roleName) {
+    if (isGameMasterRole(roleName)) {
+      return "gm";
+    }
+
+    var lowered = String(roleName || "").toLowerCase();
+    if (lowered.indexOf("observer") >= 0) {
+      return "observer";
+    }
+
+    return "player";
+  }
+
+  function roleToMobileMode(roleText) {
+    var lowered = String(roleText || "").toLowerCase();
+    if (lowered.indexOf("observer") >= 0) {
+      return "observer";
+    }
+
+    if (isGameMasterRole(roleText) || lowered === "gamer" || lowered.indexOf("game") >= 0) {
+      return "gm";
+    }
+
+    return "player";
+  }
+
+  function normalizePlayRouteForMobileShell(href, roleFallback, sessionIdFallback, deviceFallback) {
+    void roleFallback;
+    void sessionIdFallback;
+    void deviceFallback;
+    if (!href || typeof href !== "string") {
+      return "";
+    }
+
+    var trimmedHref = href.trim();
+    if (!trimmedHref) {
+      return "";
+    }
+
+    try {
+      var routeUrl = new URL(trimmedHref, window.location.origin);
+      return routeUrl.pathname === "/mobile/live"
+        || routeUrl.pathname === "/play"
+        || routeUrl.pathname.indexOf("/play/") === 0
+        ? "/mobile/live"
+        : trimmedHref;
+    } catch {
+      return trimmedHref;
+    }
   }
 
   function claimedTurnRoute(sessionId, roleName, deviceId) {
-    return mobileHref(sessionId, roleName, deviceId);
+    void sessionId;
+    void roleName;
+    void deviceId;
+    return "/mobile/live";
   }
 
   function observeRoute(sessionId) {
@@ -1575,50 +2422,14 @@
   }
 
   function saveSnapshot(client) {
-    try {
-      window.localStorage.setItem(storageKey(client.sessionId, client.roleName, client.deviceId), JSON.stringify({
-        projection: client.projection,
-        statusMessage: client.statusMessage,
-        manualHits: client.manualHits,
-        manualGlitch: client.manualGlitch,
-        localReplayQueue: client.localReplayQueue,
-        continuityPayload: client.continuityPayload,
-        serviceWorkerStatus: client.serviceWorkerStatus,
-        savedAtUtc: new Date().toISOString()
-      }));
-    } catch (error) {
-      void error;
-    }
+    void client;
   }
 
   function loadSnapshot(sessionId, roleName, deviceId) {
-    try {
-      var payload = window.localStorage.getItem(storageKey(sessionId, roleName, deviceId));
-      if (!payload) {
-        payload = window.localStorage.getItem(legacyStorageKey(sessionId, roleName));
-      }
-      if (!payload) {
-        return null;
-      }
-
-      var parsed = parseJson(payload);
-      if (!parsed || !parsed.projection || !parsed.projection.now || !parsed.projection.now.statCards) {
-        return null;
-      }
-
-      return parsed;
-    } catch (error) {
-      void error;
-      return null;
-    }
-  }
-
-  function storageKey(sessionId, roleName, deviceId) {
-    return storagePrefix + sessionId + ":" + roleName + ":" + deviceId;
-  }
-
-  function legacyStorageKey(sessionId, roleName) {
-    return storagePrefix + sessionId + ":" + roleName;
+    void sessionId;
+    void roleName;
+    void deviceId;
+    return null;
   }
 
   function setText(id, value) {
@@ -1670,7 +2481,7 @@
     }
   }
 
-  function buildActionButton(kind, label, data, enabled) {
+  function buildActionButton(kind, label, data, enabled, accessibleLabel) {
     var attributes = " type=\"button\" data-turn-kind=\"" + kind + "\"";
     Object.keys(data).forEach(function (key) {
       attributes += " data-" + key + "=\"" + escapeAttribute(String(data[key])) + "\"";
@@ -1678,6 +2489,10 @@
 
     if (!enabled) {
       attributes += " disabled";
+    }
+
+    if (accessibleLabel) {
+      attributes += " aria-label=\"" + escapeAttribute(accessibleLabel) + "\"";
     }
 
     return "<button" + attributes + ">" + escapeHtml(label) + "</button>";
