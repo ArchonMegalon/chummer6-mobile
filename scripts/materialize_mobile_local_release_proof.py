@@ -4,6 +4,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -36,6 +37,7 @@ MIGRATION_MAP = ROOT / "docs" / "migration-map.md"
 PLAY_SIGNOFF = ROOT / "docs" / "PLAY_RELEASE_SIGNOFF.md"
 VERIFY_SCRIPT = ROOT / "scripts" / "ai" / "verify.sh"
 PACKAGE_PLANE_HELPER = ROOT / "scripts" / "ai" / "with-package-plane.sh"
+VERIFICATION_MODE_WRITER = ROOT / "scripts" / "ai" / "write_verification_mode_receipt.py"
 MOBILE_RELEASE_PROOF_VERIFIER = ROOT / "scripts" / "release" / "verify_mobile_release_proof.sh"
 RUNTIME_SMOKE = ROOT / "scripts" / "verify_mobile_pwa_runtime_smoke.py"
 VIEWPORT_SMOKE = ROOT / "scripts" / "verify_mobile_pwa_viewport_smoke.py"
@@ -965,6 +967,8 @@ def sha256_file(path: Path) -> str:
 def load_required_smoke_receipts() -> tuple[list[dict[str, object]], list[str]]:
     summaries: list[dict[str, object]] = []
     errors: list[str] = []
+    expected_verification_mode = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
+    expected_verification_run_id = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
     required_commands = [
         command
         for command in VERIFICATION_COMMANDS
@@ -1006,12 +1010,22 @@ def load_required_smoke_receipts() -> tuple[list[dict[str, object]], list[str]]:
         contract_name = receipt_payload.get("contract_name")
         status = receipt_payload.get("status")
         generated_at_utc = receipt_payload.get("generated_at_utc")
+        verification_mode = receipt_payload.get("verification_mode")
+        verification_run_id = receipt_payload.get("verification_run_id")
         if contract_name != expected_contract:
             errors.append(f"{command_id} receipt contract drifted: {contract_name!r}")
         if status != "pass":
             errors.append(f"{command_id} receipt status is not pass: {status!r}")
         if not isinstance(generated_at_utc, str) or not generated_at_utc.strip():
             errors.append(f"{command_id} receipt missing generated_at_utc")
+        if verification_mode != expected_verification_mode:
+            errors.append(
+                f"{command_id} receipt verification mode drifted: {verification_mode!r}"
+            )
+        if expected_verification_run_id and verification_run_id != expected_verification_run_id:
+            errors.append(
+                f"{command_id} receipt verification run drifted: {verification_run_id!r}"
+            )
 
         summaries.append(
             {
@@ -1021,6 +1035,8 @@ def load_required_smoke_receipts() -> tuple[list[dict[str, object]], list[str]]:
                 "contract_name": contract_name,
                 "status": status,
                 "generated_at_utc": generated_at_utc,
+                "verification_mode": verification_mode,
+                "verification_run_id": verification_run_id,
                 "required_before_materialize": True,
             }
         )
@@ -1493,6 +1509,7 @@ def load_cross_surface_refresh() -> tuple[dict[str, object], list[str]]:
     )
     fingerprint_errors: list[str] = []
     fingerprint_paths: list[str] = []
+    live_build_lock_probe: dict[str, object] = {}
 
     if receipt_payload.get("contract_name") != "chummer6-mobile.cross_surface_readiness_refresh.v1":
         errors.append("cross-surface refresh receipt contract drifted")
@@ -1501,6 +1518,8 @@ def load_cross_surface_refresh() -> tuple[dict[str, object], list[str]]:
         errors.append(f"cross-surface refresh receipt status drifted: {refresh_status!r}")
     if not isinstance(receipt_payload.get("generated_at_utc"), str) or not str(receipt_payload.get("generated_at_utc")).strip():
         errors.append("cross-surface refresh receipt missing generated_at_utc")
+    if receipt_payload.get("verification_mode") == "release" and public_edge.get("skipped") is True:
+        errors.append("release cross-surface refresh cannot skip public-edge proof")
     for key in [
         "fleet_mobile_play_shell_ready",
         "fleet_mobile_local_release_passed",
@@ -1727,6 +1746,7 @@ def load_release_boundary() -> tuple[dict[str, object], list[str]]:
         ".codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json",
         ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json",
         ".codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json",
+        ".codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json",
     }
     actual_release_receipt_paths = {
         str(row.get("path"))
@@ -2194,6 +2214,7 @@ def main() -> int:
         str(M145_VERIFIER.relative_to(ROOT)),
         str(MOBILE_CROSS_SURFACE_REFRESH_SCRIPT.relative_to(ROOT)),
         str(MOBILE_RELEASE_BOUNDARY_SCRIPT.relative_to(ROOT)),
+        str(VERIFICATION_MODE_WRITER.relative_to(ROOT)),
     ]
     source_file_digests = [
         {
@@ -2204,6 +2225,8 @@ def main() -> int:
     ]
     payload = {
         "contract_name": "chummer6-mobile.local_release_proof",
+        "verification_mode": os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice",
+        "verification_run_id": os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip(),
         "status": "passed",
         "proof_kind": "source_backed_local_regression_contract",
         "source_files": source_files,

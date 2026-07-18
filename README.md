@@ -49,6 +49,18 @@ Run the local fast-path verification:
 bash scripts/ai/verify.sh
 ```
 
+Verification is explicit about its evidence strength:
+
+```bash
+CHUMMER_VERIFY_MODE=scaffold bash scripts/ai/verify.sh
+CHUMMER_VERIFY_MODE=slice bash scripts/ai/verify.sh
+CHUMMER_VERIFY_MODE=integration CHUMMER_ALLOW_STUB_PACKAGES=0 bash scripts/ai/verify.sh
+CHUMMER_VERIFY_MODE=release CHUMMER_ALLOW_STUB_PACKAGES=0 \
+  CHUMMER_PUBLISHED_FEED_SOURCES="<pinned-feed>" bash scripts/ai/verify.sh
+```
+
+`scaffold` and `slice` may use package stubs unless `CHUMMER_ALLOW_STUB_PACKAGES=0` is set. `integration` and `release` always reject stubs, and their `--no-restore`/`--no-build` steps require a matching same-run package-plane attestation. Release verification also rejects skipped feed or public-edge proof. Every run writes `.codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json` with its mode, run ID, skips, and release-evidence eligibility; release receipts must carry that same mode and run ID.
+
 If the local design mirror drifts from canon, repair only this repo mirror bundle with:
 
 ```bash

@@ -14,8 +14,11 @@ from pathlib import Path
 
 repo = Path(os.environ["CHUMMER_PLAY_REPO_ROOT"]).resolve()
 path = repo / ".codex-studio" / "published" / "MOBILE_LOCAL_RELEASE_PROOF.generated.json"
+verification_mode_path = repo / ".codex-studio" / "published" / "MOBILE_VERIFICATION_MODE.generated.json"
 root_release_blockers_path = Path("/docker/chummercomplete/RELEASE_BLOCKERS.generated.json")
 self_referential_release_wrapper_ids = {"release_truth:release_ready"}
+verification_mode = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
+verification_run_id = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
 
 expected_journeys = {
     "install_claim_restore_continue",
@@ -45,6 +48,7 @@ expected_source_files = {
     "docs/next90-m122-mobile-runner-goal-updates-and-consequence-feed.proof.md",
     "docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md",
     "scripts/ai/with-package-plane.sh",
+    "scripts/ai/write_verification_mode_receipt.py",
     "src/Chummer.Play.Web/wwwroot/index.html",
     "src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js",
     "src/Chummer.Play.Web/wwwroot/mobile-install-shell.js",
@@ -107,6 +111,21 @@ expected_smoke_receipt_paths = {
     "mobile_pwa_analytics_smoke": ".codex-studio/published/MOBILE_PWA_ANALYTICS_SMOKE.generated.json",
     "pwa_runtime_smoke": ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json",
     "mobile_pwa_viewport_smoke": ".codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json",
+}
+
+expected_release_receipts = {
+    ".codex-studio/published/MOBILE_CROSS_SURFACE_READINESS.generated.json",
+    ".codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
+    ".codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json",
+    ".codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json",
+    ".codex-studio/published/MOBILE_PWA_ANALYTICS_SMOKE.generated.json",
+    ".codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json",
+    ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json",
+    ".codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json",
+    ".codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json",
+}
+expected_mode_bound_receipts = expected_release_receipts - {
+    ".codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json",
 }
 
 critical_markers = {
@@ -267,9 +286,47 @@ def require(condition: bool, message: str) -> None:
 
 if not path.is_file():
     raise SystemExit(f"missing mobile release proof: {path}")
+if verification_mode not in {"scaffold", "slice", "integration", "release"}:
+    raise SystemExit(f"unsupported CHUMMER_VERIFY_MODE: {verification_mode}")
+if not verification_mode_path.is_file():
+    raise SystemExit(f"missing mobile verification mode receipt: {verification_mode_path}")
 
 payload = json.loads(path.read_text(encoding="utf-8"))
+verification_mode_receipt = json.loads(verification_mode_path.read_text(encoding="utf-8"))
 require(payload.get("contract_name") == "chummer6-mobile.local_release_proof", "unexpected contract_name")
+require(payload.get("verification_mode") == verification_mode, "mobile release proof verification mode drifted")
+require(
+    verification_mode_receipt.get("contractName") == "chummer6-mobile.verification-mode/v1",
+    "unexpected verification mode receipt contract",
+)
+require(verification_mode_receipt.get("mode") == verification_mode, "verification mode receipt mode drifted")
+require(verification_mode_receipt.get("status") in {"in_progress", "pass"}, "verification mode receipt is not active or passing")
+if verification_mode == "release":
+    require(bool(verification_run_id), "release verification run id is missing")
+    require(payload.get("verification_run_id") == verification_run_id, "mobile release proof verification run drifted")
+    require(
+        verification_mode_receipt.get("verificationRunId") == verification_run_id,
+        "verification mode receipt verification run drifted",
+    )
+    require(verification_mode_receipt.get("status") == "pass", "release verification mode receipt is not passing")
+    require(verification_mode_receipt.get("stubPackagesAllowed") is False, "release verification used stub packages")
+    require(verification_mode_receipt.get("skipCount") == 0, "release verification contains skipped proof")
+    require(verification_mode_receipt.get("skips") == [], "release verification skip list is not empty")
+    require(verification_mode_receipt.get("releaseEvidenceEligible") is True, "release verification is not evidence eligible")
+    for relative_receipt in sorted(expected_mode_bound_receipts):
+        receipt_path = repo / relative_receipt
+        require(receipt_path.is_file(), f"release verification receipt missing: {relative_receipt}")
+        if not receipt_path.is_file():
+            continue
+        receipt_payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+        require(
+            receipt_payload.get("verification_mode") == "release",
+            f"release verification receipt mode drifted: {relative_receipt}",
+        )
+        require(
+            receipt_payload.get("verification_run_id") == verification_run_id,
+            f"release verification receipt run drifted: {relative_receipt}",
+        )
 require(payload.get("proof_kind") == "source_backed_local_regression_contract", "unexpected proof_kind")
 require(str(payload.get("status")).lower() == "passed", f"mobile release proof status is not passed: {payload.get('status')}")
 generated_at = payload.get("generated_at")
@@ -424,6 +481,7 @@ for command_id, expected_contract in expected_smoke_receipt_contracts.items():
     require(receipt_summary.get("receipt_path") == expected_smoke_receipt_paths[command_id], f"{command_id} smoke receipt path drifted: {receipt_summary.get('receipt_path')!r}")
     require(receipt_summary.get("contract_name") == expected_contract, f"{command_id} smoke receipt contract drifted: {receipt_summary.get('contract_name')!r}")
     require(receipt_summary.get("status") == "pass", f"{command_id} smoke receipt summary is not pass")
+    require(receipt_summary.get("verification_mode") == verification_mode, f"{command_id} smoke receipt verification mode drifted")
     require(isinstance(receipt_summary.get("generated_at_utc"), str) and receipt_summary.get("generated_at_utc").strip(), f"{command_id} smoke receipt summary missing generated_at_utc")
 
 runtime_command = verification_by_id.get("pwa_runtime_smoke")
@@ -796,6 +854,8 @@ if isinstance(cross_surface_refresh, dict):
             require(mobile_detail.get("mobile_local_release_status") == "passed", "cross_surface_refresh mobile_local_release_status drifted")
         public_edge = cross_surface_refresh.get("public_edge")
         require(isinstance(public_edge, dict), "cross_surface_refresh public_edge must be an object")
+        if verification_mode == "release" and isinstance(public_edge, dict):
+            require(public_edge.get("skipped") is False, "release cross_surface_refresh skipped public-edge proof")
         if isinstance(public_edge, dict) and public_edge.get("skipped") is not True:
             require(public_edge.get("status") == refresh_status, "cross_surface_refresh public_edge status drifted")
             require(isinstance(public_edge.get("failures"), list), "cross_surface_refresh public_edge failures must be a list")
@@ -879,7 +939,10 @@ if isinstance(release_boundary, dict):
     if isinstance(ownership_checks, dict):
         for check_id in sorted(expected_boundary_checks):
             require(ownership_checks.get(check_id) is True, f"release_boundary ownership check is not true: {check_id}")
-    require(release_boundary.get("release_receipt_count") == 8, "release_boundary release_receipt_count drifted")
+    require(
+        release_boundary.get("release_receipt_count") == len(expected_release_receipts),
+        "release_boundary release_receipt_count drifted",
+    )
     for key in [
         "play_owned_entry_count",
         "play_foreign_entry_count",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import tempfile
 import textwrap
@@ -206,6 +207,55 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
             LOCAL_RELEASE_SCRIPT,
             "materialize_mobile_local_release_proof_test_module",
         )
+
+    def test_release_mode_rejects_skip_public_edge_before_materialization(self) -> None:
+        with (
+            mock.patch.dict(os.environ, {"CHUMMER_VERIFY_MODE": "release"}),
+            mock.patch.object(
+                sys,
+                "argv",
+                ["materialize_mobile_cross_surface_readiness.py", "--skip-public-edge"],
+            ),
+            self.assertRaisesRegex(SystemExit, "release verification cannot skip public-edge proof"),
+        ):
+            self.cross_surface_module.main()
+
+    def test_local_release_loader_rejects_release_receipt_with_skipped_public_edge(self) -> None:
+        payload = {
+            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v1",
+            "verification_mode": "release",
+            "generated_at_utc": "2026-07-18T20:00:00Z",
+            "status": "pass",
+            "checks": {
+                "fleet_mobile_play_shell_ready": True,
+                "fleet_mobile_local_release_passed": True,
+                "fleet_mobile_scope_not_blocking": True,
+            },
+            "public_edge": {"skipped": True},
+            "fleet_readiness": {},
+            "surface_source_fingerprint": {"kind": "current_checkout_sha256", "files": []},
+        }
+        published_dir = ROOT / ".codex-studio" / "published"
+        published_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            prefix="mobile-cross-surface-release-skip-",
+            suffix=".json",
+            dir=published_dir,
+            delete=False,
+        ) as handle:
+            receipt_path = Path(handle.name)
+        try:
+            receipt_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            with mock.patch.object(
+                self.local_release_module,
+                "MOBILE_CROSS_SURFACE_REFRESH_RECEIPT",
+                receipt_path,
+            ):
+                _, errors = self.local_release_module.load_cross_surface_refresh()
+        finally:
+            receipt_path.unlink(missing_ok=True)
+
+        self.assertIn("release cross-surface refresh cannot skip public-edge proof", errors)
 
     def test_cross_surface_materializer_writes_fail_receipt_for_public_edge_blockers(self) -> None:
         with tempfile.TemporaryDirectory(prefix="mobile-cross-surface-refresh-") as temp_dir:

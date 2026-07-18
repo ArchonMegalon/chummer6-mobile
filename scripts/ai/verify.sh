@@ -9,8 +9,90 @@ export DOTNET_CLI_TELEMETRY_OPTOUT=1
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 package_plane_runner="${repo_root}/scripts/ai/with-package-plane.sh"
 published_feed_sources="${CHUMMER_PUBLISHED_FEED_SOURCES:-}"
+verification_mode="${CHUMMER_VERIFY_MODE:-slice}"
+allow_stub_packages="${CHUMMER_ALLOW_STUB_PACKAGES:-}"
+verification_run_id="${CHUMMER_VERIFY_RUN_ID:-}"
+
+case "${verification_mode}" in
+  scaffold|slice|integration|release) ;;
+  *)
+    echo "unsupported CHUMMER_VERIFY_MODE: ${verification_mode}" >&2
+    exit 2
+    ;;
+esac
+if [[ -z "${allow_stub_packages}" ]]; then
+  case "${verification_mode}" in
+    scaffold|slice) allow_stub_packages=1 ;;
+    integration|release) allow_stub_packages=0 ;;
+  esac
+fi
+case "${allow_stub_packages}" in
+  0|1) ;;
+  *)
+    echo "CHUMMER_ALLOW_STUB_PACKAGES must be 0 or 1" >&2
+    exit 2
+    ;;
+esac
+if [[ "${verification_mode}" == "integration" || "${verification_mode}" == "release" ]]; then
+  if [[ "${allow_stub_packages}" != "0" ]]; then
+    echo "${verification_mode} verification forbids stub packages" >&2
+    exit 2
+  fi
+fi
+export CHUMMER_VERIFY_MODE="${verification_mode}"
+export CHUMMER_ALLOW_STUB_PACKAGES="${allow_stub_packages}"
+if [[ -z "${verification_run_id}" ]]; then
+  verification_run_id="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
+fi
+export CHUMMER_VERIFY_RUN_ID="${verification_run_id}"
+
+verification_skips=()
+verification_receipt_status="in_progress"
+verification_receipt_finalized=false
+write_verification_mode_receipt() {
+  local args=(
+    scripts/ai/write_verification_mode_receipt.py
+    --mode "${verification_mode}"
+    --status "${verification_receipt_status}"
+    --stub-packages-allowed "${allow_stub_packages}"
+    --verification-run-id "${verification_run_id}"
+  )
+  local skip_reason
+  for skip_reason in "${verification_skips[@]}"; do
+    args+=(--skip "${skip_reason}")
+  done
+  python3 "${args[@]}" >/dev/null
+}
+finish_verification_receipt() {
+  local exit_code=$?
+  trap - EXIT
+  if [[ "${exit_code}" -eq 0 ]]; then
+    if [[ "${verification_receipt_finalized}" != true ]]; then
+      verification_receipt_status="pass"
+      write_verification_mode_receipt || true
+    fi
+  else
+    verification_receipt_status="fail"
+    write_verification_mode_receipt || true
+  fi
+  exit "${exit_code}"
+}
+skip_or_fail() {
+  local reason="$1"
+  verification_skips+=("${reason}")
+  if [[ "${verification_mode}" == "release" ]]; then
+    echo "release verification cannot skip: ${reason}" >&2
+    exit 1
+  fi
+  echo "SKIP: ${reason}" >&2
+}
 
 cd "${repo_root}"
+trap finish_verification_receipt EXIT
+write_verification_mode_receipt
+if [[ "${verification_mode}" == "release" && -z "${published_feed_sources}" ]]; then
+  skip_or_fail "published-feed compatibility restore/build checks (set CHUMMER_PUBLISHED_FEED_SOURCES)"
+fi
 
 mobile_cross_surface_refreshed=0
 materialize_mobile_release_proof() {
@@ -90,9 +172,12 @@ test -f scripts/verify_next90_m122_mobile_runner_goal_updates.py
 test -f scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py
 test -f scripts/ai/repair_design_mirror.sh
 test -f scripts/ai/with-package-plane.sh
+test -f scripts/ai/write_verification_mode_receipt.py
 test -f scripts/ai/verify_design_mirror.py
 test -f tests/test_with_package_plane_locking.py
 python3 -m unittest discover -s tests -p 'test_with_package_plane_locking.py' >/dev/null
+test -f tests/test_verification_modes.py
+python3 -m unittest discover -s tests -p 'test_verification_modes.py' >/dev/null
 test -f tests/test_cleanup_mobile_disposable_artifacts.py
 python3 -m unittest discover -s tests -p 'test_cleanup_mobile_disposable_artifacts.py' >/dev/null
 test -f tests/test_mobile_strict_public_edge_follow_through.py
@@ -314,10 +399,6 @@ if rg -n 'DeepLinkOwnerRoute:\s*"/play/\{sessionId\}"|PlayContinuityClaimRespons
   echo "templated owner routes are not allowed in live resume/workspace responses" >&2
   exit 1
 fi
-materialize_mobile_release_proof
-python3 scripts/verify_next90_m117_mobile_artifact_shelf.py >/dev/null
-python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
-python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
 rg -n 'SelectShell\(bootstrapRequest\.Role, playerShell, gmShell\)' src/Chummer.Play.Web >/dev/null
 rg -n '\[activeShell\]' src/Chummer.Play.Web >/dev/null
 rg -n 'BuildQuickActions\(bootstrapRequest\.Role, roleCapabilities\)|BuildQuickActions\(request\.Role, roleCapabilities\)' src/Chummer.Play.Web >/dev/null
@@ -768,8 +849,6 @@ rg -n 'VerifyReconnectLineageTransitionContinuityAsync' .codex-studio/published/
 rg -n 'VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'replace old `Chummer.Presentation` project references with package-only dependencies' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 rg -n 'preserve local-first event log, runtime bundle, and offline cache ownership here' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
-bash scripts/release/verify_mobile_release_proof.sh >/dev/null
-
 if [[ -n "${published_feed_sources}" ]]; then
   echo "running published-feed compatibility restore/build checks"
   bash "${package_plane_runner}" restore src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo >/dev/null
@@ -789,14 +868,19 @@ if [[ -n "${published_feed_sources}" ]]; then
   python3 scripts/cleanup_mobile_disposable_artifacts.py >/dev/null
   python3 scripts/run_mobile_strict_public_edge_follow_through.py >/dev/null
   test -f .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json
+  verification_receipt_status="pass"
+  write_verification_mode_receipt
   materialize_mobile_release_proof
+  python3 scripts/verify_next90_m117_mobile_artifact_shelf.py >/dev/null
   python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
   python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
   python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
   python3 scripts/verify_next90_m122_mobile_runner_goal_updates.py >/dev/null
   python3 scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py >/dev/null
 else
-  echo "published-feed compatibility restore/build checks skipped (set CHUMMER_PUBLISHED_FEED_SOURCES to enable)"
+  if [[ "${verification_mode}" == "scaffold" || "${verification_mode}" == "slice" ]]; then
+    skip_or_fail "published-feed compatibility restore/build checks (set CHUMMER_PUBLISHED_FEED_SOURCES)"
+  fi
   echo "running local owner-package compatibility smoke check"
   bash "${package_plane_runner}" restore src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo >/dev/null
   bash "${package_plane_runner}" restore src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo >/dev/null
@@ -815,7 +899,10 @@ else
   python3 scripts/cleanup_mobile_disposable_artifacts.py >/dev/null
   python3 scripts/run_mobile_strict_public_edge_follow_through.py >/dev/null
   test -f .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json
+  verification_receipt_status="pass"
+  write_verification_mode_receipt
   materialize_mobile_release_proof
+  python3 scripts/verify_next90_m117_mobile_artifact_shelf.py >/dev/null
   python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
   python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
   python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
@@ -823,4 +910,7 @@ else
   python3 scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py >/dev/null
 fi
 
+bash scripts/release/verify_mobile_release_proof.sh >/dev/null
+
+verification_receipt_finalized=true
 echo "chummer6-mobile verify ok"

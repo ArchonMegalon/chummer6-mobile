@@ -233,6 +233,8 @@ def main() -> int:
     tmp_summary = merge_tmp_summaries(owned_tmp_summary, shared_tmp_summary)
     payload = {
         "contract_name": "chummer6-mobile.disposable_artifact_cleanup.v1",
+        "verification_mode": os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice",
+        "verification_run_id": os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip(),
         "generated_at_utc": iso_now(),
         "max_age_hours": args.max_age_hours,
         "owned_tmp_artifact_max_age_hours": owned_max_age_hours,
