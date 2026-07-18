@@ -664,6 +664,8 @@ def read_server_log_tail(process: subprocess.Popen[str], limit: int = 4000) -> s
 
 
 def write_runtime_receipt(payload: dict[str, object]) -> None:
+    payload["verification_mode"] = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
+    payload["verification_run_id"] = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
     RECEIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
     RECEIPT_PATH.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

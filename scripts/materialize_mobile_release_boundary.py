@@ -5,6 +5,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -55,6 +56,7 @@ OWNED_PLAY_SOURCE_FILES = [
     "docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md",
     "scripts/ai/verify.sh",
     "scripts/ai/with-package-plane.sh",
+    "scripts/ai/write_verification_mode_receipt.py",
     "scripts/cleanup_mobile_disposable_artifacts.py",
     "scripts/materialize_mobile_cross_surface_readiness.py",
     "scripts/materialize_mobile_local_release_proof.py",
@@ -92,6 +94,7 @@ OWNED_PLAY_SOURCE_FILES = [
 OWNED_PLAY_TEST_FILES = [
     "tests/test_mobile_cross_surface_refresh_contract.py",
     "tests/test_with_package_plane_locking.py",
+    "tests/test_verification_modes.py",
     "tests/test_mobile_release_boundary.py",
     "tests/test_mobile_pwa_performance_budget.py",
     "tests/test_cleanup_mobile_disposable_artifacts.py",
@@ -119,6 +122,7 @@ OWNED_RELEASE_RECEIPTS = [
     ".codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json",
     ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json",
     ".codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json",
+    ".codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json",
 ]
 
 OWNED_DISPOSABLE_LOCAL_ARTIFACT_GLOBS = [
@@ -803,6 +807,8 @@ def main() -> int:
 
     payload = {
         "contract_name": "chummer6-mobile.release_boundary.v1",
+        "verification_mode": os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice",
+        "verification_run_id": os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip(),
         "status": "pass" if all(value is True for value in ownership_checks.values()) else "fail",
         "generated_at_utc": generated_at_utc,
         "release_receipt_count": len(receipt_rows),

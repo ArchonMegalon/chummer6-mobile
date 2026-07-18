@@ -175,6 +175,8 @@ def evaluate(asset_root: Path) -> dict[str, object]:
     now = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
     return {
         "contract_name": CONTRACT_NAME,
+        "verification_mode": os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice",
+        "verification_run_id": os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip(),
         "generated_at_utc": now,
         "status": "pass" if not failures else "fail",
         "measurement": "deterministic gzip-9 with mtime=0 over source-owned service-worker install assets",

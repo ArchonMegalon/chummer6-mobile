@@ -485,6 +485,8 @@ def capture_viewport_receipt(page: Page, path: Path) -> str:
 
 
 def write_viewport_receipt(payload: dict[str, object]) -> None:
+    payload["verification_mode"] = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
+    payload["verification_run_id"] = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
     RECEIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
     RECEIPT_PATH.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

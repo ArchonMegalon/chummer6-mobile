@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -133,6 +134,8 @@ def local_release_proof_summary() -> dict[str, Any]:
 
 
 def write_receipt(output_path: Path, payload: dict[str, Any]) -> None:
+    payload["verification_mode"] = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
+    payload["verification_run_id"] = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if LEGACY_OUT != output_path and LEGACY_OUT.exists():

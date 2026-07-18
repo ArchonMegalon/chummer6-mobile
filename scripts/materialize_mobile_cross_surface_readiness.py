@@ -5,6 +5,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -188,6 +189,9 @@ def main() -> int:
     parser.add_argument("--output", default=str(OUT))
     parser.add_argument("--skip-public-edge", action="store_true")
     args = parser.parse_args()
+    verification_mode = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
+    if args.skip_public_edge and verification_mode == "release":
+        raise SystemExit("release verification cannot skip public-edge proof")
 
     output_path = Path(args.output).resolve()
     generated_at = iso_now()
@@ -450,6 +454,8 @@ def main() -> int:
         status = "pass" if all(checks.get(key) is True for key in required_check_keys) else "fail"
         payload = {
             "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v1",
+            "verification_mode": verification_mode,
+            "verification_run_id": os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip(),
             "generated_at_utc": generated_at,
             "status": status,
             "base_url": args.base_url,
