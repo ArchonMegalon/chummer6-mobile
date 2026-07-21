@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: ArchonMegalon/chummer6-hub
-          ref: f3503316955d93ee33672d5bea2b4db4792d5445
+          ref: 213ec29e4467867971daf2402af32304f3947a29
           path: chummer.run-services
           persist-credentials: false
 

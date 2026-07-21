@@ -23,7 +23,6 @@
     inviteSecret: takeInviteSecret(),
     requestedCampaignId: boundedIdentifier(root.getAttribute("data-campaign-id")),
     pendingMutations: Object.create(null),
-    unsupportedAmbiguousMutations: Object.create(null),
     busy: false
   };
 
@@ -135,9 +134,10 @@
 
     var summary = boundedText(byId("campaign-summary").value, 1000);
     var initialRunTitle = boundedText(byId("campaign-run-title").value, 160) || "First Run";
-    var fingerprint = mutationFingerprint([name, summary, initialRunTitle]);
-    if (isUnsupportedMutationBlocked("create-campaign", fingerprint)) {
-      setStatus("The previous campaign creation outcome is still unconfirmed. Refresh the campaign list before starting another creation request.", "ambiguous");
+    var fingerprint = mutationFingerprint([name, summary, "campaign", initialRunTitle]);
+    var attempt = getOrCreateMutationAttempt("create-campaign", fingerprint);
+    if (!attempt) {
+      setStatus("This browser cannot mint a secure campaign creation receipt. Update the browser and try again.", "error");
       return;
     }
     var campaignIdsBefore = new Set(state.campaigns.map(function (campaign) { return campaign.campaignId; }));
@@ -150,10 +150,11 @@
             name: name,
             summary: summary,
             visibility: "campaign",
-            initialRunTitle: initialRunTitle
+            initialRunTitle: initialRunTitle,
+            idempotencyKey: attempt.idempotencyKey
           }
         });
-        clearUnsupportedMutation("create-campaign");
+        clearMutationAttempt("create-campaign");
         state.campaigns.push(campaign);
         renderCampaignList();
         byId("campaign-create-form").reset();
@@ -162,18 +163,18 @@
         setStatus("Campaign created. Issue a private invitation when the crew is ready.", "ready");
       } catch (error) {
         if (error instanceof AmbiguousMutationProblem) {
+          attempt.ambiguous = true;
           var reconciled = await reconcileCreatedCampaign(campaignIdsBefore, name, summary);
           if (reconciled) {
-            clearUnsupportedMutation("create-campaign");
+            clearMutationAttempt("create-campaign");
             await openCampaign(reconciled.campaignId);
             setStatus("The create response was lost, but the new campaign was found in the authoritative campaign list.", "ready");
           } else {
-            markUnsupportedMutationAmbiguous("create-campaign", fingerprint);
-            setStatus("Campaign creation may have completed, but Hub cannot safely replay this contract. Refresh the list before creating again.", "ambiguous");
+            setStatus("The campaign creation outcome is not confirmed. Retry without changing the fields to reuse the same command receipt.", "ambiguous");
           }
           return;
         }
-        clearUnsupportedMutation("create-campaign");
+        clearMutationAttempt("create-campaign");
         handleActionError(error, "Campaign creation failed.");
       }
     });
@@ -650,17 +651,25 @@
       return;
     }
     var fingerprint = mutationFingerprint([state.campaign.campaignId, 1440, 1]);
-    if (isUnsupportedMutationBlocked("create-invite", fingerprint)) {
-      setStatus("The previous invite creation outcome is unconfirmed. Hub cannot safely recover or replay its secret, so no second invite was issued.", "ambiguous");
+    var attempt = getOrCreateMutationAttempt("create-invite", fingerprint);
+    if (!attempt) {
+      setStatus("This browser cannot mint a secure invitation receipt. Update the browser and try again.", "error");
       return;
     }
     await withBusy(async function () {
       try {
         var invite = await apiRequest(
           apiRoot + "/" + encodeURIComponent(state.campaign.campaignId) + "/invites",
-          { method: "POST", body: { expiresInMinutes: 1440, maxUses: 1 } }
+          {
+            method: "POST",
+            body: {
+              expiresInMinutes: 1440,
+              maxUses: 1,
+              idempotencyKey: attempt.idempotencyKey
+            }
+          }
         );
-        clearUnsupportedMutation("create-invite");
+        clearMutationAttempt("create-invite");
         byId("campaign-invite-secret").hidden = false;
         byId("campaign-invite-link").value = absoluteSameOriginPath(invite.joinPath);
         byId("campaign-invite-code").value = safeText(invite.shortCode, "");
@@ -668,11 +677,11 @@
         setStatus("A one-use invitation is ready. Share the private link or short code.", "ready");
       } catch (error) {
         if (error instanceof AmbiguousMutationProblem) {
-          markUnsupportedMutationAmbiguous("create-invite", fingerprint);
-          setStatus("Invite creation may have completed, but this Hub contract cannot replay the secret safely. No automatic retry was sent.", "ambiguous");
+          attempt.ambiguous = true;
+          setStatus("The invitation outcome is not confirmed. Retry from this open page to reuse the same command receipt and recover the exact invitation.", "ambiguous");
           return;
         }
-        clearUnsupportedMutation("create-invite");
+        clearMutationAttempt("create-invite");
         handleActionError(error, "Invitation creation failed.");
       }
     });
@@ -792,23 +801,59 @@
       return;
     }
     var runId = state.runsiteDraft.runId;
+    var expectedRevision = numberOrZero(state.runsiteDraft.revision);
+    var title = boundedText(byId("campaign-runsite-title").value, 160);
+    var summary = boundedText(byId("campaign-runsite-summary").value, 2000);
+    var playerSections = parseRunsiteSections(byId("campaign-runsite-sections").value);
+    var gmNotes = boundedText(byId("campaign-runsite-gm-notes").value, 4000);
+    var fingerprint = mutationFingerprint([
+      state.campaign.campaignId,
+      runId,
+      expectedRevision,
+      title,
+      summary,
+      playerSections,
+      gmNotes
+    ]);
+    var attempt = getOrCreateMutationAttempt("save-runsite-draft", fingerprint);
     var request = {
-      expectedRevision: numberOrZero(state.runsiteDraft.revision),
-      title: boundedText(byId("campaign-runsite-title").value, 160),
-      summary: boundedText(byId("campaign-runsite-summary").value, 2000),
-      playerSections: parseRunsiteSections(byId("campaign-runsite-sections").value),
-      gmNotes: boundedText(byId("campaign-runsite-gm-notes").value, 4000)
+      expectedRevision: expectedRevision,
+      idempotencyKey: attempt ? attempt.idempotencyKey : "",
+      title: title,
+      summary: summary,
+      playerSections: playerSections,
+      gmNotes: gmNotes
     };
+    if (!request.idempotencyKey) {
+      setStatus("This browser cannot mint a secure Runsite draft receipt. Update the browser and try again.", "error");
+      return;
+    }
     if (!request.title) {
+      clearMutationAttempt("save-runsite-draft");
       setStatus("Enter a Runsite title before saving.", "error");
       return;
     }
     await withBusy(async function () {
       try {
         state.runsiteDraft = await apiRequest(runsiteRoute(runId) + "/draft", { method: "PUT", body: request });
+        clearMutationAttempt("save-runsite-draft");
         renderRunsiteDraft();
         setStatus("Runsite draft saved at revision " + numberOrZero(state.runsiteDraft.revision) + ". Players still see only the last published revision.", "ready");
       } catch (error) {
+        if (error instanceof AmbiguousMutationProblem) {
+          attempt.ambiguous = true;
+          var reconciled = await reconcileRunsiteDraft(runId, request);
+          if (reconciled) {
+            clearMutationAttempt("save-runsite-draft");
+            state.runsiteDraft = reconciled;
+            renderRunsiteDraft();
+            setStatus("The draft response was lost, but the authoritative Runsite draft confirms revision " + numberOrZero(reconciled.revision) + ".", "ready");
+          } else {
+            setStatus("The Runsite draft outcome is not confirmed. Retry without changing the fields to reuse the same command receipt.", "ambiguous");
+          }
+          return;
+        }
+        clearMutationAttempt("save-runsite-draft");
         if (error instanceof ApiProblem && error.status === 409) {
           await loadRunsite(runId);
           setStatus("The Runsite draft changed elsewhere. The current revision is loaded; review it before saving again.", "conflict");
@@ -837,43 +882,39 @@
       safeText(state.runsiteDraft.summary, ""),
       JSON.stringify(Array.isArray(state.runsiteDraft.playerSections) ? state.runsiteDraft.playerSections : [])
     ]);
-    if (isUnsupportedMutationBlocked("publish-runsite", fingerprint)) {
-      var existing = await reconcileRunsitePublication(runId, state.runsiteDraft);
-      if (existing) {
-        clearUnsupportedMutation("publish-runsite");
-        state.runsiteDraft.publishedRevision = existing.revision;
-        renderRunsiteDraft();
-        setStatus("Authoritative Runsite state confirms that this draft revision is already published.", "ready");
-      } else {
-        setStatus("Runsite publication remains unconfirmed. Hub does not accept an idempotency key here, so no second publish request was sent.", "ambiguous");
-      }
+    var attempt = getOrCreateMutationAttempt("publish-runsite", fingerprint);
+    if (!attempt) {
+      setStatus("This browser cannot mint a secure Runsite publication receipt. Update the browser and try again.", "error");
       return;
     }
     await withBusy(async function () {
       try {
         var published = await apiRequest(runsiteRoute(runId) + "/publish", {
           method: "POST",
-          body: { expectedRevision: expectedRevision }
+          body: {
+            expectedRevision: expectedRevision,
+            idempotencyKey: attempt.idempotencyKey
+          }
         });
-        clearUnsupportedMutation("publish-runsite");
+        clearMutationAttempt("publish-runsite");
         state.runsiteDraft.publishedRevision = published.revision;
         renderRunsiteDraft();
         setStatus("Player-safe Runsite revision " + numberOrZero(published.revision) + " is published. Private GM notes were not included.", "ready");
       } catch (error) {
         if (error instanceof AmbiguousMutationProblem) {
+          attempt.ambiguous = true;
           var reconciled = await reconcileRunsitePublication(runId, state.runsiteDraft);
           if (reconciled) {
-            clearUnsupportedMutation("publish-runsite");
+            clearMutationAttempt("publish-runsite");
             state.runsiteDraft.publishedRevision = reconciled.revision;
             renderRunsiteDraft();
             setStatus("The publish response was lost, but the player-safe Runsite projection confirms revision " + numberOrZero(reconciled.revision) + ".", "ready");
           } else {
-            markUnsupportedMutationAmbiguous("publish-runsite", fingerprint);
-            setStatus("Runsite publication may have completed. No blind retry was sent because Hub does not accept an idempotency key for publish.", "ambiguous");
+            setStatus("The Runsite publication outcome is not confirmed. Retry this exact draft to reuse the same command receipt.", "ambiguous");
           }
           return;
         }
-        clearUnsupportedMutation("publish-runsite");
+        clearMutationAttempt("publish-runsite");
         if (error instanceof ApiProblem && error.status === 409) {
           await loadRunsite(runId);
           setStatus("The Runsite changed before publication. The current draft is loaded; review it before publishing.", "conflict");
@@ -936,19 +977,6 @@
 
   function mutationFingerprint(parts) {
     return JSON.stringify(Array.isArray(parts) ? parts : []);
-  }
-
-  function isUnsupportedMutationBlocked(kind, fingerprint) {
-    var current = state.unsupportedAmbiguousMutations[kind];
-    return Boolean(current && current.fingerprint === fingerprint && current.ambiguous === true);
-  }
-
-  function markUnsupportedMutationAmbiguous(kind, fingerprint) {
-    state.unsupportedAmbiguousMutations[kind] = { fingerprint: fingerprint, ambiguous: true };
-  }
-
-  function clearUnsupportedMutation(kind) {
-    delete state.unsupportedAmbiguousMutations[kind];
   }
 
   async function reconcileCreatedCampaign(campaignIdsBefore, name, summary) {
@@ -1035,6 +1063,19 @@
       return null;
     }
     return published;
+  }
+
+  async function reconcileRunsiteDraft(runId, request) {
+    var draft = await tryApiRequest(runsiteRoute(runId) + "/draft");
+    if (!draft
+      || numberOrZero(draft.revision) <= request.expectedRevision
+      || safeText(draft.title, "") !== request.title
+      || safeText(draft.summary, "") !== request.summary
+      || safeText(draft.gmNotes, "") !== request.gmNotes
+      || !runsiteSectionsMatch(draft.playerSections, request.playerSections)) {
+      return null;
+    }
+    return draft;
   }
 
   function runsiteSectionsMatch(publishedSections, draftSections) {

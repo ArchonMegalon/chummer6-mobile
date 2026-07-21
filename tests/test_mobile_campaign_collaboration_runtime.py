@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import http.client
 import json
 import os
@@ -109,17 +110,26 @@ class FakeCampaignHub:
         self.force_edit_conflict_once = True
         self.unsafe_requests: list[dict[str, str]] = []
         self.drop_after_commit_once: set[str] = set()
-        self.fail_campaign_list_once_for: set[str] = set()
-        self.idempotent_responses: dict[tuple[str, str, str], tuple[str, dict[str, Any]]] = {}
+        self.drop_read_once: set[tuple[str, str]] = set()
+        self.idempotent_responses: dict[
+            tuple[str, str, str, str], tuple[str, int, dict[str, Any]]
+        ] = {}
         self.command_keys: dict[str, list[str]] = {
+            "create": [],
+            "invite": [],
             "join": [],
             "edit": [],
             "consent": [],
+            "draft": [],
+            "publish": [],
         }
         self.commit_counts = {
+            "create": 0,
+            "invite": 0,
             "join": 0,
             "edit": 0,
             "consent": 0,
+            "draft": 0,
             "publish": 0,
         }
         self.eligible = {
@@ -204,6 +214,12 @@ class FakeCampaignHub:
                 self._problem(route, 400, "Antiforgery token and paired cookie are required.")
                 return
 
+        read_key = (identity, path)
+        if method == "GET" and read_key in self.drop_read_once:
+            self.drop_read_once.remove(read_key)
+            route.abort("connectionreset")
+            return
+
         body = self._body(request)
         segments = [segment for segment in path.split("/") if segment]
 
@@ -211,19 +227,11 @@ class FakeCampaignHub:
             self._json(route, 200, copy.deepcopy(self.eligible[identity]))
             return
         if path == "/api/v1/campaigns" and method == "GET":
-            if identity in self.fail_campaign_list_once_for:
-                self.fail_campaign_list_once_for.remove(identity)
-                route.abort("connectionreset")
-                return
             visible = self.created and (identity == GM_EMAIL or self._dossier_for(identity) in self.members)
             self._json(route, 200, [self._campaign(identity)] if visible else [])
             return
         if path == "/api/v1/campaigns" and method == "POST":
-            if identity != GM_EMAIL:
-                self._problem(route, 403, "Only the GM fixture can create this campaign.")
-                return
-            self.created = True
-            self._json(route, 201, self._campaign(identity))
+            self._create_campaign(route, identity, body)
             return
         if path == "/api/v1/campaigns/join-code/redeem" and method == "POST":
             invite = next((item for item in self.invites.values() if item["code"] == body.get("code")), None)
@@ -254,28 +262,7 @@ class FakeCampaignHub:
             self._json(route, 200, self._roster())
             return
         if len(segments) == 5 and segments[4] == "invites" and method == "POST":
-            if identity != GM_EMAIL:
-                self._problem(route, 403, "Only a GM can create invitations.")
-                return
-            self.invite_counter += 1
-            invite_id = f"invite-{self.invite_counter}"
-            secret = f"link-secret-{self.invite_counter}"
-            code = f"JOIN-{self.invite_counter:04d}"
-            self.invites[invite_id] = {"secret": secret, "code": code}
-            self._json(
-                route,
-                201,
-                {
-                    "inviteId": invite_id,
-                    "campaignId": self.campaign_id,
-                    "joinPath": f"/join/campaign/{invite_id}#secret={secret}",
-                    "linkSecret": secret,
-                    "shortCode": code,
-                    "expiresAtUtc": "2026-07-22T00:00:00Z",
-                    "maxUses": 1,
-                    "createdAtUtc": "2026-07-21T00:00:00Z",
-                },
-            )
+            self._create_invite(route, identity, body)
             return
         if len(segments) >= 6 and segments[4] == "sheets":
             dossier_id = segments[5]
@@ -390,6 +377,57 @@ class FakeCampaignHub:
             )
         return rows
 
+    def _create_campaign(self, route: Route, identity: str, body: dict[str, Any]) -> None:
+        if identity != GM_EMAIL:
+            self._problem(route, 403, "Only the GM fixture can create this campaign.")
+            return
+        idempotency_key = str(body.get("idempotencyKey", ""))
+        self.command_keys["create"].append(idempotency_key)
+        request_digest = self._command_digest(body)
+        if self._idempotent_replay(
+            route, identity, "create-campaign", "campaign-root", idempotency_key, request_digest
+        ):
+            return
+        self.created = True
+        payload = self._campaign(identity)
+        self._store_idempotent_response(
+            identity, "create-campaign", "campaign-root", idempotency_key, request_digest, 201, payload
+        )
+        self.commit_counts["create"] += 1
+        self._json_or_drop(route, 201, payload, f"create:{identity}")
+
+    def _create_invite(self, route: Route, identity: str, body: dict[str, Any]) -> None:
+        if identity != GM_EMAIL:
+            self._problem(route, 403, "Only a GM can create invitations.")
+            return
+        idempotency_key = str(body.get("idempotencyKey", ""))
+        self.command_keys["invite"].append(idempotency_key)
+        request_digest = self._command_digest(body)
+        if self._idempotent_replay(
+            route, identity, "create-invite", self.campaign_id, idempotency_key, request_digest
+        ):
+            return
+        self.invite_counter += 1
+        invite_id = f"invite-{self.invite_counter}"
+        secret = f"link-secret-{self.invite_counter}"
+        code = f"JOIN-{self.invite_counter:04d}"
+        self.invites[invite_id] = {"secret": secret, "code": code}
+        payload = {
+            "inviteId": invite_id,
+            "campaignId": self.campaign_id,
+            "joinPath": f"/join/campaign/{invite_id}#secret={secret}",
+            "linkSecret": secret,
+            "shortCode": code,
+            "expiresAtUtc": "2026-07-22T00:00:00Z",
+            "maxUses": 1,
+            "createdAtUtc": "2026-07-21T00:00:00Z",
+        }
+        self._store_idempotent_response(
+            identity, "create-invite", self.campaign_id, idempotency_key, request_digest, 201, payload
+        )
+        self.commit_counts["invite"] += 1
+        self._json_or_drop(route, 201, payload, f"invite:{self.campaign_id}")
+
     def _redeem(self, route: Route, identity: str, body: dict[str, Any], invite: dict[str, str] | None) -> None:
         dossier_id = self._dossier_for(identity)
         if invite is None or dossier_id is None or body.get("dossierId") != dossier_id:
@@ -397,8 +435,10 @@ class FakeCampaignHub:
             return
         idempotency_key = str(body.get("idempotencyKey", ""))
         self.command_keys["join"].append(idempotency_key)
-        fingerprint = self._command_fingerprint(body)
-        replay = self._idempotent_replay(route, "join", identity, idempotency_key, fingerprint)
+        request_digest = self._command_digest(body)
+        replay = self._idempotent_replay(
+            route, identity, "join", self.campaign_id, idempotency_key, request_digest
+        )
         if replay:
             return
         if body.get("expectedCharacterRevision") != self.sheets[dossier_id]["revision"]:
@@ -429,7 +469,9 @@ class FakeCampaignHub:
             "alreadyJoined": already_joined,
             "joinedAtUtc": "2026-07-21T00:00:00Z",
         }
-        self.idempotent_responses[("join", identity, idempotency_key)] = (fingerprint, copy.deepcopy(payload))
+        self._store_idempotent_response(
+            identity, "join", self.campaign_id, idempotency_key, request_digest, 200, payload
+        )
         self.commit_counts["join"] += 1
         self._json_or_drop(route, 200, payload, f"join:{identity}")
 
@@ -443,8 +485,9 @@ class FakeCampaignHub:
             return
         idempotency_key = str(body.get("idempotencyKey", ""))
         self.command_keys["edit"].append(idempotency_key)
-        fingerprint = self._command_fingerprint(body)
-        if self._idempotent_replay(route, "edit", identity, idempotency_key, fingerprint):
+        request_digest = self._command_digest(body)
+        scope = f"{self.campaign_id}/{dossier_id}"
+        if self._idempotent_replay(route, identity, "edit-sheet", scope, idempotency_key, request_digest):
             return
         if self.force_edit_conflict_once:
             self.force_edit_conflict_once = False
@@ -472,7 +515,9 @@ class FakeCampaignHub:
             "afterSha256": "b" * 64,
             "editedAtUtc": "2026-07-21T00:00:00Z",
         }
-        self.idempotent_responses[("edit", identity, idempotency_key)] = (fingerprint, copy.deepcopy(payload))
+        self._store_idempotent_response(
+            identity, "edit-sheet", scope, idempotency_key, request_digest, 200, payload
+        )
         self.commit_counts["edit"] += 1
         self._json_or_drop(route, 200, payload, f"edit:{dossier_id}")
 
@@ -483,8 +528,9 @@ class FakeCampaignHub:
         sheet = self.sheets[dossier_id]
         idempotency_key = str(body.get("idempotencyKey", ""))
         self.command_keys["consent"].append(idempotency_key)
-        fingerprint = self._command_fingerprint(body)
-        if self._idempotent_replay(route, "consent", identity, idempotency_key, fingerprint):
+        request_digest = self._command_digest(body)
+        scope = f"{self.campaign_id}/{dossier_id}"
+        if self._idempotent_replay(route, identity, "update-consent", scope, idempotency_key, request_digest):
             return
         if body.get("expectedBindingRevision") != sheet["gmAuthorityBindingRevision"]:
             self._problem(route, 409, "Consent binding changed.")
@@ -505,13 +551,23 @@ class FakeCampaignHub:
             "reason": body.get("reason"),
             "changedAtUtc": "2026-07-21T00:00:00Z",
         }
-        self.idempotent_responses[("consent", identity, idempotency_key)] = (fingerprint, copy.deepcopy(payload))
+        self._store_idempotent_response(
+            identity, "update-consent", scope, idempotency_key, request_digest, 200, payload
+        )
         self.commit_counts["consent"] += 1
         self._json_or_drop(route, 200, payload, f"consent:{dossier_id}")
 
     def _save_draft(self, route: Route, identity: str, body: dict[str, Any]) -> None:
         if identity != GM_EMAIL:
             self._problem(route, 403, "GM access is required.")
+            return
+        idempotency_key = str(body.get("idempotencyKey", ""))
+        self.command_keys["draft"].append(idempotency_key)
+        request_digest = self._command_digest(body)
+        scope = f"{self.campaign_id}/{self.run_id}"
+        if self._idempotent_replay(
+            route, identity, "save-runsite-draft", scope, idempotency_key, request_digest
+        ):
             return
         current_revision = 0 if self.draft is None else int(self.draft["revision"])
         if body.get("expectedRevision") != current_revision:
@@ -529,11 +585,24 @@ class FakeCampaignHub:
             "updatedAtUtc": "2026-07-21T00:00:00Z",
             "publishedAtUtc": None,
         }
-        self._json(route, 200, copy.deepcopy(self.draft))
+        payload = copy.deepcopy(self.draft)
+        self._store_idempotent_response(
+            identity, "save-runsite-draft", scope, idempotency_key, request_digest, 200, payload
+        )
+        self.commit_counts["draft"] += 1
+        self._json_or_drop(route, 200, payload, f"draft:{self.run_id}")
 
     def _publish(self, route: Route, identity: str, body: dict[str, Any]) -> None:
         if identity != GM_EMAIL or self.draft is None:
             self._problem(route, 403, "A GM draft is required.")
+            return
+        idempotency_key = str(body.get("idempotencyKey", ""))
+        self.command_keys["publish"].append(idempotency_key)
+        request_digest = self._command_digest(body)
+        scope = f"{self.campaign_id}/{self.run_id}"
+        if self._idempotent_replay(
+            route, identity, "publish-runsite", scope, idempotency_key, request_digest
+        ):
             return
         if body.get("expectedRevision") != self.draft["revision"]:
             self._problem(route, 409, "Runsite draft changed.")
@@ -547,33 +616,55 @@ class FakeCampaignHub:
             "sections": copy.deepcopy(self.draft["playerSections"]),
             "publishedAtUtc": "2026-07-21T00:00:00Z",
         }
+        self._store_idempotent_response(
+            identity, "publish-runsite", scope, idempotency_key, request_digest, 200, self.published
+        )
         self.commit_counts["publish"] += 1
-        self._json_or_drop(route, 200, copy.deepcopy(self.published), "publish")
+        self._json_or_drop(route, 200, copy.deepcopy(self.published), f"publish:{self.run_id}")
 
     def _idempotent_replay(
         self,
         route: Route,
-        command: str,
         identity: str,
+        operation: str,
+        scope: str,
         idempotency_key: str,
-        fingerprint: str,
+        request_digest: str,
     ) -> bool:
         if not idempotency_key:
             self._problem(route, 400, "Idempotency key is required.")
             return True
-        existing = self.idempotent_responses.get((command, identity, idempotency_key))
+        existing = self.idempotent_responses.get((identity, operation, scope, idempotency_key))
         if existing is None:
             return False
-        existing_fingerprint, payload = existing
-        if existing_fingerprint != fingerprint:
+        existing_digest, status, payload = existing
+        if existing_digest != request_digest:
             self._problem(route, 409, "Idempotency key was reused with a different command.")
             return True
-        self._json(route, 200, copy.deepcopy(payload))
+        self._json(route, status, copy.deepcopy(payload))
         return True
 
     @staticmethod
-    def _command_fingerprint(body: dict[str, Any]) -> str:
-        return json.dumps(body, sort_keys=True, separators=(",", ":"))
+    def _command_digest(body: dict[str, Any]) -> str:
+        command = {key: value for key, value in body.items() if key != "idempotencyKey"}
+        canonical = json.dumps(command, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(canonical).hexdigest()
+
+    def _store_idempotent_response(
+        self,
+        identity: str,
+        operation: str,
+        scope: str,
+        idempotency_key: str,
+        request_digest: str,
+        status: int,
+        payload: dict[str, Any],
+    ) -> None:
+        self.idempotent_responses[(identity, operation, scope, idempotency_key)] = (
+            request_digest,
+            status,
+            copy.deepcopy(payload),
+        )
 
     def _json_or_drop(self, route: Route, status: int, payload: Any, drop_key: str) -> None:
         if drop_key in self.drop_after_commit_once:
@@ -619,6 +710,43 @@ def _new_context(browser: Browser, identity: str) -> BrowserContext:
     )
 
 
+def _send_json_mutation(
+    page: Page,
+    path: str,
+    method: str,
+    identity: str,
+    body: dict[str, Any],
+) -> int:
+    return int(
+        page.evaluate(
+            """
+            async ({ path, method, requestToken, body }) => {
+              const response = await fetch(path, {
+                method,
+                credentials: "include",
+                cache: "no-store",
+                redirect: "error",
+                headers: {
+                  accept: "application/json",
+                  "content-type": "application/json",
+                  "X-CSRF-TOKEN": requestToken
+                },
+                body: JSON.stringify(body)
+              });
+              await response.text();
+              return response.status;
+            }
+            """,
+            {
+                "path": path,
+                "method": method,
+                "requestToken": f"csrf-{identity}",
+                "body": body,
+            },
+        )
+    )
+
+
 def _open_campaign(page: Page, base_url: str, campaign_id: str) -> None:
     page.goto(f"{base_url}/mobile/campaigns/{campaign_id}", wait_until="domcontentloaded")
     page.locator("#campaign-workspace:not([hidden])").wait_for()
@@ -629,10 +757,13 @@ def test_multi_identity_campaign_join_sheet_edit_and_runsite_journey(campaign_ho
     hub = FakeCampaignHub()
     hub.drop_after_commit_once.update(
         {
+            f"create:{GM_EMAIL}",
+            f"invite:{hub.campaign_id}",
             f"join:{ALICE_EMAIL}",
             "edit:dossier-alice",
             "consent:dossier-alice",
-            "publish",
+            f"draft:{hub.run_id}",
+            f"publish:{hub.run_id}",
         }
     )
     with sync_playwright() as playwright:
@@ -652,19 +783,78 @@ def test_multi_identity_campaign_join_sheet_edit_and_runsite_journey(campaign_ho
             gm.locator("#campaign-create-form").wait_for()
             gm.locator("#campaign-name").fill("Vienna Night Shift")
             gm.locator("#campaign-summary").fill("A deterministic multi-user fixture campaign.")
+            hub.drop_read_once.add((GM_EMAIL, "/api/v1/campaigns"))
+            gm.locator("#campaign-create-form button[type=submit]").click()
+            gm.wait_for_function(
+                "() => document.querySelector('#campaign-status').textContent.includes('creation outcome is not confirmed')"
+            )
             gm.locator("#campaign-create-form button[type=submit]").click()
             gm.locator("#campaign-workspace:not([hidden])").wait_for()
             assert gm.locator("#campaign-role").inner_text() == "Game Master"
+            create_keys = [
+                item["idempotency_key"]
+                for item in hub.unsafe_requests
+                if item["identity"] == GM_EMAIL and item["path"] == "/api/v1/campaigns"
+            ]
+            assert len(create_keys) == 2
+            assert create_keys[0] == create_keys[1]
+            assert hub.commit_counts["create"] == 1
+            assert (
+                _send_json_mutation(
+                    gm,
+                    "/api/v1/campaigns",
+                    "POST",
+                    GM_EMAIL,
+                    {
+                        "name": "Different campaign",
+                        "summary": "A deterministic multi-user fixture campaign.",
+                        "visibility": "campaign",
+                        "initialRunTitle": "First Run",
+                        "idempotencyKey": create_keys[0],
+                    },
+                )
+                == 409
+            )
+            assert hub.commit_counts["create"] == 1
 
+            gm.locator("#campaign-create-invite").click()
+            gm.wait_for_function(
+                "() => document.querySelector('#campaign-status').textContent.includes('invitation outcome is not confirmed')"
+            )
             gm.locator("#campaign-create-invite").click()
             gm.locator("#campaign-invite-secret:not([hidden])").wait_for()
             alice_link = gm.locator("#campaign-invite-link").input_value()
             assert alice_link.startswith(f"{campaign_host}/join/campaign/invite-1#secret=")
+            invite_path = f"/api/v1/campaigns/{hub.campaign_id}/invites"
+            first_invite_keys = [
+                item["idempotency_key"]
+                for item in hub.unsafe_requests
+                if item["identity"] == GM_EMAIL and item["path"] == invite_path
+            ]
+            assert len(first_invite_keys) == 2
+            assert first_invite_keys[0] == first_invite_keys[1]
+            assert hub.commit_counts["invite"] == 1
+            assert (
+                _send_json_mutation(
+                    gm,
+                    invite_path,
+                    "POST",
+                    GM_EMAIL,
+                    {
+                        "expiresInMinutes": 1440,
+                        "maxUses": 2,
+                        "idempotencyKey": first_invite_keys[0],
+                    },
+                )
+                == 409
+            )
+            assert hub.commit_counts["invite"] == 1
 
             gm.locator("#campaign-create-invite").click()
             gm.locator("#campaign-invite-code").wait_for()
             gm.wait_for_function("() => document.querySelector('#campaign-invite-code').value === 'JOIN-0002'")
             bob_code = gm.locator("#campaign-invite-code").input_value()
+            assert hub.commit_counts["invite"] == 2
 
             alice_context = _new_context(browser, ALICE_EMAIL)
             contexts.append(alice_context)
@@ -674,7 +864,7 @@ def test_multi_identity_campaign_join_sheet_edit_and_runsite_journey(campaign_ho
             alice.locator("#campaign-join-secret-copy:not([hidden])").wait_for()
             assert "#" not in alice.url
             alice.locator("#campaign-grant-gm").check()
-            hub.fail_campaign_list_once_for.add(ALICE_EMAIL)
+            hub.drop_read_once.add((ALICE_EMAIL, "/api/v1/campaigns"))
             alice.locator("#campaign-join-submit").click()
             alice.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('outcome is not confirmed')")
             alice.locator("#campaign-join-submit").click()
@@ -757,10 +947,73 @@ def test_multi_identity_campaign_join_sheet_edit_and_runsite_journey(campaign_ho
             gm.locator("#campaign-runsite-summary").fill("Meet at the south crane after midnight.")
             gm.locator("#campaign-runsite-sections").fill("South crane | Public rendezvous point\nWarehouse 3 | Avoid the lit entrance")
             gm.locator("#campaign-runsite-gm-notes").fill("SECRET: opposition waits in the north office")
+            draft_path = f"/api/v1/campaigns/{hub.campaign_id}/runs/{hub.run_id}/runsite/draft"
+            hub.drop_read_once.add((GM_EMAIL, draft_path))
+            gm.locator("#campaign-runsite-form button[type=submit]").click()
+            gm.wait_for_function(
+                "() => document.querySelector('#campaign-status').textContent.includes('draft outcome is not confirmed')"
+            )
             gm.locator("#campaign-runsite-form button[type=submit]").click()
             gm.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('Runsite draft saved')")
+            draft_keys = [
+                item["idempotency_key"]
+                for item in hub.unsafe_requests
+                if item["identity"] == GM_EMAIL and item["path"] == draft_path
+            ]
+            assert len(draft_keys) == 2
+            assert draft_keys[0] == draft_keys[1]
+            assert hub.commit_counts["draft"] == 1
+            assert (
+                _send_json_mutation(
+                    gm,
+                    draft_path,
+                    "PUT",
+                    GM_EMAIL,
+                    {
+                        "expectedRevision": 0,
+                        "title": "Dockyard relay",
+                        "summary": "Changed after the command committed.",
+                        "playerSections": [
+                            {"heading": "South crane", "body": "Public rendezvous point"},
+                            {"heading": "Warehouse 3", "body": "Avoid the lit entrance"},
+                        ],
+                        "gmNotes": "SECRET: opposition waits in the north office",
+                        "idempotencyKey": draft_keys[0],
+                    },
+                )
+                == 409
+            )
+            assert hub.commit_counts["draft"] == 1
+            published_path = f"/api/v1/campaigns/{hub.campaign_id}/runs/{hub.run_id}/runsite"
+            hub.drop_read_once.add((GM_EMAIL, published_path))
             gm.locator("#campaign-runsite-publish").click()
-            gm.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('player-safe Runsite projection confirms')")
+            gm.wait_for_function(
+                "() => document.querySelector('#campaign-status').textContent.includes('publication outcome is not confirmed')"
+            )
+            gm.locator("#campaign-runsite-publish").click()
+            gm.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('is published')")
+            publish_mutation_path = f"{published_path}/publish"
+            publish_keys = [
+                item["idempotency_key"]
+                for item in hub.unsafe_requests
+                if item["identity"] == GM_EMAIL and item["path"] == publish_mutation_path
+            ]
+            assert len(publish_keys) == 2
+            assert publish_keys[0] == publish_keys[1]
+            assert hub.commit_counts["publish"] == 1
+            assert (
+                _send_json_mutation(
+                    gm,
+                    publish_mutation_path,
+                    "POST",
+                    GM_EMAIL,
+                    {
+                        "expectedRevision": int(hub.draft["revision"]) + 1,
+                        "idempotencyKey": publish_keys[0],
+                    },
+                )
+                == 409
+            )
             assert hub.commit_counts["publish"] == 1
 
             _open_campaign(alice, campaign_host, hub.campaign_id)
@@ -779,6 +1032,8 @@ def test_multi_identity_campaign_join_sheet_edit_and_runsite_journey(campaign_ho
             assert all(item["token"] == f"csrf-{item['identity']}" for item in hub.unsafe_requests)
             assert all(f"ChummerCsrfPair=csrf-{item['identity']}" in item["cookie"] for item in hub.unsafe_requests)
             assert all(int(item["body_bytes"]) <= 64 * 1024 for item in hub.unsafe_requests)
+            assert all("link-secret" not in json.dumps(item) for item in hub.unsafe_requests)
+            assert gm.evaluate("() => localStorage.length") == 0
         finally:
             for context in reversed(contexts):
                 context.close()
