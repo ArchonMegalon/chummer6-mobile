@@ -1,0 +1,207 @@
+@page "/mobile/campaigns"
+@page "/mobile/campaigns/{CampaignId}"
+@page "/join/campaign/{InviteId}"
+@page "/mobile/join/campaign/{InviteId}"
+
+<PageTitle>Chummer Campaign Crew</PageTitle>
+<HeadContent>
+    <link rel="manifest" href="/manifest.player.webmanifest" />
+    <link rel="stylesheet" href="/mobile.css" />
+    <script src="/mobile-campaign.js" defer></script>
+</HeadContent>
+
+<main class="turn-shell campaign-shell"
+      data-campaign-root
+      data-campaign-id="@(CampaignId ?? string.Empty)"
+      data-invite-id="@(InviteId ?? string.Empty)"
+      data-private-state="open-tab-only">
+    <section class="turn-card hero campaign-hero">
+        <div>
+            <p class="eyebrow">Campaign crew</p>
+            <h1 id="campaign-page-title">Join the table. Keep everyone on the same sheet.</h1>
+            <p class="lede">
+                Players can join with a private link or short code and inspect every crew sheet.
+                GM edits use the canonical character owner lane and never hide consent or revision conflicts.
+            </p>
+        </div>
+        <div class="trust-strip" aria-label="Campaign privacy boundary">
+            <span class="status-pill status-pill--cool">Signed-in Hub identity</span>
+            <span class="status-pill">No private browser storage</span>
+            <span class="status-pill">Conflict-safe edits</span>
+        </div>
+        <nav class="campaign-nav" aria-label="Campaign navigation">
+            <a class="secondary-button" href="/mobile/campaigns">My campaigns</a>
+            <a class="secondary-button" href="/mobile/player">Turn companion</a>
+        </nav>
+        <p id="campaign-status" class="status-message" role="status" aria-live="polite">
+            Connecting to your signed-in campaign workspace.
+        </p>
+    </section>
+
+    <section id="campaign-auth-required" class="turn-card" hidden>
+        <p class="eyebrow">Sign in required</p>
+        <h2>Your link is safe. Sign in to use it.</h2>
+        <p class="support-copy">
+            Chummer did not redeem or discard this invitation. Sign in with the intended account, then reopen the link.
+        </p>
+        <a class="primary-button" href="/login">Sign in</a>
+    </section>
+
+    <section id="campaign-list-card" class="turn-card">
+        <div class="campaign-heading-row">
+            <div>
+                <p class="eyebrow">My campaigns</p>
+                <h2>Choose a crew</h2>
+            </div>
+            <button id="campaign-refresh" class="secondary-button" type="button">Refresh</button>
+        </div>
+        <div id="campaign-list" class="campaign-card-grid" aria-live="polite"></div>
+    </section>
+
+    <section id="campaign-create-card" class="turn-card">
+        <p class="eyebrow">Start a campaign</p>
+        <h2>Open a shared crew workspace</h2>
+        <form id="campaign-create-form" class="campaign-form">
+            <label class="field-label" for="campaign-name">Campaign name</label>
+            <input id="campaign-name" class="field-input" name="name" maxlength="120" required />
+            <label class="field-label" for="campaign-summary">Table summary</label>
+            <textarea id="campaign-summary" class="field-input" name="summary" maxlength="1000" rows="3"></textarea>
+            <label class="field-label" for="campaign-run-title">First run</label>
+            <input id="campaign-run-title" class="field-input" name="initialRunTitle" maxlength="160" value="First Run" />
+            <button class="primary-button" type="submit">Create campaign</button>
+        </form>
+    </section>
+
+    <section id="campaign-join-card" class="turn-card">
+        <p class="eyebrow">Join a campaign</p>
+        <h2 id="campaign-join-title">Use a join code</h2>
+        <p id="campaign-join-secret-copy" class="support-copy" hidden>
+            This invitation secret was removed from the visible address and exists only in this open tab until redemption.
+        </p>
+        <form id="campaign-join-form" class="campaign-form">
+            <label id="campaign-code-label" class="field-label" for="campaign-code">Join code</label>
+            <input id="campaign-code" class="field-input campaign-code" name="code" maxlength="32" autocomplete="off" autocapitalize="characters" />
+            <label class="field-label" for="campaign-character">Character</label>
+            <select id="campaign-character" class="field-input" name="character" required></select>
+            <label class="checkbox-row">
+                <input id="campaign-grant-gm" type="checkbox" />
+                <span>Allow this campaign's GMs to edit my character. I can revoke this later.</span>
+            </label>
+            <button id="campaign-join-submit" class="primary-button" type="submit">Join campaign</button>
+        </form>
+        <p id="campaign-no-characters" class="support-copy" hidden>
+            This account has no eligible character right now. The account is still usable: create or import a character,
+            then return to this invitation. Other crew members can continue without waiting.
+        </p>
+    </section>
+
+    <section id="campaign-workspace" class="campaign-workspace" hidden>
+        <section class="turn-card">
+            <div class="campaign-heading-row">
+                <div>
+                    <p class="eyebrow">Crew workspace</p>
+                    <h2 id="campaign-name-heading">Campaign</h2>
+                    <p id="campaign-summary-copy" class="support-copy"></p>
+                </div>
+                <span id="campaign-role" class="status-pill"></span>
+            </div>
+        </section>
+
+        <section id="campaign-invite-card" class="turn-card" hidden>
+            <p class="eyebrow">Invite a player</p>
+            <h2>Issue one bounded invitation</h2>
+            <p class="support-copy">The link secret and code are shown only in this open page. Share one, then close or revoke it.</p>
+            <div class="campaign-inline-actions">
+                <button id="campaign-create-invite" class="primary-button" type="button">Create invite</button>
+            </div>
+            <div id="campaign-invite-secret" class="campaign-secret" hidden>
+                <label class="field-label" for="campaign-invite-link">Private link</label>
+                <input id="campaign-invite-link" class="field-input" readonly />
+                <label class="field-label" for="campaign-invite-code">Join code</label>
+                <input id="campaign-invite-code" class="field-input campaign-code" readonly />
+                <button id="campaign-copy-invite" class="secondary-button" type="button">Copy private link</button>
+                <p id="campaign-copy-status" class="support-copy" role="status"></p>
+            </div>
+        </section>
+
+        <section class="turn-card">
+            <p class="eyebrow">Crew sheets</p>
+            <h2>Everyone can view. Authority stays explicit.</h2>
+            <div id="campaign-roster" class="campaign-card-grid" aria-live="polite"></div>
+        </section>
+
+        <section id="campaign-sheet-card" class="turn-card" hidden>
+            <div class="campaign-heading-row">
+                <div>
+                    <p class="eyebrow">Player-safe sheet</p>
+                    <h2 id="campaign-sheet-name">Character</h2>
+                </div>
+                <span id="campaign-sheet-revision" class="status-pill"></span>
+            </div>
+            <p id="campaign-sheet-status" class="support-copy"></p>
+            <div id="campaign-sheet-sections" class="campaign-sheet-sections"></div>
+
+            <form id="campaign-gm-edit-form" class="campaign-form" hidden>
+                <p class="eyebrow">Delegated GM edit</p>
+                <p class="support-copy">
+                    Only the handle and display name authorized by the canonical Core delegation are editable here.
+                    Stale revisions reload instead of overwriting player work.
+                </p>
+                <label class="field-label" for="campaign-sheet-handle">Runner handle</label>
+                <input id="campaign-sheet-handle" class="field-input" maxlength="120" required />
+                <label class="field-label" for="campaign-sheet-display-name">Display name</label>
+                <input id="campaign-sheet-display-name" class="field-input" maxlength="160" required />
+                <label class="field-label" for="campaign-sheet-reason">Reason</label>
+                <input id="campaign-sheet-reason" class="field-input" maxlength="240" value="Campaign table correction" required />
+                <button class="primary-button" type="submit">Save canonical edit</button>
+            </form>
+            <p id="campaign-gm-edit-boundary" class="support-copy"></p>
+
+            <form id="campaign-consent-form" class="campaign-form" hidden>
+                <p class="eyebrow">My GM edit consent</p>
+                <label class="checkbox-row">
+                    <input id="campaign-consent-toggle" type="checkbox" />
+                    <span>Allow this campaign's GMs to edit this character through the canonical owner lane.</span>
+                </label>
+                <label class="field-label" for="campaign-consent-reason">Reason</label>
+                <input id="campaign-consent-reason" class="field-input" maxlength="240" value="Campaign consent update" required />
+                <button class="secondary-button" type="submit">Update consent</button>
+            </form>
+        </section>
+
+        <section id="campaign-runsite-card" class="turn-card">
+            <p class="eyebrow">RUNSITE</p>
+            <h2>Plan privately. Publish a player-safe view.</h2>
+            <label class="field-label" for="campaign-run-select">Run</label>
+            <select id="campaign-run-select" class="field-input"></select>
+            <div id="campaign-runsite-player" hidden>
+                <h3 id="campaign-runsite-player-title">No published Runsite</h3>
+                <p id="campaign-runsite-player-summary" class="support-copy"></p>
+                <div id="campaign-runsite-player-sections" class="campaign-sheet-sections"></div>
+            </div>
+            <form id="campaign-runsite-form" class="campaign-form" hidden>
+                <label class="field-label" for="campaign-runsite-title">Title</label>
+                <input id="campaign-runsite-title" class="field-input" maxlength="160" required />
+                <label class="field-label" for="campaign-runsite-summary">Player summary</label>
+                <textarea id="campaign-runsite-summary" class="field-input" maxlength="2000" rows="3"></textarea>
+                <label class="field-label" for="campaign-runsite-sections">Player sections</label>
+                <textarea id="campaign-runsite-sections" class="field-input" rows="6" placeholder="Heading | What players can see"></textarea>
+                <label class="field-label" for="campaign-runsite-gm-notes">Private GM notes</label>
+                <textarea id="campaign-runsite-gm-notes" class="field-input" maxlength="4000" rows="4"></textarea>
+                <div class="campaign-inline-actions">
+                    <button class="secondary-button" type="submit">Save draft</button>
+                    <button id="campaign-runsite-publish" class="primary-button" type="button">Publish player view</button>
+                </div>
+                <p id="campaign-runsite-revision" class="support-copy"></p>
+            </form>
+        </section>
+    </section>
+</main>
+
+@code {
+    [Parameter]
+    public string? CampaignId { get; set; }
+
+    [Parameter]
+    public string? InviteId { get; set; }
+}

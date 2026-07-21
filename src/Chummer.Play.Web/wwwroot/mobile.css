@@ -557,9 +557,126 @@ input:disabled {
   border-color: rgba(255, 209, 143, 0.34);
 }
 
+.campaign-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.campaign-shell [hidden] {
+  display: none !important;
+}
+
+.campaign-hero,
+.campaign-workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.campaign-nav,
+.campaign-inline-actions,
+.campaign-heading-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.campaign-heading-row {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.campaign-card-grid,
+.campaign-sheet-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 0.8rem;
+}
+
+.campaign-member-card,
+.campaign-sheet-section,
+.campaign-secret {
+  border: 1px solid rgba(159, 210, 255, 0.14);
+  border-radius: 16px;
+  padding: 0.9rem;
+  background: rgba(5, 14, 23, 0.46);
+}
+
+.campaign-member-card {
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+}
+
+.campaign-member-card h3,
+.campaign-member-card p,
+.campaign-sheet-section h3,
+.campaign-sheet-section p {
+  margin: 0;
+}
+
+.campaign-member-card .secondary-button {
+  justify-self: start;
+  margin-top: 0.25rem;
+}
+
+.campaign-form {
+  display: grid;
+  gap: 0.7rem;
+  max-width: 52rem;
+}
+
+.campaign-form textarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.campaign-form .primary-button,
+.campaign-form .secondary-button {
+  justify-self: start;
+}
+
+.campaign-code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 1.12rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.campaign-secret {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+  border-color: rgba(255, 209, 143, 0.32);
+}
+
+.campaign-secret[hidden],
+.campaign-workspace[hidden] {
+  display: none;
+}
+
+#campaign-status[data-tone="conflict"] {
+  color: var(--turn-warning);
+}
+
+#campaign-status[data-tone="ambiguous"] {
+  color: var(--turn-warning);
+}
+
+#campaign-status[data-tone="error"] {
+  color: var(--turn-critical);
+}
+
+[data-campaign-root][aria-busy="true"] button {
+  pointer-events: none;
+  opacity: 0.62;
+}
+
 @media (max-width: 880px) {
   .turn-grid--two,
   .install-boundary-grid,
+  .campaign-card-grid,
+  .campaign-sheet-sections,
   .metric-grid,
   .inventory-grid,
   .action-grid,
@@ -582,6 +699,10 @@ input:disabled {
   }
 
   .hero-header {
+    flex-direction: column;
+  }
+
+  .campaign-heading-row {
     flex-direction: column;
   }
 

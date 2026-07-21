@@ -25,6 +25,7 @@ public static class PlayWebApplication
     {
         "/mobile.css",
         "/mobile-install-shell.js",
+        "/mobile-campaign.js",
         "/manifest.webmanifest",
         "/manifest.player.webmanifest",
         "/manifest.gm.webmanifest",
@@ -558,10 +559,13 @@ public static class PlayWebApplication
             return;
         }
 
-        ApplyPrivateMobileDocumentHeaders(context.Response);
+        Action<HttpResponse> applyHeaders = IsMobileCampaignDocumentPath(context.Request.Path)
+            ? ApplyPrivateMobileCampaignHeaders
+            : ApplyPrivateMobileDocumentHeaders;
+        applyHeaders(context.Response);
         context.Response.OnStarting(() =>
         {
-            ApplyPrivateMobileDocumentHeaders(context.Response);
+            applyHeaders(context.Response);
             return Task.CompletedTask;
         });
 
@@ -615,7 +619,20 @@ public static class PlayWebApplication
         }
 
         return value.Equals("/mobile", StringComparison.OrdinalIgnoreCase)
-            || value.StartsWith("/mobile/", StringComparison.OrdinalIgnoreCase);
+            || value.StartsWith("/mobile/", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/join/campaign", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("/join/campaign/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static bool IsMobileCampaignDocumentPath(PathString path)
+    {
+        string value = (path.Value ?? string.Empty).TrimEnd('/');
+        return value.Equals("/mobile/campaigns", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("/mobile/campaigns/", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/mobile/join/campaign", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("/mobile/join/campaign/", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("/join/campaign", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("/join/campaign/", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void ApplyPrivateMobileDocumentHeaders(HttpResponse response)
@@ -623,6 +640,16 @@ public static class PlayWebApplication
         ApplyPrivateNoStoreHeaders(response);
         response.Headers["Referrer-Policy"] = "no-referrer";
         response.Headers["Content-Security-Policy"] = "default-src 'none'; base-uri 'none'; connect-src 'none'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'self'; script-src 'self'; style-src 'self'; worker-src 'self'";
+        response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+        response.Headers["X-Content-Type-Options"] = "nosniff";
+        response.Headers["X-Frame-Options"] = "DENY";
+    }
+
+    private static void ApplyPrivateMobileCampaignHeaders(HttpResponse response)
+    {
+        ApplyPrivateNoStoreHeaders(response);
+        response.Headers["Referrer-Policy"] = "no-referrer";
+        response.Headers["Content-Security-Policy"] = "default-src 'none'; base-uri 'none'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'self'; script-src 'self'; style-src 'self'; worker-src 'self'";
         response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
         response.Headers["X-Content-Type-Options"] = "nosniff";
         response.Headers["X-Frame-Options"] = "DENY";

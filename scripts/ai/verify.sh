@@ -128,6 +128,8 @@ test -f src/Chummer.Play.Web/Program.cs
 test -f src/Chummer.Play.Web/PlayWebApplication.cs
 test -f src/Chummer.Play.Core/Application/PlayTurnCompanionProjector.cs
 test -f src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor
+test -f src/Chummer.Play.Web/Components/Pages/MobileCampaignCollaborationPage.razor
+test -f src/Chummer.Play.Web/wwwroot/mobile-campaign.js
 test -f src/Chummer.Play.Web/Components/App.razor
 test -f src/Chummer.Play.Web/PlayRouteHandlers.cs
 test -f src/Chummer.Play.Web/BrowserSessionApiClient.cs
@@ -185,6 +187,7 @@ python3 -m unittest discover -s tests -p 'test_mobile_strict_public_edge_follow_
 test -f tests/test_mobile_release_boundary.py
 python3 -m unittest discover -s tests -p 'test_mobile_release_boundary.py' >/dev/null
 test -f tests/test_mobile_pwa_performance_budget.py
+test -f tests/test_mobile_campaign_collaboration_runtime.py
 python3 -m unittest discover -s tests -p 'test_mobile_pwa_performance_budget.py' >/dev/null
 python3 scripts/verify_mobile_pwa_performance_budget.py >/dev/null
 test -f .codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json
@@ -635,6 +638,15 @@ rg -n 'chummer-play-analytics-config|RYBBIT_CHUMMER_PLAY_SITE_ID|RYBBIT_CHUMMER_
 rg -n 'RequireTrustedMobileLiveGrantBoundaryAsync|PlaySessionGrantPolicy\.TryResolve' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'play_session_grant_required' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'GrantIdHeader|SessionIdHeader|RoleHeader|DeviceIdHeader' src/Chummer.Play.Web/PlaySessionGrant.cs >/dev/null
+rg -n '@page "/mobile/campaigns"|@page "/join/campaign/\{InviteId\}"' src/Chummer.Play.Web/Components/Pages/MobileCampaignCollaborationPage.razor >/dev/null
+rg -n 'data-private-state="open-tab-only"' src/Chummer.Play.Web/Components/Pages/MobileCampaignCollaborationPage.razor >/dev/null
+rg -n 'antiforgeryRoute = "/api/v1/antiforgery"' src/Chummer.Play.Web/wwwroot/mobile-campaign.js >/dev/null
+rg -n 'headers\[antiforgery\.headerName\] = antiforgery\.requestToken' src/Chummer.Play.Web/wwwroot/mobile-campaign.js >/dev/null
+rg -n 'credentials: "include"' src/Chummer.Play.Web/wwwroot/mobile-campaign.js >/dev/null
+rg -n 'state\.inviteSecret = takeInviteSecret\(\)' src/Chummer.Play.Web/wwwroot/mobile-campaign.js >/dev/null
+rg -n 'window\.history\.replaceState\(\{\}, "", window\.location\.pathname \+ window\.location\.search\)' src/Chummer.Play.Web/wwwroot/mobile-campaign.js >/dev/null
+rg -n 'Canonical Core editing is temporarily unavailable\. Nothing was changed' src/Chummer.Play.Web/wwwroot/mobile-campaign.js >/dev/null
+rg -n 'IsMobileCampaignDocumentPath|ApplyPrivateMobileCampaignHeaders' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'return "/mobile/live";' src/Chummer.Play.Web/PlayRouteHandlers.cs src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
 rg -n 'void sessionIdFallback;|void deviceFallback;|return `/mobile/\$\{mode\}`;' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
 rg -n 'function analyticsRoute\(client, config\)|return "/mobile/live";' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
@@ -681,6 +693,7 @@ bash "${package_plane_runner}" build src/Chummer.Play.Gm/Chummer.Play.Gm.csproj 
 bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo
 bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo >/dev/null
 bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
+python3 -m pytest -q tests/test_mobile_campaign_collaboration_runtime.py >/dev/null
 python3 scripts/verify_mobile_pwa_analytics_smoke.py >/dev/null
 python3 scripts/verify_mobile_pwa_runtime_smoke.py >/dev/null
 python3 scripts/verify_mobile_pwa_viewport_smoke.py >/dev/null
