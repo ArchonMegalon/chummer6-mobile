@@ -88,6 +88,13 @@ jobs:
             echo 'strict package inventory is missing' >&2
             exit 1
           fi
+          for owner_checkout in ../chummer-core-engine ../chummer.run-services ../chummer-ui-kit; do
+            if test -n "$(git -C "${owner_checkout}" status --porcelain --untracked-files=all)"; then
+              echo "owner checkout changed while producing packages: ${owner_checkout}" >&2
+              git -C "${owner_checkout}" status --short
+              exit 1
+            fi
+          done
 
       - name: Run four-identity campaign browser journey
         working-directory: chummer6-mobile

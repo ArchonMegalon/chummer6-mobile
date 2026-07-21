@@ -233,6 +233,7 @@ pack_owner_package() {
   local package_id="$2"
   local package_version="$3"
   local owner_restore_sources="${local_feed}"
+  local owner_lock_file="${local_feed}/.locks/${package_id}.packages.lock.json"
 
   if [[ ! -f "${project_path}" ]]; then
     return 1
@@ -245,6 +246,7 @@ pack_owner_package() {
   if [[ "${package_id}" == "Chummer.Engine.Contracts" ]]; then
     owner_restore_sources+=";https://api.nuget.org/v3/index.json"
   fi
+  mkdir -p "$(dirname "${owner_lock_file}")"
 
   dotnet pack "${project_path}" \
     --nologo \
@@ -252,8 +254,9 @@ pack_owner_package() {
     -o "${local_feed}" \
     -p:RestoreSources="${owner_restore_sources}" \
     -p:RestoreIgnoreFailedSources=false \
-    -p:RestorePackagesWithLockFile=false \
+    -p:RestorePackagesWithLockFile=true \
     -p:RestoreLockedMode=false \
+    -p:NuGetLockFilePath="${owner_lock_file}" \
     -p:ChummerEngineContractsPackageVersion="${published_engine_contracts_version:-0.1.0-preview}" \
     -p:ChummerCampaignContractsPackageVersion="${published_campaign_contracts_version:-0.1.0-preview}" \
     -p:ChummerControlContractsPackageVersion="${published_control_contracts_version:-0.1.0-preview}" \

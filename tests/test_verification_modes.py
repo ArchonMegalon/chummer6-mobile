@@ -257,8 +257,11 @@ class VerificationModeTests(unittest.TestCase):
         expected_feed = f'-p:RestoreSources={temp_root / "local-feed"}'
         self.assertTrue(all(expected_feed in line for line in pack_lines))
         self.assertTrue(all("-p:RestoreIgnoreFailedSources=false" in line for line in pack_lines))
-        self.assertTrue(all("-p:RestorePackagesWithLockFile=false" in line for line in pack_lines))
+        self.assertTrue(all("-p:RestorePackagesWithLockFile=true" in line for line in pack_lines))
         self.assertTrue(all("-p:RestoreLockedMode=false" in line for line in pack_lines))
+        self.assertTrue(all("-p:NuGetLockFilePath=" in line for line in pack_lines))
+        expected_lock_root = f'-p:NuGetLockFilePath={temp_root / "local-feed" / ".locks"}/'
+        self.assertTrue(all(expected_lock_root in line for line in pack_lines))
         self.assertTrue(
             all("-p:ChummerEngineContractsPackageVersion=5.225.1-ci.6f7cc7d8" in line for line in pack_lines)
         )
