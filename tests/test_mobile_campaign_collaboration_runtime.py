@@ -108,6 +108,20 @@ class FakeCampaignHub:
         self.published: dict[str, Any] | None = None
         self.force_edit_conflict_once = True
         self.unsafe_requests: list[dict[str, str]] = []
+        self.drop_after_commit_once: set[str] = set()
+        self.fail_campaign_list_once_for: set[str] = set()
+        self.idempotent_responses: dict[tuple[str, str, str], tuple[str, dict[str, Any]]] = {}
+        self.command_keys: dict[str, list[str]] = {
+            "join": [],
+            "edit": [],
+            "consent": [],
+        }
+        self.commit_counts = {
+            "join": 0,
+            "edit": 0,
+            "consent": 0,
+            "publish": 0,
+        }
         self.eligible = {
             GM_EMAIL: [],
             ALICE_EMAIL: [self._eligible_character("dossier-alice", "character-alice", "Neon Fox", "Alice Voss")],
@@ -197,6 +211,10 @@ class FakeCampaignHub:
             self._json(route, 200, copy.deepcopy(self.eligible[identity]))
             return
         if path == "/api/v1/campaigns" and method == "GET":
+            if identity in self.fail_campaign_list_once_for:
+                self.fail_campaign_list_once_for.remove(identity)
+                route.abort("connectionreset")
+                return
             visible = self.created and (identity == GM_EMAIL or self._dossier_for(identity) in self.members)
             self._json(route, 200, [self._campaign(identity)] if visible else [])
             return
@@ -306,6 +324,10 @@ class FakeCampaignHub:
     def _validate_mutation(self, request: Any, identity: str) -> bool:
         body = (request.post_data or "").encode("utf-8")
         headers = request.headers
+        try:
+            payload = json.loads(request.post_data or "{}")
+        except json.JSONDecodeError:
+            payload = {}
         self.unsafe_requests.append(
             {
                 "identity": identity,
@@ -313,6 +335,7 @@ class FakeCampaignHub:
                 "token": headers.get("x-csrf-token", ""),
                 "cookie": headers.get("cookie", ""),
                 "body_bytes": str(len(body)),
+                "idempotency_key": str(payload.get("idempotencyKey", "")) if isinstance(payload, dict) else "",
             }
         )
         return (
@@ -372,6 +395,12 @@ class FakeCampaignHub:
         if invite is None or dossier_id is None or body.get("dossierId") != dossier_id:
             self._problem(route, 404, "Invitation is invalid or not available to this character.")
             return
+        idempotency_key = str(body.get("idempotencyKey", ""))
+        self.command_keys["join"].append(idempotency_key)
+        fingerprint = self._command_fingerprint(body)
+        replay = self._idempotent_replay(route, "join", identity, idempotency_key, fingerprint)
+        if replay:
+            return
         if body.get("expectedCharacterRevision") != self.sheets[dossier_id]["revision"]:
             self._problem(route, 409, "Character revision changed.")
             return
@@ -381,29 +410,28 @@ class FakeCampaignHub:
             "characterId": body.get("authoritativeCharacterId"),
         }
         self.sheets[dossier_id]["gmEditAuthorityGranted"] = body.get("grantGmEditAuthority") is True
-        self._json(
-            route,
-            200,
-            {
+        payload = {
+            "campaignId": self.campaign_id,
+            "dossierId": dossier_id,
+            "crewId": "crew-night-shift",
+            "role": "player",
+            "binding": {
+                "bindingId": f"binding-{dossier_id}",
                 "campaignId": self.campaign_id,
                 "dossierId": dossier_id,
-                "crewId": "crew-night-shift",
-                "role": "player",
-                "binding": {
-                    "bindingId": f"binding-{dossier_id}",
-                    "campaignId": self.campaign_id,
-                    "dossierId": dossier_id,
-                    "authorityKind": "canonical-core",
-                    "authoritativeCharacterId": body.get("authoritativeCharacterId"),
-                    "bindingRevision": 1,
-                    "currentRevision": self.sheets[dossier_id]["revision"],
-                    "gmAuthorityRole": "delegated" if body.get("grantGmEditAuthority") else "none",
-                    "grantedAtUtc": "2026-07-21T00:00:00Z",
-                },
-                "alreadyJoined": already_joined,
-                "joinedAtUtc": "2026-07-21T00:00:00Z",
+                "authorityKind": "canonical-core",
+                "authoritativeCharacterId": body.get("authoritativeCharacterId"),
+                "bindingRevision": 1,
+                "currentRevision": self.sheets[dossier_id]["revision"],
+                "gmAuthorityRole": "delegated" if body.get("grantGmEditAuthority") else "none",
+                "grantedAtUtc": "2026-07-21T00:00:00Z",
             },
-        )
+            "alreadyJoined": already_joined,
+            "joinedAtUtc": "2026-07-21T00:00:00Z",
+        }
+        self.idempotent_responses[("join", identity, idempotency_key)] = (fingerprint, copy.deepcopy(payload))
+        self.commit_counts["join"] += 1
+        self._json_or_drop(route, 200, payload, f"join:{identity}")
 
     def _edit_sheet(self, route: Route, identity: str, dossier_id: str, body: dict[str, Any]) -> None:
         sheet = self.sheets[dossier_id]
@@ -412,6 +440,11 @@ class FakeCampaignHub:
             return
         if body.get("sections") is not None or body.get("status") != sheet["status"]:
             self._problem(route, 400, "Only canonical delegated profile fields may change.")
+            return
+        idempotency_key = str(body.get("idempotencyKey", ""))
+        self.command_keys["edit"].append(idempotency_key)
+        fingerprint = self._command_fingerprint(body)
+        if self._idempotent_replay(route, "edit", identity, idempotency_key, fingerprint):
             return
         if self.force_edit_conflict_once:
             self.force_edit_conflict_once = False
@@ -425,53 +458,56 @@ class FakeCampaignHub:
         sheet["runnerHandle"] = str(body.get("runnerHandle", ""))
         sheet["displayName"] = str(body.get("displayName", ""))
         sheet["revision"] += 1
-        self._json(
-            route,
-            200,
-            {
-                "receiptId": "gm-edit-receipt",
-                "campaignId": self.campaign_id,
-                "dossierId": dossier_id,
-                "previousRevision": previous,
-                "revision": sheet["revision"],
-                "currentRevision": sheet["revision"],
-                "idempotencyKey": body.get("idempotencyKey"),
-                "reason": body.get("reason"),
-                "editedByUserId": "gm-fixture",
-                "beforeSha256": "a" * 64,
-                "afterSha256": "b" * 64,
-                "editedAtUtc": "2026-07-21T00:00:00Z",
-            },
-        )
+        payload = {
+            "receiptId": "gm-edit-receipt",
+            "campaignId": self.campaign_id,
+            "dossierId": dossier_id,
+            "previousRevision": previous,
+            "revision": sheet["revision"],
+            "currentRevision": sheet["revision"],
+            "idempotencyKey": idempotency_key,
+            "reason": body.get("reason"),
+            "editedByUserId": "gm-fixture",
+            "beforeSha256": "a" * 64,
+            "afterSha256": "b" * 64,
+            "editedAtUtc": "2026-07-21T00:00:00Z",
+        }
+        self.idempotent_responses[("edit", identity, idempotency_key)] = (fingerprint, copy.deepcopy(payload))
+        self.commit_counts["edit"] += 1
+        self._json_or_drop(route, 200, payload, f"edit:{dossier_id}")
 
     def _update_consent(self, route: Route, identity: str, dossier_id: str, body: dict[str, Any]) -> None:
         if self._dossier_for(identity) != dossier_id:
             self._problem(route, 403, "Only the character owner can update consent.")
             return
         sheet = self.sheets[dossier_id]
+        idempotency_key = str(body.get("idempotencyKey", ""))
+        self.command_keys["consent"].append(idempotency_key)
+        fingerprint = self._command_fingerprint(body)
+        if self._idempotent_replay(route, "consent", identity, idempotency_key, fingerprint):
+            return
         if body.get("expectedBindingRevision") != sheet["gmAuthorityBindingRevision"]:
             self._problem(route, 409, "Consent binding changed.")
             return
         previous = sheet["gmAuthorityBindingRevision"]
         sheet["gmAuthorityBindingRevision"] += 1
         sheet["gmEditAuthorityGranted"] = body.get("grantGmEditAuthority") is True
-        self._json(
-            route,
-            200,
-            {
-                "receiptId": "consent-receipt",
-                "campaignId": self.campaign_id,
-                "dossierId": dossier_id,
-                "previousBindingRevision": previous,
-                "bindingRevision": sheet["gmAuthorityBindingRevision"],
-                "currentCharacterRevision": sheet["revision"],
-                "gmEditAuthorityGranted": sheet["gmEditAuthorityGranted"],
-                "changed": True,
-                "idempotencyKey": body.get("idempotencyKey"),
-                "reason": body.get("reason"),
-                "changedAtUtc": "2026-07-21T00:00:00Z",
-            },
-        )
+        payload = {
+            "receiptId": "consent-receipt",
+            "campaignId": self.campaign_id,
+            "dossierId": dossier_id,
+            "previousBindingRevision": previous,
+            "bindingRevision": sheet["gmAuthorityBindingRevision"],
+            "currentCharacterRevision": sheet["revision"],
+            "gmEditAuthorityGranted": sheet["gmEditAuthorityGranted"],
+            "changed": True,
+            "idempotencyKey": idempotency_key,
+            "reason": body.get("reason"),
+            "changedAtUtc": "2026-07-21T00:00:00Z",
+        }
+        self.idempotent_responses[("consent", identity, idempotency_key)] = (fingerprint, copy.deepcopy(payload))
+        self.commit_counts["consent"] += 1
+        self._json_or_drop(route, 200, payload, f"consent:{dossier_id}")
 
     def _save_draft(self, route: Route, identity: str, body: dict[str, Any]) -> None:
         if identity != GM_EMAIL:
@@ -511,7 +547,40 @@ class FakeCampaignHub:
             "sections": copy.deepcopy(self.draft["playerSections"]),
             "publishedAtUtc": "2026-07-21T00:00:00Z",
         }
-        self._json(route, 200, copy.deepcopy(self.published))
+        self.commit_counts["publish"] += 1
+        self._json_or_drop(route, 200, copy.deepcopy(self.published), "publish")
+
+    def _idempotent_replay(
+        self,
+        route: Route,
+        command: str,
+        identity: str,
+        idempotency_key: str,
+        fingerprint: str,
+    ) -> bool:
+        if not idempotency_key:
+            self._problem(route, 400, "Idempotency key is required.")
+            return True
+        existing = self.idempotent_responses.get((command, identity, idempotency_key))
+        if existing is None:
+            return False
+        existing_fingerprint, payload = existing
+        if existing_fingerprint != fingerprint:
+            self._problem(route, 409, "Idempotency key was reused with a different command.")
+            return True
+        self._json(route, 200, copy.deepcopy(payload))
+        return True
+
+    @staticmethod
+    def _command_fingerprint(body: dict[str, Any]) -> str:
+        return json.dumps(body, sort_keys=True, separators=(",", ":"))
+
+    def _json_or_drop(self, route: Route, status: int, payload: Any, drop_key: str) -> None:
+        if drop_key in self.drop_after_commit_once:
+            self.drop_after_commit_once.remove(drop_key)
+            route.abort("connectionreset")
+            return
+        self._json(route, status, payload)
 
     def _has_access(self, identity: str) -> bool:
         return identity == GM_EMAIL or self._dossier_for(identity) in self.members
@@ -558,6 +627,14 @@ def _open_campaign(page: Page, base_url: str, campaign_id: str) -> None:
 
 def test_multi_identity_campaign_join_sheet_edit_and_runsite_journey(campaign_host: str) -> None:
     hub = FakeCampaignHub()
+    hub.drop_after_commit_once.update(
+        {
+            f"join:{ALICE_EMAIL}",
+            "edit:dossier-alice",
+            "consent:dossier-alice",
+            "publish",
+        }
+    )
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         contexts: list[BrowserContext] = []
@@ -597,9 +674,20 @@ def test_multi_identity_campaign_join_sheet_edit_and_runsite_journey(campaign_ho
             alice.locator("#campaign-join-secret-copy:not([hidden])").wait_for()
             assert "#" not in alice.url
             alice.locator("#campaign-grant-gm").check()
+            hub.fail_campaign_list_once_for.add(ALICE_EMAIL)
+            alice.locator("#campaign-join-submit").click()
+            alice.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('outcome is not confirmed')")
             alice.locator("#campaign-join-submit").click()
             alice.locator("#campaign-workspace:not([hidden])").wait_for()
             assert alice.locator("#campaign-role").inner_text() == "player"
+            alice_join_keys = [
+                item["idempotency_key"]
+                for item in hub.unsafe_requests
+                if item["identity"] == ALICE_EMAIL and item["path"].endswith("/redeem")
+            ]
+            assert len(alice_join_keys) == 2
+            assert alice_join_keys[0] == alice_join_keys[1]
+            assert hub.commit_counts["join"] == 1
 
             bob_context = _new_context(browser, BOB_EMAIL)
             contexts.append(bob_context)
@@ -641,8 +729,24 @@ def test_multi_identity_campaign_join_sheet_edit_and_runsite_journey(campaign_ho
 
             gm.locator("#campaign-sheet-display-name").fill("Alice Voss · updated")
             gm.locator("#campaign-gm-edit-form button[type=submit]").click()
-            gm.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('Canonical GM edit saved')")
+            gm.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('canonical sheet confirms')")
             assert hub.sheets["dossier-alice"]["displayName"] == "Alice Voss · updated"
+            assert hub.commit_counts["edit"] == 1
+
+            _open_campaign(alice, campaign_host, hub.campaign_id)
+            alice.locator("#campaign-roster .campaign-member-card", has_text="Neon Fox").locator("button").click()
+            alice.locator("#campaign-consent-form:not([hidden])").wait_for()
+            alice.locator("#campaign-consent-toggle").uncheck()
+            alice.locator("#campaign-consent-form button[type=submit]").click()
+            alice.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('authoritative binding confirms')")
+            assert hub.commit_counts["consent"] == 1
+            assert hub.sheets["dossier-alice"]["gmEditAuthorityGranted"] is False
+
+            _open_campaign(gm, campaign_host, hub.campaign_id)
+            gm.locator("#campaign-roster .campaign-member-card", has_text="Neon Fox").locator("button").click()
+            gm.wait_for_function("() => document.querySelector('#campaign-sheet-name').textContent.includes('Neon Fox')")
+            assert gm.locator("#campaign-gm-edit-form").is_hidden()
+            assert "not granted" in gm.locator("#campaign-gm-edit-boundary").inner_text()
 
             gm.locator("#campaign-roster .campaign-member-card", has_text="Chrome Finch").locator("button").click()
             gm.wait_for_function("() => document.querySelector('#campaign-sheet-name').textContent.includes('Chrome Finch')")
@@ -656,7 +760,8 @@ def test_multi_identity_campaign_join_sheet_edit_and_runsite_journey(campaign_ho
             gm.locator("#campaign-runsite-form button[type=submit]").click()
             gm.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('Runsite draft saved')")
             gm.locator("#campaign-runsite-publish").click()
-            gm.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('is published')")
+            gm.wait_for_function("() => document.querySelector('#campaign-status').textContent.includes('player-safe Runsite projection confirms')")
+            assert hub.commit_counts["publish"] == 1
 
             _open_campaign(alice, campaign_host, hub.campaign_id)
             alice.locator("#campaign-runsite-player:not([hidden])").wait_for()

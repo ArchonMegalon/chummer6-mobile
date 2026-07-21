@@ -659,6 +659,10 @@ input:disabled {
   color: var(--turn-warning);
 }
 
+#campaign-status[data-tone="ambiguous"] {
+  color: var(--turn-warning);
+}
+
 #campaign-status[data-tone="error"] {
   color: var(--turn-critical);
 }

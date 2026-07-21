@@ -9,6 +9,7 @@
   var apiRoot = "/api/v1/campaigns";
   var antiforgeryRoute = "/api/v1/antiforgery";
   var maxRequestBytes = 64 * 1024;
+  var requestTimeoutMs = 15 * 1000;
   var state = {
     campaigns: [],
     eligibleCharacters: [],
@@ -21,6 +22,8 @@
     inviteId: boundedIdentifier(root.getAttribute("data-invite-id")),
     inviteSecret: takeInviteSecret(),
     requestedCampaignId: boundedIdentifier(root.getAttribute("data-campaign-id")),
+    pendingMutations: Object.create(null),
+    unsupportedAmbiguousMutations: Object.create(null),
     busy: false
   };
 
@@ -130,17 +133,27 @@
       return;
     }
 
+    var summary = boundedText(byId("campaign-summary").value, 1000);
+    var initialRunTitle = boundedText(byId("campaign-run-title").value, 160) || "First Run";
+    var fingerprint = mutationFingerprint([name, summary, initialRunTitle]);
+    if (isUnsupportedMutationBlocked("create-campaign", fingerprint)) {
+      setStatus("The previous campaign creation outcome is still unconfirmed. Refresh the campaign list before starting another creation request.", "ambiguous");
+      return;
+    }
+    var campaignIdsBefore = new Set(state.campaigns.map(function (campaign) { return campaign.campaignId; }));
+
     await withBusy(async function () {
       try {
         var campaign = await apiRequest(apiRoot, {
           method: "POST",
           body: {
             name: name,
-            summary: boundedText(byId("campaign-summary").value, 1000),
+            summary: summary,
             visibility: "campaign",
-            initialRunTitle: boundedText(byId("campaign-run-title").value, 160) || "First Run"
+            initialRunTitle: initialRunTitle
           }
         });
+        clearUnsupportedMutation("create-campaign");
         state.campaigns.push(campaign);
         renderCampaignList();
         byId("campaign-create-form").reset();
@@ -148,6 +161,19 @@
         await openCampaign(campaign.campaignId);
         setStatus("Campaign created. Issue a private invitation when the crew is ready.", "ready");
       } catch (error) {
+        if (error instanceof AmbiguousMutationProblem) {
+          var reconciled = await reconcileCreatedCampaign(campaignIdsBefore, name, summary);
+          if (reconciled) {
+            clearUnsupportedMutation("create-campaign");
+            await openCampaign(reconciled.campaignId);
+            setStatus("The create response was lost, but the new campaign was found in the authoritative campaign list.", "ready");
+          } else {
+            markUnsupportedMutationAmbiguous("create-campaign", fingerprint);
+            setStatus("Campaign creation may have completed, but Hub cannot safely replay this contract. Refresh the list before creating again.", "ambiguous");
+          }
+          return;
+        }
+        clearUnsupportedMutation("create-campaign");
         handleActionError(error, "Campaign creation failed.");
       }
     });
@@ -161,40 +187,62 @@
     }
 
     var grantGmEditAuthority = byId("campaign-grant-gm").checked === true;
-    var idempotencyKey = newIdempotencyKey();
-    if (!idempotencyKey) {
+    var route;
+    var joinAuthority;
+    var code = "";
+    if (state.inviteId && state.inviteSecret) {
+      route = apiRoot + "/invites/" + encodeURIComponent(state.inviteId) + "/redeem";
+      joinAuthority = "link:" + state.inviteId;
+    } else {
+      code = normalizeJoinCode(byId("campaign-code").value);
+      if (!code) {
+        setStatus("Enter the join code supplied by your GM.", "error");
+        return;
+      }
+      route = apiRoot + "/join-code/redeem";
+      joinAuthority = "code:" + code;
+    }
+    var fingerprint = mutationFingerprint([
+      joinAuthority,
+      character.dossierId,
+      character.authoritativeCharacterId,
+      numberOrZero(character.currentRevision),
+      grantGmEditAuthority
+    ]);
+    var attempt = getOrCreateMutationAttempt("join", fingerprint);
+    if (!attempt) {
       setStatus("This browser cannot mint a secure join receipt. Update the browser and try again.", "error");
       return;
     }
+    var campaignIdsBefore = new Set(state.campaigns.map(function (campaign) { return campaign.campaignId; }));
 
     await withBusy(async function () {
       try {
-        var route;
         var body = {
           dossierId: character.dossierId,
           authoritativeCharacterId: character.authoritativeCharacterId,
           expectedCharacterRevision: numberOrZero(character.currentRevision),
           grantGmEditAuthority: grantGmEditAuthority,
-          idempotencyKey: idempotencyKey
+          idempotencyKey: attempt.idempotencyKey
         };
         if (state.inviteId && state.inviteSecret) {
-          route = apiRoot + "/invites/" + encodeURIComponent(state.inviteId) + "/redeem";
           body.secret = state.inviteSecret;
         } else {
-          var code = normalizeJoinCode(byId("campaign-code").value);
-          if (!code) {
-            setStatus("Enter the join code supplied by your GM.", "error");
-            return;
-          }
-          route = apiRoot + "/join-code/redeem";
           body.code = code;
         }
 
         var redemption = await apiRequest(route, { method: "POST", body: body });
+        clearMutationAttempt("join");
         state.inviteSecret = "";
         byId("campaign-code").value = "";
-        await refreshCampaignData();
-        await openCampaign(redemption.campaignId);
+        try {
+          await refreshCampaignData();
+          await openCampaign(redemption.campaignId);
+        } catch (projectionError) {
+          void projectionError;
+          setStatus("The join was accepted, but the campaign projection could not reload. Refresh My campaigns to continue.", "ambiguous");
+          return;
+        }
         setStatus(
           redemption.alreadyJoined
             ? "This character was already attached to the campaign. The existing binding was preserved."
@@ -202,6 +250,21 @@
           "ready"
         );
       } catch (error) {
+        if (error instanceof AmbiguousMutationProblem) {
+          attempt.ambiguous = true;
+          var reconciled = await reconcileJoinedCampaign(character.dossierId, campaignIdsBefore);
+          if (reconciled) {
+            clearMutationAttempt("join");
+            state.inviteSecret = "";
+            byId("campaign-code").value = "";
+            await openCampaign(reconciled.campaignId);
+            setStatus("The join response was lost, but authoritative membership confirms that the character joined exactly once.", "ready");
+          } else {
+            setStatus("The join outcome is not confirmed. Retry from this open page to reuse the same secure command receipt.", "ambiguous");
+          }
+          return;
+        }
+        clearMutationAttempt("join");
         if (error instanceof ApiProblem && error.status === 409) {
           await refreshEligibleCharactersAfterConflict();
           setStatus("The character changed before the join completed. Its current revision is loaded; review and submit again.", "conflict");
@@ -424,13 +487,27 @@
     }
 
     var dossierId = state.sheet.dossierId;
+    var expectedRevision = numberOrZero(state.sheet.revision);
+    var runnerHandle = boundedText(byId("campaign-sheet-handle").value, 120);
+    var displayName = boundedText(byId("campaign-sheet-display-name").value, 160);
+    var reason = boundedText(byId("campaign-sheet-reason").value, 240);
+    var fingerprint = mutationFingerprint([
+      state.campaign.campaignId,
+      dossierId,
+      expectedRevision,
+      runnerHandle,
+      displayName,
+      safeText(state.sheet.status, "active"),
+      reason
+    ]);
+    var attempt = getOrCreateMutationAttempt("gm-edit", fingerprint);
     var request = {
-      expectedRevision: numberOrZero(state.sheet.revision),
-      idempotencyKey: newIdempotencyKey(),
-      runnerHandle: boundedText(byId("campaign-sheet-handle").value, 120),
-      displayName: boundedText(byId("campaign-sheet-display-name").value, 160),
+      expectedRevision: expectedRevision,
+      idempotencyKey: attempt ? attempt.idempotencyKey : "",
+      runnerHandle: runnerHandle,
+      displayName: displayName,
       status: safeText(state.sheet.status, "active"),
-      reason: boundedText(byId("campaign-sheet-reason").value, 240),
+      reason: reason,
       sections: null
     };
     if (!request.idempotencyKey || !request.runnerHandle || !request.displayName || !request.reason) {
@@ -442,11 +519,18 @@
       try {
         var receipt = await apiRequest(
           apiRoot + "/" + encodeURIComponent(state.campaign.campaignId) + "/sheets/" + encodeURIComponent(dossierId),
-          { method: "PUT", body: request }
+          { method: "PUT", body: request, definitiveFailureStatuses: [503] }
         );
-        await reloadRosterAndSheet(dossierId);
+        clearMutationAttempt("gm-edit");
         var commandRevision = numberOrZero(receipt.revision);
         var currentRevision = receipt.currentRevision == null ? commandRevision : numberOrZero(receipt.currentRevision);
+        try {
+          await reloadRosterAndSheet(dossierId);
+        } catch (projectionError) {
+          void projectionError;
+          setStatus("The GM edit was accepted at revision " + commandRevision + ", but the current sheet could not reload.", "ambiguous");
+          return;
+        }
         setStatus(
           currentRevision > commandRevision
             ? "GM edit was accepted at revision " + commandRevision + ", but the owner has newer revision " + currentRevision + ". The newer canonical sheet is loaded."
@@ -454,6 +538,18 @@
           currentRevision > commandRevision ? "conflict" : "ready"
         );
       } catch (error) {
+        if (error instanceof AmbiguousMutationProblem) {
+          attempt.ambiguous = true;
+          var reconciled = await reconcileGmCharacterEdit(dossierId, request);
+          if (reconciled) {
+            clearMutationAttempt("gm-edit");
+            setStatus("The edit response was lost, but the canonical sheet confirms the edit at revision " + numberOrZero(reconciled.revision) + ".", "ready");
+          } else {
+            setStatus("The GM edit outcome is not confirmed. Retry without changing the fields to reuse the same command receipt.", "ambiguous");
+          }
+          return;
+        }
+        clearMutationAttempt("gm-edit");
         if (error instanceof ApiProblem && error.status === 409) {
           await reloadRosterAndSheet(dossierId);
           setStatus("The character changed elsewhere before this edit completed. The current canonical revision is loaded; review and submit again.", "conflict");
@@ -479,11 +575,22 @@
       return;
     }
     var dossierId = state.sheet.dossierId;
+    var expectedBindingRevision = numberOrZero(state.sheet.gmAuthorityBindingRevision);
+    var grantGmEditAuthority = byId("campaign-consent-toggle").checked === true;
+    var reason = boundedText(byId("campaign-consent-reason").value, 240);
+    var fingerprint = mutationFingerprint([
+      state.campaign.campaignId,
+      dossierId,
+      expectedBindingRevision,
+      grantGmEditAuthority,
+      reason
+    ]);
+    var attempt = getOrCreateMutationAttempt("gm-consent", fingerprint);
     var request = {
-      expectedBindingRevision: numberOrZero(state.sheet.gmAuthorityBindingRevision),
-      grantGmEditAuthority: byId("campaign-consent-toggle").checked === true,
-      idempotencyKey: newIdempotencyKey(),
-      reason: boundedText(byId("campaign-consent-reason").value, 240)
+      expectedBindingRevision: expectedBindingRevision,
+      grantGmEditAuthority: grantGmEditAuthority,
+      idempotencyKey: attempt ? attempt.idempotencyKey : "",
+      reason: reason
     };
     if (!request.idempotencyKey || !request.reason) {
       setStatus("Enter a consent reason before saving.", "error");
@@ -496,7 +603,14 @@
           apiRoot + "/" + encodeURIComponent(state.campaign.campaignId) + "/sheets/" + encodeURIComponent(dossierId) + "/gm-authority",
           { method: "PUT", body: request }
         );
-        await reloadRosterAndSheet(dossierId);
+        clearMutationAttempt("gm-consent");
+        try {
+          await reloadRosterAndSheet(dossierId);
+        } catch (projectionError) {
+          void projectionError;
+          setStatus("The consent update was accepted at binding revision " + numberOrZero(receipt.bindingRevision) + ", but the sheet could not reload.", "ambiguous");
+          return;
+        }
         setStatus(
           receipt.gmEditAuthorityGranted
             ? "GM edit consent granted at binding revision " + numberOrZero(receipt.bindingRevision) + "."
@@ -504,6 +618,23 @@
           "ready"
         );
       } catch (error) {
+        if (error instanceof AmbiguousMutationProblem) {
+          attempt.ambiguous = true;
+          var reconciled = await reconcileGmAuthority(dossierId, request);
+          if (reconciled) {
+            clearMutationAttempt("gm-consent");
+            setStatus(
+              request.grantGmEditAuthority
+                ? "The consent response was lost, but the authoritative binding confirms that GM edits are enabled."
+                : "The consent response was lost, but the authoritative binding confirms that GM edits are revoked.",
+              "ready"
+            );
+          } else {
+            setStatus("The consent outcome is not confirmed. Retry without changing the choice to reuse the same command receipt.", "ambiguous");
+          }
+          return;
+        }
+        clearMutationAttempt("gm-consent");
         if (error instanceof ApiProblem && error.status === 409) {
           await reloadRosterAndSheet(dossierId);
           setStatus("Consent changed on another device. The current binding revision is loaded; review it before trying again.", "conflict");
@@ -518,18 +649,30 @@
     if (!state.campaign || state.campaign.canManage !== true) {
       return;
     }
+    var fingerprint = mutationFingerprint([state.campaign.campaignId, 1440, 1]);
+    if (isUnsupportedMutationBlocked("create-invite", fingerprint)) {
+      setStatus("The previous invite creation outcome is unconfirmed. Hub cannot safely recover or replay its secret, so no second invite was issued.", "ambiguous");
+      return;
+    }
     await withBusy(async function () {
       try {
         var invite = await apiRequest(
           apiRoot + "/" + encodeURIComponent(state.campaign.campaignId) + "/invites",
           { method: "POST", body: { expiresInMinutes: 1440, maxUses: 1 } }
         );
+        clearUnsupportedMutation("create-invite");
         byId("campaign-invite-secret").hidden = false;
         byId("campaign-invite-link").value = absoluteSameOriginPath(invite.joinPath);
         byId("campaign-invite-code").value = safeText(invite.shortCode, "");
         byId("campaign-copy-status").textContent = "Invitation is visible only in this open page.";
         setStatus("A one-use invitation is ready. Share the private link or short code.", "ready");
       } catch (error) {
+        if (error instanceof AmbiguousMutationProblem) {
+          markUnsupportedMutationAmbiguous("create-invite", fingerprint);
+          setStatus("Invite creation may have completed, but this Hub contract cannot replay the secret safely. No automatic retry was sent.", "ambiguous");
+          return;
+        }
+        clearUnsupportedMutation("create-invite");
         handleActionError(error, "Invitation creation failed.");
       }
     });
@@ -681,16 +824,56 @@
       return;
     }
     var runId = state.runsiteDraft.runId;
+    var expectedRevision = numberOrZero(state.runsiteDraft.revision);
+    if (numberOrZero(state.runsiteDraft.publishedRevision) === expectedRevision && expectedRevision > 0) {
+      setStatus("This exact Runsite draft revision is already published.", "ready");
+      return;
+    }
+    var fingerprint = mutationFingerprint([
+      state.campaign.campaignId,
+      runId,
+      expectedRevision,
+      safeText(state.runsiteDraft.title, ""),
+      safeText(state.runsiteDraft.summary, ""),
+      JSON.stringify(Array.isArray(state.runsiteDraft.playerSections) ? state.runsiteDraft.playerSections : [])
+    ]);
+    if (isUnsupportedMutationBlocked("publish-runsite", fingerprint)) {
+      var existing = await reconcileRunsitePublication(runId, state.runsiteDraft);
+      if (existing) {
+        clearUnsupportedMutation("publish-runsite");
+        state.runsiteDraft.publishedRevision = existing.revision;
+        renderRunsiteDraft();
+        setStatus("Authoritative Runsite state confirms that this draft revision is already published.", "ready");
+      } else {
+        setStatus("Runsite publication remains unconfirmed. Hub does not accept an idempotency key here, so no second publish request was sent.", "ambiguous");
+      }
+      return;
+    }
     await withBusy(async function () {
       try {
         var published = await apiRequest(runsiteRoute(runId) + "/publish", {
           method: "POST",
-          body: { expectedRevision: numberOrZero(state.runsiteDraft.revision) }
+          body: { expectedRevision: expectedRevision }
         });
+        clearUnsupportedMutation("publish-runsite");
         state.runsiteDraft.publishedRevision = published.revision;
         renderRunsiteDraft();
         setStatus("Player-safe Runsite revision " + numberOrZero(published.revision) + " is published. Private GM notes were not included.", "ready");
       } catch (error) {
+        if (error instanceof AmbiguousMutationProblem) {
+          var reconciled = await reconcileRunsitePublication(runId, state.runsiteDraft);
+          if (reconciled) {
+            clearUnsupportedMutation("publish-runsite");
+            state.runsiteDraft.publishedRevision = reconciled.revision;
+            renderRunsiteDraft();
+            setStatus("The publish response was lost, but the player-safe Runsite projection confirms revision " + numberOrZero(reconciled.revision) + ".", "ready");
+          } else {
+            markUnsupportedMutationAmbiguous("publish-runsite", fingerprint);
+            setStatus("Runsite publication may have completed. No blind retry was sent because Hub does not accept an idempotency key for publish.", "ambiguous");
+          }
+          return;
+        }
+        clearUnsupportedMutation("publish-runsite");
         if (error instanceof ApiProblem && error.status === 409) {
           await loadRunsite(runId);
           setStatus("The Runsite changed before publication. The current draft is loaded; review it before publishing.", "conflict");
@@ -729,6 +912,152 @@
     byId("campaign-runsite-player-sections").innerHTML = "";
   }
 
+  function getOrCreateMutationAttempt(kind, fingerprint) {
+    var current = state.pendingMutations[kind];
+    if (current && current.fingerprint === fingerprint) {
+      return current;
+    }
+    var idempotencyKey = newIdempotencyKey();
+    if (!idempotencyKey) {
+      return null;
+    }
+    var created = {
+      fingerprint: fingerprint,
+      idempotencyKey: idempotencyKey,
+      ambiguous: false
+    };
+    state.pendingMutations[kind] = created;
+    return created;
+  }
+
+  function clearMutationAttempt(kind) {
+    delete state.pendingMutations[kind];
+  }
+
+  function mutationFingerprint(parts) {
+    return JSON.stringify(Array.isArray(parts) ? parts : []);
+  }
+
+  function isUnsupportedMutationBlocked(kind, fingerprint) {
+    var current = state.unsupportedAmbiguousMutations[kind];
+    return Boolean(current && current.fingerprint === fingerprint && current.ambiguous === true);
+  }
+
+  function markUnsupportedMutationAmbiguous(kind, fingerprint) {
+    state.unsupportedAmbiguousMutations[kind] = { fingerprint: fingerprint, ambiguous: true };
+  }
+
+  function clearUnsupportedMutation(kind) {
+    delete state.unsupportedAmbiguousMutations[kind];
+  }
+
+  async function reconcileCreatedCampaign(campaignIdsBefore, name, summary) {
+    var campaigns = await tryApiRequest(apiRoot);
+    if (!Array.isArray(campaigns)) {
+      return null;
+    }
+    state.campaigns = campaigns;
+    renderCampaignList();
+    var candidates = campaigns.filter(function (campaign) {
+      return !campaignIdsBefore.has(campaign.campaignId)
+        && safeText(campaign.name, "") === name
+        && (!summary || safeText(campaign.summary, "") === summary);
+    });
+    return candidates.length === 1 ? candidates[0] : null;
+  }
+
+  async function reconcileJoinedCampaign(dossierId, campaignIdsBefore) {
+    var campaigns = await tryApiRequest(apiRoot);
+    if (!Array.isArray(campaigns)) {
+      return null;
+    }
+    state.campaigns = campaigns;
+    renderCampaignList();
+    var memberships = campaigns.filter(function (campaign) {
+      return Array.isArray(campaign.roster) && campaign.roster.some(function (member) {
+        return member.dossierId === dossierId;
+      });
+    });
+    var newlyVisible = memberships.filter(function (campaign) {
+      return !campaignIdsBefore.has(campaign.campaignId);
+    });
+    if (newlyVisible.length === 1) {
+      return newlyVisible[0];
+    }
+    return memberships.length === 1 ? memberships[0] : null;
+  }
+
+  async function reconcileGmCharacterEdit(dossierId, request) {
+    var current = await tryApiRequest(
+      apiRoot + "/" + encodeURIComponent(state.campaign.campaignId) + "/sheets/" + encodeURIComponent(dossierId)
+    );
+    if (!current
+      || numberOrZero(current.revision) <= request.expectedRevision
+      || safeText(current.runnerHandle, "") !== request.runnerHandle
+      || safeText(current.displayName, "") !== request.displayName
+      || safeText(current.status, "active") !== request.status) {
+      return null;
+    }
+    await applyReconciledSheet(current);
+    return current;
+  }
+
+  async function reconcileGmAuthority(dossierId, request) {
+    var current = await tryApiRequest(
+      apiRoot + "/" + encodeURIComponent(state.campaign.campaignId) + "/sheets/" + encodeURIComponent(dossierId)
+    );
+    if (!current
+      || numberOrZero(current.gmAuthorityBindingRevision) <= request.expectedBindingRevision
+      || (current.gmEditAuthorityGranted === true) !== request.grantGmEditAuthority) {
+      return null;
+    }
+    await applyReconciledSheet(current);
+    return current;
+  }
+
+  async function applyReconciledSheet(sheet) {
+    state.sheet = sheet;
+    renderSheet();
+    var roster = await tryApiRequest(apiRoot + "/" + encodeURIComponent(state.campaign.campaignId) + "/roster");
+    if (Array.isArray(roster)) {
+      state.roster = roster;
+      renderRoster();
+    }
+  }
+
+  async function reconcileRunsitePublication(runId, draft) {
+    var published = await tryApiRequest(runsiteRoute(runId));
+    if (!published
+      || numberOrZero(published.revision) !== numberOrZero(draft.revision)
+      || safeText(published.title, "") !== safeText(draft.title, "")
+      || safeText(published.summary, "") !== safeText(draft.summary, "")
+      || !runsiteSectionsMatch(published.sections, draft.playerSections)) {
+      return null;
+    }
+    return published;
+  }
+
+  function runsiteSectionsMatch(publishedSections, draftSections) {
+    var published = Array.isArray(publishedSections) ? publishedSections : [];
+    var draft = Array.isArray(draftSections) ? draftSections : [];
+    if (published.length !== draft.length) {
+      return false;
+    }
+    return published.every(function (section, index) {
+      return safeText(section.heading, "") === safeText(draft[index].heading, "")
+        && safeText(section.body, "") === safeText(draft[index].body, "");
+    });
+  }
+
+  async function tryApiRequest(route) {
+    try {
+      return await apiRequest(route);
+    } catch (error) {
+      void error;
+      return null;
+    }
+  }
+
   async function apiRequest(route, options) {
     var requestOptions = options || {};
     var method = String(requestOptions.method || "GET").toUpperCase();
@@ -745,18 +1074,48 @@
       }
     }
 
-    var response = await fetch(route, {
-      method: method,
-      headers: headers,
-      body: body,
-      credentials: "include",
-      cache: "no-store",
-      redirect: "error"
-    });
-    var text = await response.text();
+    var result;
+    try {
+      result = await boundedFetchText(route, {
+        method: method,
+        headers: headers,
+        body: body,
+        credentials: "include",
+        cache: "no-store",
+        redirect: "error"
+      });
+    } catch (error) {
+      if (error instanceof RequestTransportProblem) {
+        if (unsafe && error.requestMayHaveReachedServer) {
+          throw new AmbiguousMutationProblem(
+            error.timedOut
+              ? "The campaign mutation timed out after it may have reached Hub."
+              : "The campaign mutation response was lost after it may have reached Hub."
+          );
+        }
+        throw new ApiProblem(503, "Hub could not be reached before the request completed.", null);
+      }
+      throw error;
+    }
+    var response = result.response;
+    var text = result.text;
     var payload = parseJson(text);
     if (!response.ok) {
+      if (unsafe && response.status === 400) {
+        state.antiforgery = null;
+      }
+      var definitiveFailureStatuses = Array.isArray(requestOptions.definitiveFailureStatuses)
+        ? requestOptions.definitiveFailureStatuses
+        : [];
+      if (unsafe
+        && response.status >= 500
+        && !definitiveFailureStatuses.includes(response.status)) {
+        throw new AmbiguousMutationProblem("Hub returned a server failure after the mutation may have committed.");
+      }
       throw new ApiProblem(response.status, problemDetail(payload, response.status), payload);
+    }
+    if (unsafe && payload == null) {
+      throw new AmbiguousMutationProblem("Hub returned no valid mutation receipt after the mutation may have committed.");
     }
     return payload;
   }
@@ -765,14 +1124,23 @@
     if (state.antiforgery) {
       return state.antiforgery;
     }
-    var response = await fetch(antiforgeryRoute, {
-      method: "GET",
-      headers: { accept: "application/json" },
-      credentials: "include",
-      cache: "no-store",
-      redirect: "error"
-    });
-    var payload = parseJson(await response.text());
+    var result;
+    try {
+      result = await boundedFetchText(antiforgeryRoute, {
+        method: "GET",
+        headers: { accept: "application/json" },
+        credentials: "include",
+        cache: "no-store",
+        redirect: "error"
+      });
+    } catch (error) {
+      if (error instanceof RequestTransportProblem) {
+        throw new ApiProblem(503, "Hub antiforgery protection could not be loaded. No campaign mutation was attempted.", null);
+      }
+      throw error;
+    }
+    var response = result.response;
+    var payload = parseJson(result.text);
     if (!response.ok) {
       throw new ApiProblem(response.status, problemDetail(payload, response.status), payload);
     }
@@ -783,6 +1151,30 @@
     }
     state.antiforgery = { requestToken: requestToken, headerName: headerName };
     return state.antiforgery;
+  }
+
+  async function boundedFetchText(route, options) {
+    if (typeof window.AbortController !== "function") {
+      throw new RequestTransportProblem(false, false);
+    }
+    var controller = new window.AbortController();
+    var timedOut = false;
+    var requestMayHaveReachedServer = false;
+    var timer = window.setTimeout(function () {
+      timedOut = true;
+      controller.abort();
+    }, requestTimeoutMs);
+    try {
+      requestMayHaveReachedServer = true;
+      var response = await fetch(route, Object.assign({}, options, { signal: controller.signal }));
+      var text = await response.text();
+      return { response: response, text: text };
+    } catch (error) {
+      void error;
+      throw new RequestTransportProblem(requestMayHaveReachedServer, timedOut);
+    } finally {
+      window.clearTimeout(timer);
+    }
   }
 
   async function withBusy(action) {
@@ -846,6 +1238,10 @@
   }
 
   function handleActionError(error, fallback) {
+    if (error instanceof AmbiguousMutationProblem) {
+      setStatus(error.detail || fallback, "ambiguous");
+      return;
+    }
     if (error instanceof ApiProblem) {
       if (error.status === 401) {
         handleTopLevelError(error, fallback);
@@ -955,4 +1351,19 @@
   }
   ApiProblem.prototype = Object.create(Error.prototype);
   ApiProblem.prototype.constructor = ApiProblem;
+
+  function AmbiguousMutationProblem(detail) {
+    this.name = "AmbiguousMutationProblem";
+    this.detail = detail;
+  }
+  AmbiguousMutationProblem.prototype = Object.create(Error.prototype);
+  AmbiguousMutationProblem.prototype.constructor = AmbiguousMutationProblem;
+
+  function RequestTransportProblem(requestMayHaveReachedServer, timedOut) {
+    this.name = "RequestTransportProblem";
+    this.requestMayHaveReachedServer = requestMayHaveReachedServer === true;
+    this.timedOut = timedOut === true;
+  }
+  RequestTransportProblem.prototype = Object.create(Error.prototype);
+  RequestTransportProblem.prototype.constructor = RequestTransportProblem;
 }());
