@@ -232,17 +232,35 @@ pack_owner_package() {
   local project_path="$1"
   local package_id="$2"
   local package_version="$3"
+  local owner_restore_sources="${local_feed}"
 
   if [[ ! -f "${project_path}" ]]; then
     return 1
+  fi
+
+  # The Core contracts project can require SDK/runtime packs while producing
+  # the first package in an otherwise private feed. Every downstream owner
+  # contract must restore only from that feed so an ambient cache or a public
+  # package with a colliding Chummer id cannot satisfy the package plane.
+  if [[ "${package_id}" == "Chummer.Engine.Contracts" ]]; then
+    owner_restore_sources+=";https://api.nuget.org/v3/index.json"
   fi
 
   dotnet pack "${project_path}" \
     --nologo \
     -c Release \
     -o "${local_feed}" \
+    -p:RestoreSources="${owner_restore_sources}" \
+    -p:RestoreIgnoreFailedSources=false \
+    -p:RestorePackagesWithLockFile=false \
+    -p:RestoreLockedMode=false \
+    -p:ChummerEngineContractsPackageVersion="${published_engine_contracts_version:-0.1.0-preview}" \
+    -p:ChummerCampaignContractsPackageVersion="${published_campaign_contracts_version:-0.1.0-preview}" \
+    -p:ChummerControlContractsPackageVersion="${published_control_contracts_version:-0.1.0-preview}" \
+    -p:ChummerPlayContractsPackageVersion="${published_play_contracts_version:-0.1.0-preview}" \
+    -p:ChummerUiKitPackageVersion="${published_ui_kit_version:-0.1.0-preview}" \
     -p:PackageId="${package_id}" \
-    -p:PackageVersion="${package_version}" >/dev/null
+    -p:PackageVersion="${package_version}"
 }
 
 pack_stub_package() {

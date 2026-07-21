@@ -228,6 +228,45 @@ class VerificationModeTests(unittest.TestCase):
         self.assertEqual(second_build.returncode, 0, second_build.stdout)
         self.assertEqual(first_no_restore.returncode, 0, first_no_restore.stdout)
 
+    def test_owner_packages_restore_only_from_the_ephemeral_feed(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="mobile-verify-owner-feed-") as temp_dir:
+            temp_root = Path(temp_dir)
+            env, log_path = package_plane_env(temp_root, mode="integration")
+            env["CHUMMER_PUBLISHED_ENGINE_CONTRACTS_VERSION"] = "5.225.1-ci.6f7cc7d8"
+            for env_name in (
+                "CHUMMER_PACKAGE_PLANE_ENGINE_CONTRACTS_PROJECT",
+                "CHUMMER_PACKAGE_PLANE_CAMPAIGN_CONTRACTS_PROJECT",
+                "CHUMMER_PACKAGE_PLANE_CONTROL_CONTRACTS_PROJECT",
+                "CHUMMER_PACKAGE_PLANE_PLAY_CONTRACTS_PROJECT",
+                "CHUMMER_PACKAGE_PLANE_UI_KIT_PROJECT",
+            ):
+                project = temp_root / "owners" / f"{env_name}.csproj"
+                project.parent.mkdir(parents=True, exist_ok=True)
+                project.write_text("<Project />\n", encoding="utf-8")
+                env[env_name] = str(project)
+
+            completed = run_package_plane(env)
+            pack_lines = [
+                line
+                for line in log_path.read_text(encoding="utf-8").splitlines()
+                if line.startswith("pack ")
+            ]
+
+        self.assertEqual(completed.returncode, 0, completed.stdout)
+        self.assertEqual(len(pack_lines), 5)
+        expected_feed = f'-p:RestoreSources={temp_root / "local-feed"}'
+        self.assertTrue(all(expected_feed in line for line in pack_lines))
+        self.assertTrue(all("-p:RestoreIgnoreFailedSources=false" in line for line in pack_lines))
+        self.assertTrue(all("-p:RestorePackagesWithLockFile=false" in line for line in pack_lines))
+        self.assertTrue(all("-p:RestoreLockedMode=false" in line for line in pack_lines))
+        self.assertTrue(
+            all("-p:ChummerEngineContractsPackageVersion=5.225.1-ci.6f7cc7d8" in line for line in pack_lines)
+        )
+        engine_pack = next(line for line in pack_lines if "-p:PackageId=Chummer.Engine.Contracts" in line)
+        campaign_pack = next(line for line in pack_lines if "-p:PackageId=Chummer.Campaign.Contracts" in line)
+        self.assertIn(f"{expected_feed};https://api.nuget.org/v3/index.json", engine_pack)
+        self.assertNotIn("api.nuget.org", campaign_pack)
+
     def test_verification_receipt_records_mode_skips_and_release_eligibility(self) -> None:
         with tempfile.TemporaryDirectory(prefix="mobile-verify-receipt-") as temp_dir:
             output = Path(temp_dir) / "receipt.json"
