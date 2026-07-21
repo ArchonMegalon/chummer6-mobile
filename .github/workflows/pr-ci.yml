@@ -19,7 +19,7 @@ jobs:
       CHUMMER_VERIFY_MODE: integration
       CHUMMER_ALLOW_STUB_PACKAGES: "0"
       CHUMMER_VERIFY_RUN_ID: pr-${{ github.run_id }}-${{ github.run_attempt }}
-      CHUMMER_PUBLISHED_ENGINE_CONTRACTS_VERSION: 5.225.1-ci.6f7cc7d8
+      CHUMMER_PUBLISHED_ENGINE_CONTRACTS_VERSION: 5.225.1-ci.0612fb3e
       CHUMMER_PACKAGE_PLANE_LOCAL_FEED: ${{ github.workspace }}/.ci/chummer-package-feed
       CHUMMER_PACKAGE_PLANE_LOCK_FILE: ${{ github.workspace }}/.ci/chummer-package-plane/with-package-plane.lock
       CHUMMER_PACKAGE_PLANE_ATTESTATION_FILE: ${{ github.workspace }}/.ci/chummer-package-plane/restore-attestation.v1
@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: ArchonMegalon/chummer6-core
-          ref: 6f7cc7d8a81ac5eade01f1457748d34ff1b08ca5
+          ref: 0612fb3ebf2be2ae6a10ec63becf31de95bdb04e
           path: chummer-core-engine
           persist-credentials: false
 
