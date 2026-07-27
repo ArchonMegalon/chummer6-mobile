@@ -45,6 +45,7 @@ if [[ -z "${verification_run_id}" ]]; then
   verification_run_id="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
 fi
 export CHUMMER_VERIFY_RUN_ID="${verification_run_id}"
+export CHUMMER_PLAY_API_KEY="${CHUMMER_PLAY_API_KEY:-chummer-verification-${verification_run_id}-local-key}"
 
 verification_skips=()
 verification_receipt_status="in_progress"
@@ -636,7 +637,7 @@ rg -n 'RequireTrustedMobileLiveGrantBoundaryAsync|PlaySessionGrantPolicy\.TryRes
 rg -n 'play_session_grant_required' src/Chummer.Play.Web/PlayWebApplication.cs >/dev/null
 rg -n 'GrantIdHeader|SessionIdHeader|RoleHeader|DeviceIdHeader' src/Chummer.Play.Web/PlaySessionGrant.cs >/dev/null
 rg -n 'return "/mobile/live";' src/Chummer.Play.Web/PlayRouteHandlers.cs src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
-rg -n 'void sessionIdFallback;|void deviceFallback;|return `/mobile/\$\{mode\}`;' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
+rg -n 'playParams\.set\("role", role\)|playParams\.set\("sessionId", sessionId\)|playParams\.set\("deviceId", deviceId\)|return `/mobile/\$\{mode\}\?\$\{playParams\.toString\(\)\}`;' src/Chummer.Play.Web/wwwroot/index.html >/dev/null
 rg -n 'function analyticsRoute\(client, config\)|return "/mobile/live";' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
 rg -n 'function isAnalyticsBlocked\(\)|navigator\.globalPrivacyControl === true' src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js >/dev/null
 rg -n 'const CACHE_VERSION = "v21";' src/Chummer.Play.Web/wwwroot/service-worker.js >/dev/null
@@ -851,18 +852,16 @@ rg -n 'replace old `Chummer.Presentation` project references with package-only d
 rg -n 'preserve local-first event log, runtime bundle, and offline cache ownership here' .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json >/dev/null
 if [[ -n "${published_feed_sources}" ]]; then
   echo "running published-feed compatibility restore/build checks"
-  bash "${package_plane_runner}" restore src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" restore src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" restore src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" restore src/Chummer.Play.Gm/Chummer.Play.Gm.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" restore src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" restore src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo --no-restore >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo --no-restore >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo --no-restore >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.Gm/Chummer.Play.Gm.csproj --nologo --no-restore >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo --no-restore >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-restore >/dev/null
+  for project in \
+    src/Chummer.Play.Core/Chummer.Play.Core.csproj \
+    src/Chummer.Play.Components/Chummer.Play.Components.csproj \
+    src/Chummer.Play.Player/Chummer.Play.Player.csproj \
+    src/Chummer.Play.Gm/Chummer.Play.Gm.csproj \
+    src/Chummer.Play.Web/Chummer.Play.Web.csproj \
+    src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj; do
+    bash "${package_plane_runner}" restore "${project}" --nologo >/dev/null
+    bash "${package_plane_runner}" build "${project}" --nologo --no-restore >/dev/null
+  done
   bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
   python3 scripts/verify_mobile_pwa_analytics_smoke.py >/dev/null
   python3 scripts/cleanup_mobile_disposable_artifacts.py >/dev/null
@@ -882,18 +881,16 @@ else
     skip_or_fail "published-feed compatibility restore/build checks (set CHUMMER_PUBLISHED_FEED_SOURCES)"
   fi
   echo "running local owner-package compatibility smoke check"
-  bash "${package_plane_runner}" restore src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" restore src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" restore src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" restore src/Chummer.Play.Gm/Chummer.Play.Gm.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" restore src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" restore src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.Core/Chummer.Play.Core.csproj --nologo --no-restore >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.Components/Chummer.Play.Components.csproj --nologo --no-restore >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.Player/Chummer.Play.Player.csproj --nologo --no-restore >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.Gm/Chummer.Play.Gm.csproj --nologo --no-restore >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.Web/Chummer.Play.Web.csproj --nologo --no-restore >/dev/null
-  bash "${package_plane_runner}" build src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-restore >/dev/null
+  for project in \
+    src/Chummer.Play.Core/Chummer.Play.Core.csproj \
+    src/Chummer.Play.Components/Chummer.Play.Components.csproj \
+    src/Chummer.Play.Player/Chummer.Play.Player.csproj \
+    src/Chummer.Play.Gm/Chummer.Play.Gm.csproj \
+    src/Chummer.Play.Web/Chummer.Play.Web.csproj \
+    src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj; do
+    bash "${package_plane_runner}" restore "${project}" --nologo >/dev/null
+    bash "${package_plane_runner}" build "${project}" --nologo --no-restore >/dev/null
+  done
   bash "${package_plane_runner}" run --project src/Chummer.Play.RegressionChecks/Chummer.Play.RegressionChecks.csproj --nologo --no-build >/dev/null
   python3 scripts/verify_mobile_pwa_analytics_smoke.py >/dev/null
   python3 scripts/cleanup_mobile_disposable_artifacts.py >/dev/null

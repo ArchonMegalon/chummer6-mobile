@@ -90,7 +90,12 @@
     }
 
     var params = new URLSearchParams(window.location.search || "");
-    var requestedRoleName = bootstrap.roleName || root.getAttribute("data-role") || "Player";
+    var canonicalRoleName = inferRoleFromPath(window.location.pathname);
+    var requestedRoleName = canonicalRoleName
+      || bootstrap.roleName
+      || root.getAttribute("data-role")
+      || params.get("role")
+      || "Player";
     var resumeRoute = resolveResumeRoute(params, requestedRoleName);
     var sessionId = bootstrap.sessionId || root.getAttribute("data-session-id") || "";
     var roleName = requestedRoleName;

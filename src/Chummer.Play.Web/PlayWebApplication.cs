@@ -40,7 +40,8 @@ public static class PlayWebApplication
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
             Args = args,
-            ApplicationName = typeof(PlayWebApplication).Assembly.GetName().Name
+            ApplicationName = typeof(PlayWebApplication).Assembly.GetName().Name,
+            ContentRootPath = ResolveContentRootPath()
         });
         PlayServiceKeyPolicy.ValidateProductionReadiness(builder.Configuration, builder.Environment);
         ConfigureServices(builder.Services, builder.Configuration, builder.Environment);
@@ -48,6 +49,29 @@ public static class PlayWebApplication
         var app = builder.Build();
         Configure(app);
         return app;
+    }
+
+    private static string ResolveContentRootPath()
+    {
+        string? configured = Environment.GetEnvironmentVariable("CHUMMER_PLAY_CONTENT_ROOT");
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return Path.GetFullPath(configured);
+        }
+
+        string assemblyRoot = AppContext.BaseDirectory;
+        if (Directory.Exists(Path.Combine(assemblyRoot, "wwwroot")))
+        {
+            return assemblyRoot;
+        }
+
+        string sourceRoot = Path.Combine(
+            Directory.GetCurrentDirectory(),
+            "src",
+            "Chummer.Play.Web");
+        return Directory.Exists(Path.Combine(sourceRoot, "wwwroot"))
+            ? sourceRoot
+            : Directory.GetCurrentDirectory();
     }
 
     internal static void ConfigureServices(

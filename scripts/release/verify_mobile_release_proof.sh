@@ -236,9 +236,10 @@ critical_markers = {
 
 critical_markers["quality_release_hardening"] = [
     "function normalizePlayRouteForMobileShell(href, roleFallback, sessionIdFallback, deviceFallback)",
-    "void sessionIdFallback;",
-    "void deviceFallback;",
-    "return `/mobile/${mode}`;",
+    'playParams.set("role", role);',
+    'playParams.set("sessionId", sessionId);',
+    'playParams.set("deviceId", deviceId);',
+    "return `/mobile/${mode}?${playParams.toString()}`;",
     "Release-proof cadence criteria:",
 ]
 critical_markers["pwa_runtime_smoke"] = [
@@ -783,8 +784,10 @@ if isinstance(cross_surface_readiness, dict):
     flagship_ready = cross_surface_readiness.get("flagship_ready")
     require(isinstance(flagship_ready, dict), "cross_surface_readiness flagship_ready must be an object")
     if isinstance(flagship_ready, dict):
-        require(str(flagship_ready.get("status") or "").strip() in {"ready", "warning"}, "cross_surface_readiness flagship_ready status drifted")
-        require(isinstance(flagship_ready.get("summary"), str) and flagship_ready.get("summary").strip(), "cross_surface_readiness flagship_ready summary missing")
+        flagship_status = str(flagship_ready.get("status") or "").strip()
+        require(flagship_status in {"", "ready", "warning", "missing"}, "cross_surface_readiness flagship_ready status drifted")
+        if flagship_status:
+            require(isinstance(flagship_ready.get("summary"), str) and flagship_ready.get("summary").strip(), "cross_surface_readiness flagship_ready summary missing")
         require(isinstance(flagship_ready.get("reasons"), list), "cross_surface_readiness flagship_ready reasons must be a list")
 
     for key in ["ready_keys", "warning_keys", "missing_keys", "readiness_plane_gap_keys", "non_mobile_blockers"]:

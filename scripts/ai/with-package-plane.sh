@@ -232,16 +232,20 @@ pack_owner_package() {
   local project_path="$1"
   local package_id="$2"
   local package_version="$3"
+  local -a package_id_args=()
 
   if [[ ! -f "${project_path}" ]]; then
     return 1
+  fi
+  if ! rg -q '<PackageId>[^<]+</PackageId>' "${project_path}"; then
+    package_id_args+=("-p:PackageId=${package_id}")
   fi
 
   dotnet pack "${project_path}" \
     --nologo \
     -c Release \
     -o "${local_feed}" \
-    -p:PackageId="${package_id}" \
+    "${package_id_args[@]}" \
     -p:PackageVersion="${package_version}" >/dev/null
 }
 
