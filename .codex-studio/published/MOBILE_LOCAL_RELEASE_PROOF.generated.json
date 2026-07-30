@@ -1,7 +1,7 @@
 {
   "contract_name": "chummer6-mobile.local_release_proof",
-  "verification_mode": "integration",
-  "verification_run_id": "cef422edc7f7cdb3e7d955b8ccee2649",
+  "verification_mode": "slice",
+  "verification_run_id": "",
   "status": "passed",
   "proof_kind": "source_backed_local_regression_contract",
   "source_files": [
@@ -825,9 +825,9 @@
       "receipt_path": ".codex-studio/published/MOBILE_PWA_ANALYTICS_SMOKE.generated.json",
       "contract_name": "chummer_play.mobile_pwa_analytics_smoke.v2",
       "status": "pass",
-      "generated_at_utc": "2026-07-27T13:38:16Z",
-      "verification_mode": "integration",
-      "verification_run_id": "cef422edc7f7cdb3e7d955b8ccee2649",
+      "generated_at_utc": "2026-07-29T11:11:45Z",
+      "verification_mode": "slice",
+      "verification_run_id": "1565101b05dbf425c29e0bf64e70a4aa",
       "required_before_materialize": true
     },
     {
@@ -836,9 +836,9 @@
       "receipt_path": ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json",
       "contract_name": "chummer_play.mobile_pwa_runtime_smoke.v2",
       "status": "pass",
-      "generated_at_utc": "2026-07-27T13:36:21Z",
-      "verification_mode": "integration",
-      "verification_run_id": "cef422edc7f7cdb3e7d955b8ccee2649",
+      "generated_at_utc": "2026-07-29T11:09:36Z",
+      "verification_mode": "slice",
+      "verification_run_id": "1565101b05dbf425c29e0bf64e70a4aa",
       "required_before_materialize": true
     },
     {
@@ -847,9 +847,9 @@
       "receipt_path": ".codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json",
       "contract_name": "chummer_play.mobile_pwa_viewport_smoke.v2",
       "status": "pass",
-      "generated_at_utc": "2026-07-27T13:36:23Z",
-      "verification_mode": "integration",
-      "verification_run_id": "cef422edc7f7cdb3e7d955b8ccee2649",
+      "generated_at_utc": "2026-07-29T11:09:39Z",
+      "verification_mode": "slice",
+      "verification_run_id": "1565101b05dbf425c29e0bf64e70a4aa",
       "required_before_materialize": true
     }
   ],
@@ -1097,14 +1097,12 @@
     "status": "fail",
     "required": false,
     "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v1",
-    "generated_at_utc": "2026-07-27T13:36:24Z",
+    "generated_at_utc": "2026-07-30T03:30:01Z",
     "script_path": "scripts/materialize_mobile_cross_surface_readiness.py",
     "receipt_path": ".codex-studio/published/MOBILE_CROSS_SURFACE_READINESS.generated.json",
     "base_url": "https://chummer.run",
     "fleet_status": "fail",
-    "fleet_warning_keys": [
-      "fleet_and_operator_loop"
-    ],
+    "fleet_warning_keys": [],
     "fleet_missing_keys": [
       "desktop_client"
     ],
@@ -1197,7 +1195,7 @@
     "script_path": "scripts/materialize_mobile_release_boundary.py",
     "receipt_path": ".codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json",
     "contract_name": "chummer6-mobile.release_boundary.v1",
-    "generated_at_utc": "2026-07-27T13:38:17Z",
+    "generated_at_utc": "2026-07-30T03:30:01Z",
     "ownership_checks": {
       "owned_play_source_files_present": true,
       "owned_play_test_files_present": true,
@@ -1206,18 +1204,18 @@
       "owned_release_receipts_present": true,
       "release_receipts_machine_local_noise_free": true
     },
-    "play_owned_entry_count": 19,
+    "play_owned_entry_count": 9,
     "play_foreign_entry_count": 0,
     "play_disposable_entry_count": 0,
-    "play_external_blocker_entry_count": 1,
+    "play_external_blocker_entry_count": 3,
     "play_ambient_entry_count": 0,
-    "run_services_owned_entry_count": 0,
+    "run_services_owned_entry_count": 3,
     "run_services_foreign_entry_count": 0,
-    "run_services_ambient_entry_count": 595,
+    "run_services_ambient_entry_count": 774,
     "release_receipt_count": 9,
-    "owned_disposable_local_artifact_count": 4,
-    "shared_external_temp_artifact_count": 3,
-    "disposable_local_artifact_count": 7,
+    "owned_disposable_local_artifact_count": 1,
+    "shared_external_temp_artifact_count": 24,
+    "disposable_local_artifact_count": 25,
     "preflight_snapshot": {
       "path": "/tmp/chummer-public-edge-deploy-preflight-current.json",
       "status": "not_found",
@@ -1229,13 +1227,19 @@
       "failures": []
     },
     "design_mirror_snapshot": {
-      "status": "pass",
+      "status": "fail",
       "script_path": "scripts/ai/verify_design_mirror.py",
       "command": "python3 scripts/ai/verify_design_mirror.py",
-      "blocking_findings": [],
-      "blocking_finding_count": 0,
-      "repair_commands": [],
-      "stdout": "design mirror ok"
+      "blocking_findings": [
+        "stale .codex-design/product/FINAL_GOLD_GRAPH.generated.json",
+        "stale .codex-design/product/HORIZON_REGISTRY.yaml"
+      ],
+      "blocking_finding_count": 2,
+      "repair_commands": [
+        "bash scripts/ai/repair_design_mirror.sh",
+        "python3 /docker/chummercomplete/chummer-design/scripts/ai/publish_local_mirrors.py"
+      ],
+      "stdout": ""
     },
     "live_build_lock_probe": {
       "status": "clear",
@@ -1247,27 +1251,20 @@
     "canonical_release_blockers": {
       "path": "/docker/chummercomplete/RELEASE_BLOCKERS.generated.json",
       "status": "present",
-      "generated_at": "2026-07-27T12:54:02Z",
+      "generated_at": "2026-07-30T03:30:00Z",
       "root_blocker_ids": [
         "registry_release_channel",
         "release_posture:non_flagship_channel",
         "proof:desktop_executable_exit_gate",
-        "proof:desktop_visual_familiarity_exit_gate",
-        "proof:desktop_workflow_execution_gate",
-        "proof:desktop_first_minute_gate",
-        "proof:desktop_update_rollback_revoke",
         "proof:desktop_gold_gate",
         "proof:user_journey_tester_audit",
-        "proof:mobile_local_release_proof",
         "proof:core_release_receipts",
-        "proof:support_packets",
-        "release_truth:public_edge_postdeploy_gate",
-        "release_truth:final_gold_janitor",
         "release_truth:release_ready",
+        "release_truth:google_oauth_linking_proof",
         "release_truth:windows_installer_visual_audit",
         "blocked_route:avalonia:macos:osx-arm64"
       ],
-      "root_blocker_count": 17,
+      "root_blocker_count": 10,
       "root_blockers": [
         {
           "id": "registry_release_channel",
@@ -1300,50 +1297,10 @@
           "expected_bundle_path_exists": null
         },
         {
-          "id": "proof:desktop_visual_familiarity_exit_gate",
-          "blocker_id": "proof:desktop_visual_familiarity_exit_gate",
-          "owning_repo": "chummer6-ui",
-          "failing_gate": "desktop_visual_familiarity_exit_gate is not currently passing and fresh",
-          "stable_promotion_command": null,
-          "post_promotion_verify_command": null,
-          "expected_bundle_path": null,
-          "expected_bundle_path_exists": null
-        },
-        {
-          "id": "proof:desktop_workflow_execution_gate",
-          "blocker_id": "proof:desktop_workflow_execution_gate",
-          "owning_repo": "chummer6-ui",
-          "failing_gate": "desktop_workflow_execution_gate is not currently passing and fresh",
-          "stable_promotion_command": null,
-          "post_promotion_verify_command": null,
-          "expected_bundle_path": null,
-          "expected_bundle_path_exists": null
-        },
-        {
-          "id": "proof:desktop_first_minute_gate",
-          "blocker_id": "proof:desktop_first_minute_gate",
-          "owning_repo": "chummer6-ui",
-          "failing_gate": "desktop_first_minute_gate is not currently passing and fresh (receipt status=fail; fresh=false; generated_at=2026-07-20T04:21:28Z; age_seconds=635548; findings: user journey tester trace must include an offset-aware generated_at_utc timestamp.; tester trace release_version binding is missing or malformed.; tester trace release_channel binding is missing or malformed.; tester trace artifact_digest binding is missing or malformed.; tester trace artifact_digest_source binding is missing or malformed.; tester trace source_mouse_receipt_name does not match Linux primary receipt_path.; tester trace source_mouse_receipt_path does not match Linux primary receipt_path.; tester trace source_mouse_receipt_sha256 binding is missing or malformed.; tester trace release_version does not match the release candidate.; tester trace release_channel does not match the release candidate.; tester trace artifact_digest does not match the release candidate.; candidate_artifact_digest_mismatch: trace, source receipt, tested installer, gate projection, and promoted candidate bytes must share one SHA-256 digest.; master_index_search_focus_stability: screenshot_sha256 must be a JSON object.; master_index_search_focus_stability: screenshot_sha256 keys must exactly match screenshots.; master_index_search_focus_stability: screenshot is missing: /docker/chummercomplete/chummer-presentation/.codex-studio/out/linux-desktop-exit-gate/run.zr57on/startup-smoke-installer/mouse-first-journey-screenshots-avalonia-linux-x64/master_index_search_focus_stability-before.png; master_index_search_focus_stability: screenshot is missing: /docker/chummercomplete/chummer-presentation/.codex-studio/out/linux-desktop-exit-gate/run.zr57on/startup-smoke-installer/mouse-first-journey-screenshots-avalonia-linux-x64/master_index_search_focus_stability-after.png; file_new_character_visible_workspace: screenshot_sha256 must be a JSON object.; file_new_character_visible_workspace: screenshot_sha256 keys must exactly match screenshots.; file_new_character_visible_workspace: screenshot is missing: /docker/chummercomplete/chummer-presentation/.codex-studio/out/linux-desktop-exit-gate/run.zr57on/startup-smoke-installer/mouse-first-journey-screenshots-avalonia-linux-x64/file_new_character_visible_workspace-before.png; file_new_character_visible_workspace: screenshot is missing: /docker/chummercomplete/chummer-presentation/.codex-studio/out/linux-desktop-exit-gate/run.zr57on/startup-smoke-installer/mouse-first-journey-screenshots-avalonia-linux-x64/file_new_character_visible_workspace-after.png; [13 additional findings omitted])",
-          "stable_promotion_command": null,
-          "post_promotion_verify_command": null,
-          "expected_bundle_path": null,
-          "expected_bundle_path_exists": null
-        },
-        {
-          "id": "proof:desktop_update_rollback_revoke",
-          "blocker_id": "proof:desktop_update_rollback_revoke",
-          "owning_repo": "chummer6-ui",
-          "failing_gate": "desktop_update_rollback_revoke is not currently passing and fresh",
-          "stable_promotion_command": null,
-          "post_promotion_verify_command": null,
-          "expected_bundle_path": null,
-          "expected_bundle_path_exists": null
-        },
-        {
           "id": "proof:desktop_gold_gate",
           "blocker_id": "proof:desktop_gold_gate",
           "owning_repo": "chummer6-ui",
-          "failing_gate": "desktop_gold_gate is not currently passing and fresh (receipt status=review_required; fresh=false; generated_at=2026-07-20T04:21:28Z; age_seconds=635548; findings: user_journey_tester_audit: user journey tester trace must include an offset-aware generated_at_utc timestamp.; user_journey_tester_audit: tester trace release_version binding is missing or malformed.; user_journey_tester_audit: tester trace release_channel binding is missing or malformed.; user_journey_tester_audit: tester trace artifact_digest binding is missing or malformed.; user_journey_tester_audit: tester trace artifact_digest_source binding is missing or malformed.; user_journey_tester_audit: tester trace source_mouse_receipt_name does not match Linux primary receipt_path.; user_journey_tester_audit: tester trace source_mouse_receipt_path does not match Linux primary receipt_path.; user_journey_tester_audit: tester trace source_mouse_receipt_sha256 binding is missing or malformed.; user_journey_tester_audit: tester trace release_version does not match the release candidate.; user_journey_tester_audit: tester trace release_channel does not match the release candidate.; user_journey_tester_audit: tester trace artifact_digest does not match the release candidate.; user_journey_tester_audit: candidate_artifact_digest_mismatch: trace, source receipt, tested installer, gate projection, and promoted candidate bytes must share one SHA-256 digest.; user_journey_tester_audit: master_index_search_focus_stability: screenshot_sha256 must be a JSON object.; user_journey_tester_audit: master_index_search_focus_stability: screenshot_sha256 keys must exactly match screenshots.; user_journey_tester_audit: master_index_search_focus_stability: screenshot is missing: /docker/chummercomplete/chummer-presentation/.codex-studio/out/linux-desktop-exit-gate/run.zr57on/startup-smoke-installer/mouse-first-journey-screenshots-avalonia-linux-x64/master_index_search_focus_stability-before.png; user_journey_tester_audit: master_index_search_focus_stability: screenshot is missing: /docker/chummercomplete/chummer-presentation/.codex-studio/out/linux-desktop-exit-gate/run.zr57on/startup-smoke-installer/mouse-first-journey-screenshots-avalonia-linux-x64/master_index_search_focus_stability-after.png; user_journey_tester_audit: file_new_character_visible_workspace: screenshot_sha256 must be a JSON object.; user_journey_tester_audit: file_new_character_visible_workspace: screenshot_sha256 keys must exactly match screenshots.; user_journey_tester_audit: file_new_character_visible_workspace: screenshot is missing: /docker/chummercomplete/chummer-presentation/.codex-studio/out/linux-desktop-exit-gate/run.zr57on/startup-smoke-installer/mouse-first-journey-screenshots-avalonia-linux-x64/file_new_character_visible_workspace-before.png; user_journey_tester_audit: file_new_character_visible_workspace: screenshot is missing: /docker/chummercomplete/chummer-presentation/.codex-studio/out/linux-desktop-exit-gate/run.zr57on/startup-smoke-installer/mouse-first-journey-screenshots-avalonia-linux-x64/file_new_character_visible_workspace-after.png; [13 additional findings omitted])",
+          "failing_gate": "desktop_gold_gate is not currently passing and fresh (receipt status=review_required; fresh=true; generated_at=2026-07-29T07:47:15Z; age_seconds=70947; findings: desktop_executable_exit_gate: Desktop visual familiarity exit gate is missing or not passing.; desktop_executable_exit_gate: Desktop workflow execution gate is missing or not passing.; desktop_executable_exit_gate: Release channel desktop install artifact(s) have unexpected keys: avalonia:osx-arm64:macos:publicationSource.; desktop_executable_exit_gate: Promoted release-channel artifact is missing from local desktop downloads shelf: chummer-avalonia-osx-arm64-installer.dmg.; desktop_executable_exit_gate: Release channel desktopTupleCoverage.externalProofRequests does not match missing desktop tuple inventory.; desktop_executable_exit_gate: Release channel desktopTupleCoverage.externalProofRequests object rows do not match canonical missing-tuple external proof contract.; desktop_executable_exit_gate: Release channel desktopTupleCoverage missingRequiredPlatformHeadPairs inventory does not match promoted installer tuples.; desktop_executable_exit_gate: Release channel desktopTupleCoverage missingRequiredPlatforms inventory does not match promoted installer tuples.; desktop_executable_exit_gate: Release channel desktopTupleCoverage promotedPlatformHeadRidTuples inventory does not match promoted installer tuples.; desktop_executable_exit_gate: Release channel desktopTupleCoverage missingRequiredPlatformHeadRidTuples inventory does not match promoted installer tuples.; desktop_executable_exit_gate: Release channel is missing required desktop platform/head installer tuple pair(s): avalonia:macos.; desktop_executable_exit_gate: Release channel status cannot be publishable while required desktop tuple coverage is incomplete.; desktop_executable_exit_gate: Windows installer visual proof must be captured on a Windows host before promotion can pass.; desktop_executable_exit_gate: Windows gate reason: Portal Windows installer binding disagrees with the authoritative release channel.; desktop_executable_exit_gate: Windows gate reason: Windows installer visual proof is missing; capture progress and completion screenshots on a Windows host.; desktop_executable_exit_gate: Windows gate reason: Windows startup smoke receipt executionEnvironment is missing or unsupported.; desktop_executable_exit_gate: Windows gate reason: Windows startup smoke receipt is stale (1329713s old).; desktop_executable_exit_gate: Windows gate reason: Blazor browser-lane aggregate proof set is missing or not passed.; desktop_executable_exit_gate: Windows gate reason: Chummer5a desktop workflow parity proof is missing or not passed.; desktop_executable_exit_gate: Windows gate reason: SR4 desktop workflow parity proof is missing or not passed.; [19 additional findings omitted])",
           "stable_promotion_command": null,
           "post_promotion_verify_command": null,
           "expected_bundle_path": null,
@@ -1360,16 +1317,6 @@
           "expected_bundle_path_exists": null
         },
         {
-          "id": "proof:mobile_local_release_proof",
-          "blocker_id": "proof:mobile_local_release_proof",
-          "owning_repo": "chummer6-mobile",
-          "failing_gate": "mobile_local_release_proof is not currently passing and fresh",
-          "stable_promotion_command": null,
-          "post_promotion_verify_command": null,
-          "expected_bundle_path": null,
-          "expected_bundle_path_exists": null
-        },
-        {
           "id": "proof:core_release_receipts",
           "blocker_id": "proof:core_release_receipts",
           "owning_repo": "chummer6-core",
@@ -1380,40 +1327,20 @@
           "expected_bundle_path_exists": null
         },
         {
-          "id": "proof:support_packets",
-          "blocker_id": "proof:support_packets",
-          "owning_repo": "chummer6-hub",
-          "failing_gate": "support_packets is not currently passing and fresh",
-          "stable_promotion_command": null,
-          "post_promotion_verify_command": null,
-          "expected_bundle_path": null,
-          "expected_bundle_path_exists": null
-        },
-        {
-          "id": "release_truth:public_edge_postdeploy_gate",
-          "blocker_id": "release_truth:public_edge_postdeploy_gate",
-          "owning_repo": "chummer6-hub",
-          "failing_gate": "public_edge_postdeploy_gate is not passing for public-stable release truth",
-          "stable_promotion_command": null,
-          "post_promotion_verify_command": null,
-          "expected_bundle_path": null,
-          "expected_bundle_path_exists": null
-        },
-        {
-          "id": "release_truth:final_gold_janitor",
-          "blocker_id": "release_truth:final_gold_janitor",
-          "owning_repo": "chummer6-hub",
-          "failing_gate": "final_gold_janitor is not passing for public-stable release truth",
-          "stable_promotion_command": null,
-          "post_promotion_verify_command": null,
-          "expected_bundle_path": null,
-          "expected_bundle_path_exists": null
-        },
-        {
           "id": "release_truth:release_ready",
           "blocker_id": "release_truth:release_ready",
           "owning_repo": "chummer6-hub",
           "failing_gate": "release_ready is not passing for public-stable release truth",
+          "stable_promotion_command": null,
+          "post_promotion_verify_command": null,
+          "expected_bundle_path": null,
+          "expected_bundle_path_exists": null
+        },
+        {
+          "id": "release_truth:google_oauth_linking_proof",
+          "blocker_id": "release_truth:google_oauth_linking_proof",
+          "owning_repo": "chummer6-hub",
+          "failing_gate": "google_oauth_linking_proof is not passing for public-stable release truth",
           "stable_promotion_command": null,
           "post_promotion_verify_command": null,
           "expected_bundle_path": null,
@@ -1443,9 +1370,15 @@
     },
     "external_follow_through": {
       "design_mirror": {
-        "status": "clear",
-        "blocking_findings": [],
-        "repair_commands": []
+        "status": "blocked",
+        "blocking_findings": [
+          "stale .codex-design/product/FINAL_GOLD_GRAPH.generated.json",
+          "stale .codex-design/product/HORIZON_REGISTRY.yaml"
+        ],
+        "repair_commands": [
+          "bash scripts/ai/repair_design_mirror.sh",
+          "python3 /docker/chummercomplete/chummer-design/scripts/ai/publish_local_mirrors.py"
+        ]
       },
       "strict_public_edge": {
         "status": "ready_to_rerun",
@@ -1468,6 +1401,6 @@
   },
   "source_file_count": 44,
   "source_file_digest_count": 44,
-  "generated_at": "2026-07-27T13:38:17Z",
-  "generated_at_utc": "2026-07-27T13:38:17Z"
+  "generated_at": "2026-07-30T03:30:01Z",
+  "generated_at_utc": "2026-07-30T03:30:01Z"
 }
