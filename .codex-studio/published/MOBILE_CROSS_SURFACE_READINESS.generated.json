@@ -1,8 +1,8 @@
 {
   "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
-  "verification_mode": "release",
-  "verification_run_id": "mobile-release-20260801-0228",
-  "generated_at_utc": "2026-08-01T02:44:34Z",
+  "verification_mode": "slice",
+  "verification_run_id": "",
+  "generated_at_utc": "2026-08-01T03:00:19Z",
   "status": "pass",
   "base_url": "https://chummer.run",
   "commands": {
@@ -80,7 +80,7 @@
   "fleet_readiness": {
     "source_receipt_mode": "ephemeral_tempfile_materialization",
     "published_script_path": "/docker/fleet/scripts/materialize_flagship_product_readiness.py",
-    "generated_at": "2026-08-01T02:44:34Z",
+    "generated_at": "2026-08-01T03:00:19Z",
     "generated_at_utc": null,
     "status": "fail",
     "warning_keys": [],
