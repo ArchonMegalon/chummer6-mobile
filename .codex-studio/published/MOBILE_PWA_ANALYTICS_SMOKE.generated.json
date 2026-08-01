@@ -1,0 +1,39 @@
+{
+  "contract_name": "chummer_play.mobile_pwa_analytics_smoke.v2",
+  "generated_at_utc": "2026-08-01T02:44:11Z",
+  "live_session_boundary": {
+    "analytics_role": "Player",
+    "events": [
+      "mobile_shell_open",
+      "mobile_privacy_probe"
+    ],
+    "grant_source": "trusted_server_headers",
+    "provider_script": "/mobile-rybbit-smoke.js",
+    "route": "/mobile/live",
+    "secret_leak_free": true
+  },
+  "privacy": {
+    "default_disabled": true,
+    "default_event_count": 0,
+    "default_provider_requests": 0,
+    "dnt_gpc_blocked": true,
+    "privacy_event_count": 0,
+    "privacy_provider_requests": 0,
+    "secret_leak_free": true
+  },
+  "provider_script": {
+    "mask_patterns": "[\"/mobile\",\"/mobile/**\",\"/api/play/**\"]",
+    "script_path": "/mobile-rybbit-smoke.js",
+    "site_id": "site-mobile-analytics-smoke",
+    "skip_patterns": "[\"/mobile\",\"/mobile/**\"]"
+  },
+  "public_install_boundary": {
+    "analytics_enabled": false,
+    "event_count": 0,
+    "provider_requests": 0,
+    "query_secret_leak_free": true
+  },
+  "status": "pass",
+  "verification_mode": "release",
+  "verification_run_id": "mobile-release-20260801-0228"
+}

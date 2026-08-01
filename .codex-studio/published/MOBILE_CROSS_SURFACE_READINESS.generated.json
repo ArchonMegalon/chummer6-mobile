@@ -1,0 +1,187 @@
+{
+  "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
+  "verification_mode": "release",
+  "verification_run_id": "mobile-release-20260801-0228",
+  "generated_at_utc": "2026-08-01T02:44:34Z",
+  "status": "pass",
+  "base_url": "https://chummer.run",
+  "commands": {
+    "fleet_readiness_audit": "python3 /docker/fleet/scripts/materialize_flagship_product_readiness.py --out <tempfile>",
+    "public_edge_gate": "python3 /docker/chummercomplete/chummer.run-services/scripts/verify_public_edge_postdeploy_gate.py --base-url https://chummer.run --strict-preflight --require-frontdoor-navigation-playwright --frontdoor-navigation-artifact-dir <tempdir> --output <tempfile>"
+  },
+  "surface_source_fingerprint": {
+    "kind": "current_checkout_sha256",
+    "file_count": 11,
+    "files": [
+      {
+        "path": "src/Chummer.Play.Web/wwwroot/index.html",
+        "sha256": "978cae0f85f2eba026d04116d7a7b74be6c0189b5f24098871448befe17b9e3b"
+      },
+      {
+        "path": "src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js",
+        "sha256": "4bebcb9320b9a6748fa6879e442dffa4ba11c85c0ac8b0ba47c5d5adee6aae29"
+      },
+      {
+        "path": "src/Chummer.Play.Web/wwwroot/service-worker.js",
+        "sha256": "cb4ffa6fa18e2334ae88771e86fb6859f402a19f60fd63783b62530866900a72"
+      },
+      {
+        "path": "src/Chummer.Play.Web/wwwroot/manifest.webmanifest",
+        "sha256": "7411b100fa3cd6ddb905d5e0beac2ad2977aa495de65c8031a70cdb5e1bcf797"
+      },
+      {
+        "path": "src/Chummer.Play.Web/wwwroot/manifest.player.webmanifest",
+        "sha256": "8da984961dd2d50bdcfb92b1be0af8228f9bd9d6dcdad38889e7916e69843b40"
+      },
+      {
+        "path": "src/Chummer.Play.Web/wwwroot/manifest.gm.webmanifest",
+        "sha256": "eda6bf766e595e4dd490494d8da3ade15d469641b6a08dee1619ad93871c2b26"
+      },
+      {
+        "path": "src/Chummer.Play.Web/Components/App.razor",
+        "sha256": "dc97e719772929dd4a25c4848bfa1c421732137ecb584a8702fb5195b1ca304a"
+      },
+      {
+        "path": "src/Chummer.Play.Web/Components/Pages/MobileTurnCompanionPage.razor",
+        "sha256": "f011ccb50b26dfd2988e4b947a69a20eea994cc01fe39193d38ee439c5cda853"
+      },
+      {
+        "path": "src/Chummer.Play.Web/PlayWebApplication.cs",
+        "sha256": "88427272857193c31d6050a5d087d5690da5bdcfb85005ce230b6b7732f227ee"
+      },
+      {
+        "path": "src/Chummer.Play.Web/PlayRouteHandlers.cs",
+        "sha256": "2e98bf419cb7f35cfc55cb4eafff612c8225349f633d6536790f9ed2c9689a2e"
+      },
+      {
+        "path": "src/Chummer.Play.Web/PlayTurnCompanionService.cs",
+        "sha256": "e825e982c0289013540d3017609417435544b6cca148455f5502f588a00f901f"
+      }
+    ]
+  },
+  "checks": {
+    "fleet_mobile_play_shell_ready": true,
+    "fleet_mobile_local_release_passed": true,
+    "fleet_mobile_scope_not_blocking": true,
+    "public_edge_frontdoor_navigation_pass": true,
+    "public_edge_frontdoor_route_is_player": true,
+    "public_edge_handoff_launch_route_is_player": true,
+    "public_edge_role_alias_routes_pass": true,
+    "public_edge_pwa_static_pass": true,
+    "public_edge_mobile_ledger_pass": true,
+    "public_edge_public_targets_keep_build_and_play": true,
+    "frontdoor_player_gm_install_shells_live": true,
+    "frontdoor_player_gm_role_manifests_live": true,
+    "frontdoor_player_gm_private_handoffs_absent": true,
+    "frontdoor_player_gm_public_analytics_disabled": true,
+    "public_edge_gate_pass": true,
+    "strict_public_edge_gate_pass": true
+  },
+  "fleet_readiness": {
+    "source_receipt_mode": "ephemeral_tempfile_materialization",
+    "published_script_path": "/docker/fleet/scripts/materialize_flagship_product_readiness.py",
+    "generated_at": "2026-08-01T02:44:34Z",
+    "generated_at_utc": null,
+    "status": "fail",
+    "warning_keys": [],
+    "missing_keys": [
+      "desktop_client"
+    ],
+    "readiness_plane_gap_keys": [
+      "flagship_ready",
+      "veteran_deep_workflow_ready",
+      "primary_route_ready",
+      "dense_workbench_ready",
+      "feedback_loop_ready",
+      "public_shelf_ready",
+      "recovery_trust_ready"
+    ],
+    "coverage": {
+      "mobile_play_shell": "ready",
+      "desktop_client": "missing"
+    },
+    "mobile_play_shell": {
+      "status": "ready",
+      "summary": "Mobile play-shell continuity and reconnect proof are current.",
+      "mobile_local_release_status": "passed",
+      "campaign_session_recover_recap_effective_state": "ready",
+      "recover_from_sync_conflict_owner_scoped_effective_state": "ready"
+    }
+  },
+  "public_edge": {
+    "skipped": false,
+    "receipt_mode": "ephemeral_tempfile_materialization",
+    "status": "pass",
+    "live_gate_status": "pass",
+    "gate_exit_code": 0,
+    "gate_receipt_present": true,
+    "frontdoor_receipt_present": true,
+    "strict_status": "pass",
+    "strict_preflight_receipt_path": "/tmp/chummer-public-edge-deploy-preflight-current.json",
+    "strict_preflight_generated_at_utc": "2026-08-01T02:44:26.257930+00:00",
+    "strict_preflight_status": "pass",
+    "strict_preflight_allow_foreign_build_locks": false,
+    "strict_preflight_allow_stale_foreign_build_locks": false,
+    "strict_postdeploy_receipt_path": "/tmp/chummer-public-edge-postdeploy-canonical-current.json",
+    "strict_postdeploy_generated_at_utc": "2026-08-01T02:44:34.129070+00:00",
+    "strict_postdeploy_status": "pass",
+    "strict_postdeploy_stale": false,
+    "strict_postdeploy_preflight_status": "pass",
+    "strict_postdeploy_allow_foreign_build_locks": false,
+    "strict_postdeploy_allow_stale_foreign_build_locks": false,
+    "strict_postdeploy_skip_preflight": false,
+    "strict_postdeploy_skip_release_version_match": false,
+    "strict_postdeploy_strict_preflight": true,
+    "strict_postdeploy_strict_invocation": true,
+    "strict_postdeploy_strict_no_allowance_invocation": true,
+    "live_build_lock_probe": {
+      "status": "clear",
+      "process_count": 0,
+      "entries": [],
+      "command": "ps -eo pid=,args=",
+      "returncode": 0
+    },
+    "failures": [],
+    "downloads_status": "pass",
+    "frontdoor_navigation_status": "pass",
+    "frontdoor_route": "/mobile/player",
+    "handoff_launch_route": "/mobile/player",
+    "public_targets": [
+      "Build",
+      "Play"
+    ],
+    "gated_targets": [],
+    "role_alias_route_status": "pass",
+    "pwa_static_status": "pass",
+    "mobile_ledger_status": "pass",
+    "ready_mobile_handoff_status": "pass",
+    "participate_iframe_shell_status": "pass",
+    "blazor_shell": "install-only",
+    "gm_blazor_shell": "install-only",
+    "player_live_turn_companion_shell": false,
+    "gm_live_turn_companion_shell": false,
+    "player_session_context_present": false,
+    "player_device_context_present": false,
+    "gm_session_context_present": false,
+    "gm_device_context_present": false,
+    "player_manifest_path": "/manifest.player.webmanifest",
+    "gm_manifest_path": "/manifest.gm.webmanifest",
+    "player_handoff_url": "",
+    "gm_handoff_url": "",
+    "player_handoff_absent": true,
+    "gm_handoff_absent": true,
+    "player_handoff_strips_device": false,
+    "gm_handoff_strips_device": false,
+    "player_handoff_private_identity_redacted": true,
+    "gm_handoff_private_identity_redacted": true,
+    "rybbit_player": false,
+    "rybbit_gm": false,
+    "rybbit_player_site_id_present": false,
+    "rybbit_gm_site_id_present": false,
+    "rybbit_player_script_url_present": false,
+    "rybbit_gm_script_url_present": false,
+    "player_public_analytics_disabled": true,
+    "gm_public_analytics_disabled": true
+  },
+  "external_blockers": []
+}
