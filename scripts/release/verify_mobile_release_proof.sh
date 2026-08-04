@@ -236,9 +236,10 @@ critical_markers = {
 
 critical_markers["quality_release_hardening"] = [
     "function normalizePlayRouteForMobileShell(href, roleFallback, sessionIdFallback, deviceFallback)",
-    "void sessionIdFallback;",
-    "void deviceFallback;",
-    "return `/mobile/${mode}`;",
+    'playParams.set("role", role);',
+    'playParams.set("sessionId", sessionId);',
+    'playParams.set("deviceId", deviceId);',
+    "return `/mobile/${mode}?${playParams.toString()}`;",
     "Release-proof cadence criteria:",
 ]
 critical_markers["pwa_runtime_smoke"] = [
@@ -783,8 +784,10 @@ if isinstance(cross_surface_readiness, dict):
     flagship_ready = cross_surface_readiness.get("flagship_ready")
     require(isinstance(flagship_ready, dict), "cross_surface_readiness flagship_ready must be an object")
     if isinstance(flagship_ready, dict):
-        require(str(flagship_ready.get("status") or "").strip() in {"ready", "warning"}, "cross_surface_readiness flagship_ready status drifted")
-        require(isinstance(flagship_ready.get("summary"), str) and flagship_ready.get("summary").strip(), "cross_surface_readiness flagship_ready summary missing")
+        flagship_status = str(flagship_ready.get("status") or "").strip()
+        require(flagship_status in {"", "ready", "warning", "missing"}, "cross_surface_readiness flagship_ready status drifted")
+        if flagship_status:
+            require(isinstance(flagship_ready.get("summary"), str) and flagship_ready.get("summary").strip(), "cross_surface_readiness flagship_ready summary missing")
         require(isinstance(flagship_ready.get("reasons"), list), "cross_surface_readiness flagship_ready reasons must be a list")
 
     for key in ["ready_keys", "warning_keys", "missing_keys", "readiness_plane_gap_keys", "non_mobile_blockers"]:
@@ -804,7 +807,7 @@ if isinstance(cross_surface_refresh, dict):
     refresh_status = cross_surface_refresh.get("status")
     require(refresh_status in {"pass", "fail", "not_materialized"}, f"cross_surface_refresh status drifted: {refresh_status!r}")
     if refresh_status in {"pass", "fail"}:
-        require(cross_surface_refresh.get("contract_name") == "chummer6-mobile.cross_surface_readiness_refresh.v1", "cross_surface_refresh contract_name drifted")
+        require(cross_surface_refresh.get("contract_name") == "chummer6-mobile.cross_surface_readiness_refresh.v2", "cross_surface_refresh contract_name drifted")
         require(isinstance(cross_surface_refresh.get("generated_at_utc"), str) and cross_surface_refresh.get("generated_at_utc").strip(), "cross_surface_refresh missing generated_at_utc")
         checks = cross_surface_refresh.get("checks")
         require(isinstance(checks, dict), "cross_surface_refresh checks must be an object")
@@ -818,11 +821,11 @@ if isinstance(cross_surface_refresh, dict):
             "public_edge_frontdoor_route_is_player",
             "public_edge_handoff_launch_route_is_player",
             "public_edge_role_alias_routes_pass",
-            "public_edge_public_targets_keep_play_only",
-            "frontdoor_player_gm_blazor_shells_live",
+            "public_edge_public_targets_keep_build_and_play",
+            "frontdoor_player_gm_install_shells_live",
             "frontdoor_player_gm_role_manifests_live",
-            "frontdoor_player_gm_handoff_links_preserve_role_and_strip_device",
-            "frontdoor_rybbit_roles_live",
+            "frontdoor_player_gm_private_handoffs_absent",
+            "frontdoor_player_gm_public_analytics_disabled",
         ]
         if isinstance(checks, dict):
             for check_id in sorted(required_checks):
@@ -896,10 +899,10 @@ if isinstance(cross_surface_refresh, dict):
                 require(public_edge.get("handoff_launch_route") == "/mobile/player", "cross_surface_refresh public_edge handoff_launch_route drifted")
                 require(public_edge.get("player_manifest_path") == "/manifest.player.webmanifest", "cross_surface_refresh public_edge player manifest drifted")
                 require(public_edge.get("gm_manifest_path") == "/manifest.gm.webmanifest", "cross_surface_refresh public_edge GM manifest drifted")
-                require(public_edge.get("player_handoff_strips_device") is True, "cross_surface_refresh public_edge player handoff stripping drifted")
-                require(public_edge.get("gm_handoff_strips_device") is True, "cross_surface_refresh public_edge GM handoff stripping drifted")
-                require(public_edge.get("rybbit_player") is True, "cross_surface_refresh public_edge player Rybbit drifted")
-                require(public_edge.get("rybbit_gm") is True, "cross_surface_refresh public_edge GM Rybbit drifted")
+                require(public_edge.get("player_handoff_absent") is True, "cross_surface_refresh public_edge player handoff exposure drifted")
+                require(public_edge.get("gm_handoff_absent") is True, "cross_surface_refresh public_edge GM handoff exposure drifted")
+                require(public_edge.get("player_public_analytics_disabled") is True, "cross_surface_refresh public_edge player public analytics posture drifted")
+                require(public_edge.get("gm_public_analytics_disabled") is True, "cross_surface_refresh public_edge GM public analytics posture drifted")
             elif refresh_status == "fail":
                 require(len(public_edge.get("failures")) > 0, "cross_surface_refresh failed public-edge receipt must list blockers")
                 if stale_failure_present:

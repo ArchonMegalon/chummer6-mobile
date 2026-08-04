@@ -1,0 +1,79 @@
+{
+  "contract_name": "chummer_play.mobile_pwa_viewport_smoke.v2",
+  "generated_at_utc": "2026-08-01T02:42:48Z",
+  "live_session_boundary": {
+    "grant_source": "trusted_server_headers",
+    "phone_layout": {
+      "actionColumns": 1,
+      "glanceCount": 6,
+      "minTouchTarget": 44,
+      "overflowFree": true,
+      "role": "Player",
+      "sessionId": "session-mobile-viewport"
+    },
+    "route": "/mobile/live"
+  },
+  "manifests": {
+    "gm": {
+      "has_maskable_192": true,
+      "has_maskable_512": true,
+      "id": "/mobile/gm",
+      "installability_error_count": 0,
+      "scope": "/mobile/",
+      "start_url": "/mobile/gm",
+      "url": "http://127.0.0.1:<port>/manifest.gm.webmanifest"
+    },
+    "observer": {
+      "has_maskable_192": true,
+      "has_maskable_512": true,
+      "id": "/mobile/observer",
+      "installability_error_count": 0,
+      "scope": "/mobile/",
+      "start_url": "/mobile/observer",
+      "url": "http://127.0.0.1:<port>/manifest.observer.webmanifest"
+    },
+    "player": {
+      "has_maskable_192": true,
+      "has_maskable_512": true,
+      "id": "/mobile/player",
+      "installability_error_count": 0,
+      "scope": "/mobile/",
+      "start_url": "/mobile/player",
+      "url": "http://127.0.0.1:<port>/manifest.player.webmanifest"
+    }
+  },
+  "public_install_boundary": {
+    "authority": "none",
+    "desktop_layout": {
+      "gridColumns": 3,
+      "overflowFree": true
+    },
+    "phone_layouts": {
+      "gm": {
+        "authority": "none",
+        "hasLiveRoot": false,
+        "hasLiveRuntime": false,
+        "installTouchTarget": 47.5625,
+        "overflowFree": true
+      },
+      "observer": {
+        "authority": "none",
+        "hasLiveRoot": false,
+        "hasLiveRuntime": false,
+        "installTouchTarget": 47.5625,
+        "overflowFree": true
+      },
+      "player": {
+        "authority": "none",
+        "hasLiveRoot": false,
+        "hasLiveRuntime": false,
+        "installTouchTarget": 47.5625,
+        "overflowFree": true
+      }
+    },
+    "query_parameters_grant_access": false
+  },
+  "status": "pass",
+  "verification_mode": "release",
+  "verification_run_id": "mobile-release-20260801-0228"
+}

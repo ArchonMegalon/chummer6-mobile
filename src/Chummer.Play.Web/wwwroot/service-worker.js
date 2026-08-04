@@ -20,7 +20,6 @@ const MOBILE_NAV_FALLBACK = "/mobile/player";
 const MOBILE_PLAYER_NAV_FALLBACK = "/mobile/player";
 const MOBILE_GM_NAV_FALLBACK = "/mobile/gm";
 const MOBILE_OBSERVER_NAV_FALLBACK = "/mobile/observer";
-const OFFLINE_NAV_FALLBACK = MOBILE_NAV_FALLBACK;
 const MEDIA_MAX_ENTRIES = 40;
 const MEDIA_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 3;
 let playNetworkOffline = false;
@@ -422,7 +421,7 @@ self.addEventListener("fetch", (event) => {
             status: 503,
             headers: {
               "content-type": "application/problem+json",
-              "cache-control": "no-store"
+              "cache-control": "private, no-store"
             }
           }
         ))
@@ -510,7 +509,7 @@ function offlineNavigationResponse(pathname) {
     statusText: "Service Unavailable",
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store",
+      "cache-control": "private, no-store",
       "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
       "x-content-type-options": "nosniff"
     }
@@ -764,7 +763,7 @@ function playApiNetworkUnavailableResponse() {
       status: 503,
       headers: {
         "content-type": "application/problem+json",
-        "cache-control": "no-store"
+        "cache-control": "private, no-store"
       }
     }
   );

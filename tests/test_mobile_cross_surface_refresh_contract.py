@@ -81,24 +81,37 @@ def write_fake_public_edge_gate_script(path: Path) -> None:
             parser.add_argument("--output", required=True)
             parser.add_argument("--base-url")
             parser.add_argument("--skip-preflight", action="store_true")
+            parser.add_argument("--strict-preflight", action="store_true")
             parser.add_argument("--skip-release-version-match", action="store_true")
             parser.add_argument("--require-frontdoor-navigation-playwright", action="store_true")
             args = parser.parse_args()
+            if not args.strict_preflight or args.skip_preflight or args.skip_release_version_match:
+                raise SystemExit(2)
 
             artifact_dir = Path(args.frontdoor_navigation_artifact_dir)
             artifact_dir.mkdir(parents=True, exist_ok=True)
 
             frontdoor_payload = {
-                "blazor_shell": "interactive-server",
-                "gm_blazor_shell": "interactive-server",
-                "live_turn_companion_shell": True,
-                "gm_live_turn_companion_shell": True,
+                "blazor_shell": "install-only",
+                "gm_blazor_shell": "install-only",
+                "live_turn_companion_shell": False,
+                "gm_live_turn_companion_shell": False,
+                "player_session_context_present": False,
+                "player_device_context_present": False,
+                "gm_session_context_present": False,
+                "gm_device_context_present": False,
                 "pwa_manifest_path": "/manifest.player.webmanifest",
                 "gm_pwa_manifest_path": "/manifest.gm.webmanifest",
-                "player_session_handoff_strips_device": True,
-                "gm_session_handoff_strips_device": True,
-                "rybbit_configured": True,
-                "gm_rybbit_configured": True,
+                "player_session_handoff_url": "",
+                "gm_session_handoff_url": "",
+                "player_session_handoff_private_identity_redacted": True,
+                "gm_session_handoff_private_identity_redacted": True,
+                "rybbit_configured": False,
+                "gm_rybbit_configured": False,
+                "rybbit_site_id_present": False,
+                "gm_rybbit_site_id_present": False,
+                "rybbit_script_url_present": False,
+                "gm_rybbit_script_url_present": False,
             }
             (artifact_dir / "FRONTDOOR_MOBILE_LAUNCH.generated.json").write_text(
                 json.dumps(frontdoor_payload, indent=2) + "\\n",
@@ -110,8 +123,8 @@ def write_fake_public_edge_gate_script(path: Path) -> None:
                 "frontdoorNavigationStatus": "pass",
                 "frontdoorNavigationPlayRoute": "/mobile/player",
                 "readyMobileHandoffFrontdoorLaunchRoute": "/mobile/player",
-                "frontdoorNavigationPublicTargets": [],
-                "frontdoorNavigationGatedTargets": ["Build", "Play"],
+                "frontdoorNavigationPublicTargets": ["Build", "Play"],
+                "frontdoorNavigationGatedTargets": [],
                 "roleAliasRouteStatus": "pass",
                 "pwaStaticStatus": "fail",
                 "mobileLedgerStatus": "fail",
@@ -145,28 +158,37 @@ def write_fake_passing_public_edge_gate_script(path: Path) -> None:
             parser.add_argument("--output", required=True)
             parser.add_argument("--base-url")
             parser.add_argument("--skip-preflight", action="store_true")
+            parser.add_argument("--strict-preflight", action="store_true")
             parser.add_argument("--skip-release-version-match", action="store_true")
             parser.add_argument("--require-frontdoor-navigation-playwright", action="store_true")
             args = parser.parse_args()
+            if not args.strict_preflight or args.skip_preflight or args.skip_release_version_match:
+                raise SystemExit(2)
 
             artifact_dir = Path(args.frontdoor_navigation_artifact_dir)
             artifact_dir.mkdir(parents=True, exist_ok=True)
 
             frontdoor_payload = {
-                "blazor_shell": "interactive-server",
-                "gm_blazor_shell": "interactive-server",
-                "live_turn_companion_shell": True,
-                "gm_live_turn_companion_shell": True,
+                "blazor_shell": "install-only",
+                "gm_blazor_shell": "install-only",
+                "live_turn_companion_shell": False,
+                "gm_live_turn_companion_shell": False,
+                "player_session_context_present": False,
+                "player_device_context_present": False,
+                "gm_session_context_present": False,
+                "gm_device_context_present": False,
                 "pwa_manifest_path": "/manifest.player.webmanifest",
                 "gm_pwa_manifest_path": "/manifest.gm.webmanifest",
-                "player_session_handoff_preserves_session": True,
-                "player_session_handoff_preserves_role": True,
-                "player_session_handoff_strips_device": True,
-                "gm_session_handoff_preserves_session": True,
-                "gm_session_handoff_preserves_role": True,
-                "gm_session_handoff_strips_device": True,
-                "rybbit_configured": True,
-                "gm_rybbit_configured": True,
+                "player_session_handoff_url": "",
+                "gm_session_handoff_url": "",
+                "player_session_handoff_private_identity_redacted": True,
+                "gm_session_handoff_private_identity_redacted": True,
+                "rybbit_configured": False,
+                "gm_rybbit_configured": False,
+                "rybbit_site_id_present": False,
+                "gm_rybbit_site_id_present": False,
+                "rybbit_script_url_present": False,
+                "gm_rybbit_script_url_present": False,
             }
             (artifact_dir / "FRONTDOOR_MOBILE_LAUNCH.generated.json").write_text(
                 json.dumps(frontdoor_payload, indent=2) + "\\n",
@@ -178,8 +200,8 @@ def write_fake_passing_public_edge_gate_script(path: Path) -> None:
                 "frontdoorNavigationStatus": "pass",
                 "frontdoorNavigationPlayRoute": "/mobile/player",
                 "readyMobileHandoffFrontdoorLaunchRoute": "/mobile/player",
-                "frontdoorNavigationPublicTargets": [],
-                "frontdoorNavigationGatedTargets": ["Build", "Play"],
+                "frontdoorNavigationPublicTargets": ["Build", "Play"],
+                "frontdoorNavigationGatedTargets": [],
                 "roleAliasRouteStatus": "pass",
                 "pwaStaticStatus": "pass",
                 "mobileLedgerStatus": "pass",
@@ -222,7 +244,7 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
 
     def test_local_release_loader_rejects_release_receipt_with_skipped_public_edge(self) -> None:
         payload = {
-            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v1",
+            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
             "verification_mode": "release",
             "generated_at_utc": "2026-07-18T20:00:00Z",
             "status": "pass",
@@ -332,7 +354,7 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
 
         self.assertEqual(payload["status"], "fail")
         self.assertTrue(payload["checks"]["fleet_mobile_play_shell_ready"])
-        self.assertTrue(payload["checks"]["frontdoor_player_gm_blazor_shells_live"])
+        self.assertTrue(payload["checks"]["frontdoor_player_gm_install_shells_live"])
         self.assertFalse(payload["checks"]["public_edge_pwa_static_pass"])
         self.assertFalse(payload["checks"]["public_edge_gate_pass"])
         self.assertEqual(payload["public_edge"]["status"], "fail")
@@ -343,6 +365,8 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
             [
                 "downloads version marker proof is not pass",
                 "public PWA static asset proof is not pass",
+                "cross-surface public-edge check failed: public_edge_pwa_static_pass",
+                "cross-surface public-edge check failed: public_edge_mobile_ledger_pass",
             ],
         )
 
@@ -412,6 +436,10 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
         self.assertEqual(payload["public_edge"]["status"], "fail")
         self.assertEqual(payload["public_edge"]["live_gate_status"], "pass")
         self.assertEqual(payload["public_edge"]["strict_status"], "fail")
+        self.assertTrue(payload["public_edge"]["player_handoff_absent"])
+        self.assertTrue(payload["public_edge"]["gm_handoff_absent"])
+        self.assertTrue(payload["public_edge"]["player_public_analytics_disabled"])
+        self.assertTrue(payload["public_edge"]["gm_public_analytics_disabled"])
         self.assertTrue(payload["public_edge"]["strict_postdeploy_skip_preflight"])
         self.assertTrue(payload["public_edge"]["strict_postdeploy_skip_release_version_match"])
         self.assertFalse(payload["public_edge"]["strict_postdeploy_strict_preflight"])
@@ -613,7 +641,7 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
             )
 
         refresh_payload = {
-            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v1",
+            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
             "generated_at_utc": "2026-07-05T10:30:00Z",
             "status": "fail",
             "base_url": "https://chummer.run",
@@ -627,11 +655,11 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
                 "public_edge_role_alias_routes_pass": True,
                 "public_edge_pwa_static_pass": False,
                 "public_edge_mobile_ledger_pass": False,
-                "public_edge_public_targets_keep_play_only": True,
-                "frontdoor_player_gm_blazor_shells_live": True,
+                "public_edge_public_targets_keep_build_and_play": True,
+                "frontdoor_player_gm_install_shells_live": True,
                 "frontdoor_player_gm_role_manifests_live": True,
-                "frontdoor_player_gm_handoff_links_preserve_role_and_strip_device": True,
-                "frontdoor_rybbit_roles_live": True,
+                "frontdoor_player_gm_private_handoffs_absent": True,
+                "frontdoor_player_gm_public_analytics_disabled": True,
                 "public_edge_gate_pass": True,
                 "strict_public_edge_gate_pass": False,
             },
@@ -662,10 +690,10 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
                 "participate_iframe_shell_status": "fail",
                 "player_manifest_path": "/manifest.player.webmanifest",
                 "gm_manifest_path": "/manifest.gm.webmanifest",
-                "player_handoff_strips_device": True,
-                "gm_handoff_strips_device": True,
-                "rybbit_player": True,
-                "rybbit_gm": True,
+                "player_handoff_absent": True,
+                "gm_handoff_absent": True,
+                "player_public_analytics_disabled": True,
+                "gm_public_analytics_disabled": True,
                 "strict_preflight_status": "fail",
                 "strict_postdeploy_status": "fail",
                 "strict_postdeploy_stale": False,
@@ -730,7 +758,7 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
             )
 
         refresh_payload = {
-            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v1",
+            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
             "generated_at_utc": "2026-07-06T03:19:11Z",
             "status": "fail",
             "base_url": "https://chummer.run",
@@ -744,11 +772,11 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
                 "public_edge_role_alias_routes_pass": True,
                 "public_edge_pwa_static_pass": True,
                 "public_edge_mobile_ledger_pass": True,
-                "public_edge_public_targets_keep_play_only": True,
-                "frontdoor_player_gm_blazor_shells_live": True,
+                "public_edge_public_targets_keep_build_and_play": True,
+                "frontdoor_player_gm_install_shells_live": True,
                 "frontdoor_player_gm_role_manifests_live": True,
-                "frontdoor_player_gm_handoff_links_preserve_role_and_strip_device": True,
-                "frontdoor_rybbit_roles_live": True,
+                "frontdoor_player_gm_private_handoffs_absent": True,
+                "frontdoor_player_gm_public_analytics_disabled": True,
                 "public_edge_gate_pass": True,
                 "strict_public_edge_gate_pass": False,
             },
@@ -779,10 +807,10 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
                 "participate_iframe_shell_status": "pass",
                 "player_manifest_path": "/manifest.player.webmanifest",
                 "gm_manifest_path": "/manifest.gm.webmanifest",
-                "player_handoff_strips_device": True,
-                "gm_handoff_strips_device": True,
-                "rybbit_player": True,
-                "rybbit_gm": True,
+                "player_handoff_absent": True,
+                "gm_handoff_absent": True,
+                "player_public_analytics_disabled": True,
+                "gm_public_analytics_disabled": True,
                 "strict_preflight_status": "fail",
                 "strict_postdeploy_status": "fail",
                 "strict_postdeploy_stale": True,
@@ -859,7 +887,7 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
             )
 
         refresh_payload = {
-            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v1",
+            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
             "generated_at_utc": "2026-07-05T10:30:00Z",
             "status": "pass",
             "base_url": "https://chummer.run",
@@ -873,11 +901,11 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
                 "public_edge_role_alias_routes_pass": True,
                 "public_edge_pwa_static_pass": True,
                 "public_edge_mobile_ledger_pass": True,
-                "public_edge_public_targets_keep_play_only": True,
-                "frontdoor_player_gm_blazor_shells_live": True,
+                "public_edge_public_targets_keep_build_and_play": True,
+                "frontdoor_player_gm_install_shells_live": True,
                 "frontdoor_player_gm_role_manifests_live": True,
-                "frontdoor_player_gm_handoff_links_preserve_role_and_strip_device": True,
-                "frontdoor_rybbit_roles_live": True,
+                "frontdoor_player_gm_private_handoffs_absent": True,
+                "frontdoor_player_gm_public_analytics_disabled": True,
                 "public_edge_gate_pass": True,
                 "strict_public_edge_gate_pass": False,
             },
@@ -908,10 +936,10 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
                 "participate_iframe_shell_status": "pass",
                 "player_manifest_path": "/manifest.player.webmanifest",
                 "gm_manifest_path": "/manifest.gm.webmanifest",
-                "player_handoff_strips_device": True,
-                "gm_handoff_strips_device": True,
-                "rybbit_player": True,
-                "rybbit_gm": True,
+                "player_handoff_absent": True,
+                "gm_handoff_absent": True,
+                "player_public_analytics_disabled": True,
+                "gm_public_analytics_disabled": True,
                 "strict_preflight_status": "pass",
                 "strict_postdeploy_status": "pass",
                 "strict_postdeploy_skip_preflight": True,
@@ -958,7 +986,7 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
             )
 
         refresh_payload = {
-            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v1",
+            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
             "generated_at_utc": "2026-07-05T10:30:00Z",
             "status": "fail",
             "base_url": "https://chummer.run",
@@ -972,11 +1000,11 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
                 "public_edge_role_alias_routes_pass": False,
                 "public_edge_pwa_static_pass": False,
                 "public_edge_mobile_ledger_pass": True,
-                "public_edge_public_targets_keep_play_only": False,
-                "frontdoor_player_gm_blazor_shells_live": False,
+                "public_edge_public_targets_keep_build_and_play": False,
+                "frontdoor_player_gm_install_shells_live": False,
                 "frontdoor_player_gm_role_manifests_live": False,
-                "frontdoor_player_gm_handoff_links_preserve_role_and_strip_device": False,
-                "frontdoor_rybbit_roles_live": False,
+                "frontdoor_player_gm_private_handoffs_absent": False,
+                "frontdoor_player_gm_public_analytics_disabled": False,
                 "public_edge_gate_pass": False,
                 "strict_public_edge_gate_pass": False,
             },
@@ -1005,10 +1033,10 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
                 "participate_iframe_shell_status": "fail",
                 "player_manifest_path": None,
                 "gm_manifest_path": None,
-                "player_handoff_strips_device": None,
-                "gm_handoff_strips_device": None,
-                "rybbit_player": None,
-                "rybbit_gm": None,
+                "player_handoff_absent": None,
+                "gm_handoff_absent": None,
+                "player_public_analytics_disabled": None,
+                "gm_public_analytics_disabled": None,
                 "strict_postdeploy_strict_preflight": False,
                 "strict_postdeploy_strict_invocation": False,
                 "strict_postdeploy_strict_no_allowance_invocation": False,

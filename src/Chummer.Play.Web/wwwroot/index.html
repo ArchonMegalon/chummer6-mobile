@@ -562,8 +562,6 @@
   }
 
   function normalizePlayRouteForMobileShell(href, roleFallback, sessionIdFallback, deviceFallback) {
-    void sessionIdFallback;
-    void deviceFallback;
     if (!href || typeof href !== "string") {
       return href;
     }
@@ -582,8 +580,17 @@
 
       const playParams = new URLSearchParams(hrefUrl.search);
       const role = playParams.get("role") || roleFallback || activeShellIdentity.role || "Player";
+      const sessionId = playParams.get("sessionId") || sessionIdFallback || activeShellIdentity.sessionId || "";
+      const deviceId = playParams.get("deviceId") || deviceFallback || activeShellIdentity.deviceId || "";
       const mode = roleToMobileMode(role);
-      return `/mobile/${mode}`;
+      playParams.set("role", role);
+      if (sessionId) {
+        playParams.set("sessionId", sessionId);
+      }
+      if (deviceId) {
+        playParams.set("deviceId", deviceId);
+      }
+      return `/mobile/${mode}?${playParams.toString()}`;
     } catch {
       return trimmedHref;
     }

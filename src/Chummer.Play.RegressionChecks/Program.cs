@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -4537,7 +4538,7 @@ static void VerifyStoredLineageAlignment()
     Assert(!SessionLineage.IsStoredLineageAligned(session, checkpoint, mismatchedLedger), "stored lineage must fail when ledger lineage changes");
 }
 
-static void Assert(bool condition, string message)
+static void Assert([DoesNotReturnIf(false)] bool condition, string message)
 {
     if (!condition)
     {

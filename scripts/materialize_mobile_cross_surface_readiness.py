@@ -164,7 +164,7 @@ def live_build_lock_failure_messages(live_build_lock_probe: dict[str, object]) -
     return messages
 
 
-def frontdoor_targets_keep_mobile_play_intent(payload: dict[str, object]) -> bool:
+def frontdoor_targets_keep_public_entry_intent(payload: dict[str, object]) -> bool:
     public_targets = [
         str(item)
         for item in (payload.get("frontdoorNavigationPublicTargets") or [])
@@ -176,11 +176,7 @@ def frontdoor_targets_keep_mobile_play_intent(payload: dict[str, object]) -> boo
         if isinstance(item, str) and str(item).strip()
     }
 
-    return (
-        public_targets == ["Play"] and gated_targets == {"Build"}
-    ) or (
-        public_targets == [] and gated_targets == {"Build", "Play"}
-    )
+    return public_targets == ["Build", "Play"] and not gated_targets
 
 
 def main() -> int:
@@ -245,8 +241,7 @@ def main() -> int:
                     str(PUBLIC_EDGE_GATE),
                     "--base-url",
                     args.base_url,
-                    "--skip-preflight",
-                    "--skip-release-version-match",
+                    "--strict-preflight",
                     "--require-frontdoor-navigation-playwright",
                     "--frontdoor-navigation-artifact-dir",
                     str(public_artifact_dir),
@@ -405,25 +400,37 @@ def main() -> int:
                 "public_edge_role_alias_routes_pass": public_gate_payload.get("roleAliasRouteStatus") == "pass",
                 "public_edge_pwa_static_pass": public_gate_payload.get("pwaStaticStatus") == "pass",
                 "public_edge_mobile_ledger_pass": public_gate_payload.get("mobileLedgerStatus") == "pass",
-                "public_edge_public_targets_keep_play_only": frontdoor_targets_keep_mobile_play_intent(public_gate_payload),
-                "frontdoor_player_gm_blazor_shells_live": frontdoor_payload.get("blazor_shell") == "interactive-server"
-                and frontdoor_payload.get("gm_blazor_shell") == "interactive-server"
-                and frontdoor_payload.get("live_turn_companion_shell") is True
-                and frontdoor_payload.get("gm_live_turn_companion_shell") is True,
+                "public_edge_public_targets_keep_build_and_play": frontdoor_targets_keep_public_entry_intent(public_gate_payload),
+                "frontdoor_player_gm_install_shells_live": frontdoor_payload.get("blazor_shell") == "install-only"
+                and frontdoor_payload.get("gm_blazor_shell") == "install-only"
+                and frontdoor_payload.get("live_turn_companion_shell") is False
+                and frontdoor_payload.get("gm_live_turn_companion_shell") is False
+                and frontdoor_payload.get("player_session_context_present") is False
+                and frontdoor_payload.get("player_device_context_present") is False
+                and frontdoor_payload.get("gm_session_context_present") is False
+                and frontdoor_payload.get("gm_device_context_present") is False,
                 "frontdoor_player_gm_role_manifests_live": frontdoor_payload.get("pwa_manifest_path") == "/manifest.player.webmanifest"
                 and frontdoor_payload.get("gm_pwa_manifest_path") == "/manifest.gm.webmanifest",
-                "frontdoor_player_gm_handoff_links_preserve_role_and_strip_device": frontdoor_payload.get("player_session_handoff_preserves_session") is True
-                and frontdoor_payload.get("player_session_handoff_preserves_role") is True
-                and frontdoor_payload.get("player_session_handoff_strips_device") is True
-                and frontdoor_payload.get("gm_session_handoff_preserves_session") is True
-                and frontdoor_payload.get("gm_session_handoff_preserves_role") is True
-                and frontdoor_payload.get("gm_session_handoff_strips_device") is True,
-                "frontdoor_rybbit_roles_live": frontdoor_payload.get("rybbit_configured") is True
-                and frontdoor_payload.get("gm_rybbit_configured") is True,
+                "frontdoor_player_gm_private_handoffs_absent": frontdoor_payload.get("player_session_handoff_url") == ""
+                and frontdoor_payload.get("gm_session_handoff_url") == ""
+                and frontdoor_payload.get("player_session_handoff_private_identity_redacted") is True
+                and frontdoor_payload.get("gm_session_handoff_private_identity_redacted") is True,
+                "frontdoor_player_gm_public_analytics_disabled": frontdoor_payload.get("rybbit_configured") is False
+                and frontdoor_payload.get("gm_rybbit_configured") is False
+                and frontdoor_payload.get("rybbit_site_id_present") is False
+                and frontdoor_payload.get("gm_rybbit_site_id_present") is False
+                and frontdoor_payload.get("rybbit_script_url_present") is False
+                and frontdoor_payload.get("gm_rybbit_script_url_present") is False,
             }
             checks.update(live_public_edge_checks)
             checks["public_edge_gate_pass"] = public_edge_gate_pass
             checks["strict_public_edge_gate_pass"] = strict_public_edge_gate_pass
+            semantic_failures = [
+                f"cross-surface public-edge check failed: {check_id}"
+                for check_id, passed in live_public_edge_checks.items()
+                if passed is not True
+            ]
+            public_edge_failures = list(dict.fromkeys([*public_edge_failures, *semantic_failures]))
 
         required_check_keys = [
             "fleet_mobile_play_shell_ready",
@@ -441,11 +448,11 @@ def main() -> int:
                     "public_edge_role_alias_routes_pass",
                     "public_edge_pwa_static_pass",
                     "public_edge_mobile_ledger_pass",
-                    "public_edge_public_targets_keep_play_only",
-                    "frontdoor_player_gm_blazor_shells_live",
+                    "public_edge_public_targets_keep_build_and_play",
+                    "frontdoor_player_gm_install_shells_live",
                     "frontdoor_player_gm_role_manifests_live",
-                    "frontdoor_player_gm_handoff_links_preserve_role_and_strip_device",
-                    "frontdoor_rybbit_roles_live",
+                    "frontdoor_player_gm_private_handoffs_absent",
+                    "frontdoor_player_gm_public_analytics_disabled",
                     "public_edge_gate_pass",
                     "strict_public_edge_gate_pass",
                 ]
@@ -453,7 +460,7 @@ def main() -> int:
 
         status = "pass" if all(checks.get(key) is True for key in required_check_keys) else "fail"
         payload = {
-            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v1",
+            "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
             "verification_mode": verification_mode,
             "verification_run_id": os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip(),
             "generated_at_utc": generated_at,
@@ -463,7 +470,7 @@ def main() -> int:
                 "fleet_readiness_audit": f"python3 {FLEET_MATERIALIZER} --out <tempfile>",
                 "public_edge_gate": None
                 if args.skip_public_edge
-                else f"python3 {PUBLIC_EDGE_GATE} --base-url {args.base_url} --skip-preflight --skip-release-version-match --require-frontdoor-navigation-playwright --frontdoor-navigation-artifact-dir <tempdir> --output <tempfile>",
+                else f"python3 {PUBLIC_EDGE_GATE} --base-url {args.base_url} --strict-preflight --require-frontdoor-navigation-playwright --frontdoor-navigation-artifact-dir <tempdir> --output <tempfile>",
             },
             "surface_source_fingerprint": build_surface_source_fingerprint(),
             "checks": checks,
@@ -493,7 +500,13 @@ def main() -> int:
             "public_edge": {
                 "skipped": args.skip_public_edge,
                 "receipt_mode": "ephemeral_tempfile_materialization" if not args.skip_public_edge else None,
-                "status": None if args.skip_public_edge else ("pass" if public_edge_gate_pass and strict_public_edge_gate_pass else "fail"),
+                "status": None if args.skip_public_edge else (
+                    "pass"
+                    if public_edge_gate_pass
+                    and strict_public_edge_gate_pass
+                    and all(live_public_edge_checks.values())
+                    else "fail"
+                ),
                 "live_gate_status": None if args.skip_public_edge else public_gate_payload.get("status"),
                 "gate_exit_code": None if args.skip_public_edge else public_gate_result.returncode,
                 "gate_receipt_present": None if args.skip_public_edge else public_gate_receipt_path.is_file(),
@@ -531,14 +544,44 @@ def main() -> int:
                 "participate_iframe_shell_status": None if args.skip_public_edge else public_gate_payload.get("participateIframeShellStatus"),
                 "blazor_shell": None if args.skip_public_edge else frontdoor_payload.get("blazor_shell"),
                 "gm_blazor_shell": None if args.skip_public_edge else frontdoor_payload.get("gm_blazor_shell"),
+                "player_live_turn_companion_shell": None if args.skip_public_edge else frontdoor_payload.get("live_turn_companion_shell"),
+                "gm_live_turn_companion_shell": None if args.skip_public_edge else frontdoor_payload.get("gm_live_turn_companion_shell"),
+                "player_session_context_present": None if args.skip_public_edge else frontdoor_payload.get("player_session_context_present"),
+                "player_device_context_present": None if args.skip_public_edge else frontdoor_payload.get("player_device_context_present"),
+                "gm_session_context_present": None if args.skip_public_edge else frontdoor_payload.get("gm_session_context_present"),
+                "gm_device_context_present": None if args.skip_public_edge else frontdoor_payload.get("gm_device_context_present"),
                 "player_manifest_path": None if args.skip_public_edge else frontdoor_payload.get("pwa_manifest_path"),
                 "gm_manifest_path": None if args.skip_public_edge else frontdoor_payload.get("gm_pwa_manifest_path"),
                 "player_handoff_url": None if args.skip_public_edge else frontdoor_payload.get("player_session_handoff_url"),
                 "gm_handoff_url": None if args.skip_public_edge else frontdoor_payload.get("gm_session_handoff_url"),
+                "player_handoff_absent": None if args.skip_public_edge else (
+                    frontdoor_payload.get("player_session_handoff_url") == ""
+                    and frontdoor_payload.get("player_session_handoff_private_identity_redacted") is True
+                ),
+                "gm_handoff_absent": None if args.skip_public_edge else (
+                    frontdoor_payload.get("gm_session_handoff_url") == ""
+                    and frontdoor_payload.get("gm_session_handoff_private_identity_redacted") is True
+                ),
                 "player_handoff_strips_device": None if args.skip_public_edge else frontdoor_payload.get("player_session_handoff_strips_device"),
                 "gm_handoff_strips_device": None if args.skip_public_edge else frontdoor_payload.get("gm_session_handoff_strips_device"),
+                "player_handoff_private_identity_redacted": None if args.skip_public_edge else frontdoor_payload.get("player_session_handoff_private_identity_redacted"),
+                "gm_handoff_private_identity_redacted": None if args.skip_public_edge else frontdoor_payload.get("gm_session_handoff_private_identity_redacted"),
                 "rybbit_player": None if args.skip_public_edge else frontdoor_payload.get("rybbit_configured"),
                 "rybbit_gm": None if args.skip_public_edge else frontdoor_payload.get("gm_rybbit_configured"),
+                "rybbit_player_site_id_present": None if args.skip_public_edge else frontdoor_payload.get("rybbit_site_id_present"),
+                "rybbit_gm_site_id_present": None if args.skip_public_edge else frontdoor_payload.get("gm_rybbit_site_id_present"),
+                "rybbit_player_script_url_present": None if args.skip_public_edge else frontdoor_payload.get("rybbit_script_url_present"),
+                "rybbit_gm_script_url_present": None if args.skip_public_edge else frontdoor_payload.get("gm_rybbit_script_url_present"),
+                "player_public_analytics_disabled": None if args.skip_public_edge else (
+                    frontdoor_payload.get("rybbit_configured") is False
+                    and frontdoor_payload.get("rybbit_site_id_present") is False
+                    and frontdoor_payload.get("rybbit_script_url_present") is False
+                ),
+                "gm_public_analytics_disabled": None if args.skip_public_edge else (
+                    frontdoor_payload.get("gm_rybbit_configured") is False
+                    and frontdoor_payload.get("gm_rybbit_site_id_present") is False
+                    and frontdoor_payload.get("gm_rybbit_script_url_present") is False
+                ),
             },
             "external_blockers": [] if args.skip_public_edge else public_edge_failures,
         }

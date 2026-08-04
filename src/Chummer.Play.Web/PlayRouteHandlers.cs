@@ -17,7 +17,29 @@ public static class PlayRouteHandlers
     }
 
     public static string BuildMobileOwnerRoute()
-        => "/mobile/live";
+    {
+        return "/mobile/live";
+    }
+
+    public static string BuildMobileOwnerRoute(
+        string sessionId,
+        PlaySurfaceRole role,
+        string? deviceId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        string mode = role switch
+        {
+            PlaySurfaceRole.GameMaster => "gm",
+            PlaySurfaceRole.Observer => "observer",
+            _ => "player"
+        };
+        string route =
+            $"/mobile/{mode}?sessionId={Uri.EscapeDataString(sessionId)}"
+            + $"&role={Uri.EscapeDataString(role.ToString())}";
+        return string.IsNullOrWhiteSpace(deviceId)
+            ? route
+            : $"{route}&deviceId={Uri.EscapeDataString(deviceId)}";
+    }
 
     public static async Task<IResult> HandleReconnectAsync(
         PlayReconnectRequest request,

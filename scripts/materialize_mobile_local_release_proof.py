@@ -753,10 +753,24 @@ REQUIRED_MARKERS = {
 # above.  The old source text remains in this file only as historical migration
 # context; release materialization evaluates the current two-boundary contract.
 REQUIRED_MARKERS["quality_release_hardening"] = [
+    "VerifyIndexShellAccessibilityContractAsync",
+    "VerifyCachePressureBudgetContractAsync",
+    "VerifyCachePressureDecisionNoticeUsesSupportNextActionCopy",
+    "VerifyOfflineQueueRejectsMalformedSessionEnvelopeAsync",
+    "VerifyOfflineQueueRejectsStaleLineageAsync",
+    "VerifyResumePreservesLedgerWhenRuntimeBundleDriftsAsync",
+    "VerifyResumeNormalizesCheckpointToLedgerLineageAsync",
+    "VerifyReconnectLineageTransitionContinuityAsync",
+    "VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync",
+    "VerifyTurnCompanionRealHostPipelineUsesAntiforgeryAsync",
+    "VerifyTurnCompanionRunsiteAnchorSelectionStaysDeviceScopedAsync",
+    "VerifyRuntimeBundleSessionLockReleasesOnCanceledAcquireAsync",
+    "RUNSITE stays orientation-only here: room, zone, and hotspot anchors are inspectable context, not token authority.",
     "function normalizePlayRouteForMobileShell(href, roleFallback, sessionIdFallback, deviceFallback)",
-    "void sessionIdFallback;",
-    "void deviceFallback;",
-    "return `/mobile/${mode}`;",
+    'playParams.set("role", role);',
+    'playParams.set("sessionId", sessionId);',
+    'playParams.set("deviceId", deviceId);',
+    "return `/mobile/${mode}?${playParams.toString()}`;",
     "Post-closure completion criteria (M12)",
     "Post-closure hardening criteria (M13)",
     "Post-closure role-depth criteria (M14)",
@@ -1511,7 +1525,7 @@ def load_cross_surface_refresh() -> tuple[dict[str, object], list[str]]:
     fingerprint_paths: list[str] = []
     live_build_lock_probe: dict[str, object] = {}
 
-    if receipt_payload.get("contract_name") != "chummer6-mobile.cross_surface_readiness_refresh.v1":
+    if receipt_payload.get("contract_name") != "chummer6-mobile.cross_surface_readiness_refresh.v2":
         errors.append("cross-surface refresh receipt contract drifted")
     refresh_status = receipt_payload.get("status")
     if refresh_status not in {"pass", "fail"}:
@@ -1535,11 +1549,11 @@ def load_cross_surface_refresh() -> tuple[dict[str, object], list[str]]:
                 "public_edge_frontdoor_route_is_player",
                 "public_edge_handoff_launch_route_is_player",
                 "public_edge_role_alias_routes_pass",
-                "public_edge_public_targets_keep_play_only",
-                "frontdoor_player_gm_blazor_shells_live",
+                "public_edge_public_targets_keep_build_and_play",
+                "frontdoor_player_gm_install_shells_live",
                 "frontdoor_player_gm_role_manifests_live",
-                "frontdoor_player_gm_handoff_links_preserve_role_and_strip_device",
-                "frontdoor_rybbit_roles_live",
+                "frontdoor_player_gm_private_handoffs_absent",
+                "frontdoor_player_gm_public_analytics_disabled",
             ]:
                 if checks.get(key) is not True:
                     errors.append(f"cross-surface refresh check failed: {key}")
@@ -1644,10 +1658,10 @@ def load_cross_surface_refresh() -> tuple[dict[str, object], list[str]]:
             "participate_iframe_shell_status": public_edge.get("participate_iframe_shell_status"),
             "player_manifest_path": public_edge.get("player_manifest_path"),
             "gm_manifest_path": public_edge.get("gm_manifest_path"),
-            "player_handoff_strips_device": public_edge.get("player_handoff_strips_device"),
-            "gm_handoff_strips_device": public_edge.get("gm_handoff_strips_device"),
-            "rybbit_player": public_edge.get("rybbit_player"),
-            "rybbit_gm": public_edge.get("rybbit_gm"),
+            "player_handoff_absent": public_edge.get("player_handoff_absent"),
+            "gm_handoff_absent": public_edge.get("gm_handoff_absent"),
+            "player_public_analytics_disabled": public_edge.get("player_public_analytics_disabled"),
+            "gm_public_analytics_disabled": public_edge.get("gm_public_analytics_disabled"),
             "strict_preflight_status": public_edge.get("strict_preflight_status"),
             "strict_postdeploy_status": public_edge.get("strict_postdeploy_status"),
             "strict_postdeploy_stale": public_edge.get("strict_postdeploy_stale"),

@@ -1,0 +1,38 @@
+{
+  "contract_name": "chummer_play.mobile_pwa_runtime_smoke.v2",
+  "generated_at_utc": "2026-08-01T02:42:45Z",
+  "live_session_boundary": {
+    "cache_control": "private, no-store",
+    "content_security_policy": "default-src 'none'; base-uri 'none'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'self'; script-src 'self'; style-src 'self'; worker-src 'self'",
+    "device_binding": "runtime-granted-device",
+    "grant_source": "trusted_server_headers",
+    "owner_route": "/mobile/live",
+    "query_parameters_grant_access": false,
+    "role_binding": "Player",
+    "role_change_exit": "/mobile/gm",
+    "route": "/mobile/live",
+    "session_binding": "session-runtime-grant"
+  },
+  "private_api_boundary": {
+    "online_cache_control": "private, no-store",
+    "online_status": 200
+  },
+  "public_install_boundary": {
+    "authority": "none",
+    "cache_control": "private, no-store",
+    "content_security_policy": "default-src 'none'; base-uri 'none'; connect-src 'none'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'self'; script-src 'self'; style-src 'self'; worker-src 'self'",
+    "live_runtime_loaded": false,
+    "live_state_loaded": false,
+    "manifest": "/manifest.player.webmanifest",
+    "query_parameters_grant_access": false,
+    "routes": [
+      "/mobile",
+      "/mobile/player",
+      "/mobile/gm",
+      "/mobile/observer"
+    ]
+  },
+  "status": "pass",
+  "verification_mode": "release",
+  "verification_run_id": "mobile-release-20260801-0228"
+}

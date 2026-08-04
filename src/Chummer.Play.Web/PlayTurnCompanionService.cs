@@ -346,7 +346,7 @@ public sealed class PlayTurnCompanionService
             cachePressure,
             projection.Timeline,
             quickActions,
-            PlayRouteHandlers.BuildMobileOwnerRoute(),
+            PlayRouteHandlers.BuildMobileOwnerRoute(sessionId, role, deviceId),
             resumeState.Ledger.PendingEvents.Count
         );
     }

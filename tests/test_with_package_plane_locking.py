@@ -22,6 +22,12 @@ def write_fake_dotnet(bin_dir: Path, log_path: Path) -> Path:
             set -euo pipefail
             printf '%s start\\n' "${{FAKE_DOTNET_LABEL:-unknown}}" >> "{log_path}"
             sleep "${{FAKE_DOTNET_SLEEP_SECONDS:-0}}"
+            project_path="${{2:-}}"
+            if [[ "$project_path" == *.csproj ]]; then
+              mkdir -p "$(dirname "$project_path")/obj"
+              printf '{{"version":3,"targets":{{}},"libraries":{{}}}}\\n' \
+                > "$(dirname "$project_path")/obj/project.assets.json"
+            fi
             printf '%s end\\n' "${{FAKE_DOTNET_LABEL:-unknown}}" >> "{log_path}"
             """
         ),
