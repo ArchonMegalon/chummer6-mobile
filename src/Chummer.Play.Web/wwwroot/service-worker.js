@@ -20,6 +20,7 @@ const MOBILE_NAV_FALLBACK = "/mobile/player";
 const MOBILE_PLAYER_NAV_FALLBACK = "/mobile/player";
 const MOBILE_GM_NAV_FALLBACK = "/mobile/gm";
 const MOBILE_OBSERVER_NAV_FALLBACK = "/mobile/observer";
+const OFFLINE_NAV_FALLBACK = MOBILE_NAV_FALLBACK;
 const MEDIA_MAX_ENTRIES = 40;
 const MEDIA_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 3;
 let playNetworkOffline = false;
@@ -131,22 +132,37 @@ const CRITICAL_SHELL_ASSETS = [
   "/icons/icon-192.svg",
   "/icons/icon-512.svg"
 ];
+const CRITICAL_SHELL_FETCH_ATTEMPTS = 3;
+const CRITICAL_SHELL_FETCH_RETRY_DELAYS_MS = [250, 750];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(precacheCriticalShell());
 });
 
 async function precacheCriticalShell() {
-  const verified = await Promise.all(CRITICAL_SHELL_ASSETS.map(async (asset) => {
-    const request = new Request(asset, { method: "GET", cache: "reload", credentials: "omit" });
-    const response = await fetch(request);
-    if (!shouldCacheResponse(request, response)) {
-      throw new Error(`critical public shell asset failed validation: ${asset}`);
-    }
-    return { request, response };
-  }));
+  const verified = await Promise.all(CRITICAL_SHELL_ASSETS.map(fetchCriticalShellAsset));
   const cache = await caches.open(SHELL_CACHE);
   await Promise.all(verified.map(({ request, response }) => cache.put(request, response)));
+}
+
+async function fetchCriticalShellAsset(asset) {
+  for (let attempt = 0; attempt < CRITICAL_SHELL_FETCH_ATTEMPTS; attempt += 1) {
+    const request = new Request(asset, { method: "GET", cache: "reload", credentials: "omit" });
+    try {
+      const response = await fetch(request);
+      if (shouldCacheResponse(request, response)) {
+        return { request, response };
+      }
+    } catch {
+      // The closed retry budget below covers transient cutover/network failures.
+    }
+    if (attempt + 1 < CRITICAL_SHELL_FETCH_ATTEMPTS) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, CRITICAL_SHELL_FETCH_RETRY_DELAYS_MS[attempt]);
+      });
+    }
+  }
+  throw new Error(`critical public shell asset failed validation: ${asset}`);
 }
 
 self.addEventListener("activate", (event) => {
@@ -421,7 +437,7 @@ self.addEventListener("fetch", (event) => {
             status: 503,
             headers: {
               "content-type": "application/problem+json",
-              "cache-control": "private, no-store"
+              "cache-control": "no-store"
             }
           }
         ))
@@ -509,7 +525,7 @@ function offlineNavigationResponse(pathname) {
     statusText: "Service Unavailable",
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "cache-control": "private, no-store",
+      "cache-control": "no-store",
       "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
       "x-content-type-options": "nosniff"
     }
@@ -763,7 +779,7 @@ function playApiNetworkUnavailableResponse() {
       status: 503,
       headers: {
         "content-type": "application/problem+json",
-        "cache-control": "private, no-store"
+        "cache-control": "no-store"
       }
     }
   );
