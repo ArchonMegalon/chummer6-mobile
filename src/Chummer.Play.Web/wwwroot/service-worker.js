@@ -124,6 +124,7 @@ const PUBLIC_MEDIA_CONTENT_TYPES = new Set([
   "video/webm"
 ]);
 const CRITICAL_SHELL_ASSETS = [
+  "/mobile.css",
   "/mobile-install-shell.js",
   "/manifest.webmanifest",
   "/manifest.player.webmanifest",
