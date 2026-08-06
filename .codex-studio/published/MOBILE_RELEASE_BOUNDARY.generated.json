@@ -1,21 +1,21 @@
 {
   "contract_name": "chummer6-mobile.release_boundary.v1",
   "verification_mode": "slice",
-  "verification_run_id": "",
+  "verification_run_id": "mobile-local-release-20260806",
   "status": "pass",
-  "generated_at_utc": "2026-08-01T03:00:30Z",
+  "generated_at_utc": "2026-08-06T21:16:24Z",
   "release_receipt_count": 9,
-  "play_owned_entry_count": 2,
-  "play_owned_source_test_entry_count": 0,
-  "play_owned_release_receipt_entry_count": 2,
+  "play_owned_entry_count": 14,
+  "play_owned_source_test_entry_count": 5,
+  "play_owned_release_receipt_entry_count": 9,
   "play_foreign_entry_count": 0,
   "play_ambient_entry_count": 0,
   "run_services_owned_entry_count": 0,
   "run_services_foreign_entry_count": 0,
-  "run_services_ambient_entry_count": 21,
-  "owned_disposable_local_artifact_count": 1,
+  "run_services_ambient_entry_count": 3,
+  "owned_disposable_local_artifact_count": 0,
   "shared_external_temp_artifact_count": 9,
-  "disposable_local_artifact_count": 10,
+  "disposable_local_artifact_count": 9,
   "owned_boundary": {
     "play_source_files": [
       {
@@ -49,9 +49,9 @@
       {
         "path": "docs/PLAY_RELEASE_SIGNOFF.md",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "dd9e9f9abc050b03051d27b8a4e60acb3f43417e9aa543cad8205add916d9c2b",
-        "size_bytes": 26306
+        "worktree_status": " M",
+        "sha256": "6277ef8cb31f9e387a80fbe55dacaf187f1430344103f62262f69c05632959e5",
+        "size_bytes": 26456
       },
       {
         "path": "docs/next90-m112-mobile-campaign-continuity.proof.md",
@@ -154,9 +154,9 @@
       {
         "path": "scripts/run_mobile_strict_public_edge_follow_through.py",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "60b6262e29b72b3526ec648787357b65d05cc5cda2c2bd6446638cc9c4062120",
-        "size_bytes": 12128
+        "worktree_status": " M",
+        "sha256": "89b4f9392645606a86b24807909b2933def8f16eb5308ac60522ffadc53bfea5",
+        "size_bytes": 17022
       },
       {
         "path": "scripts/verify_next90_m112_mobile_campaign_continuity.py",
@@ -210,9 +210,9 @@
       {
         "path": "scripts/verify_mobile_pwa_performance_budget.py",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "4957ff5b9e72a6f1e71962008c40799a6b0174a42e88c111e84a43fd1f5ae2b9",
-        "size_bytes": 8643
+        "worktree_status": " M",
+        "sha256": "b71372b1386a1aa3afa1052326682d1767bd51b1e432e6ceda5cae8648165794",
+        "size_bytes": 8662
       },
       {
         "path": "scripts/verify_mobile_pwa_runtime_smoke.py",
@@ -337,8 +337,8 @@
         "path": "src/Chummer.Play.Web/wwwroot/service-worker.js",
         "exists": true,
         "worktree_status": "",
-        "sha256": "cb4ffa6fa18e2334ae88771e86fb6859f402a19f60fd63783b62530866900a72",
-        "size_bytes": 28635
+        "sha256": "a01c2b747efad10a055cf7390bb6a5f84399da10f4a8f47a945cbd6b660e9594",
+        "size_bytes": 30349
       }
     ],
     "play_test_files": [
@@ -373,9 +373,9 @@
       {
         "path": "tests/test_mobile_pwa_performance_budget.py",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "d2279fa6058c6e4e2ea07aadc5ddd7d7b54ced78b5ecbc1ff025b7276dcbbcf6",
-        "size_bytes": 7163
+        "worktree_status": " M",
+        "sha256": "e097807c33e12a84a764909038d9bc6ea22520767463bef0b7351cd83cced63f",
+        "size_bytes": 7339
       },
       {
         "path": "tests/test_cleanup_mobile_disposable_artifacts.py",
@@ -387,9 +387,9 @@
       {
         "path": "tests/test_mobile_strict_public_edge_follow_through.py",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "30c56667660b9ad47f84bf2a6fb64a11d9f5795f6f9aa22f3272bfc3b820059a",
-        "size_bytes": 13866
+        "worktree_status": " M",
+        "sha256": "9e7cf9c8e7315a168ac111e0b8cdc356f504e68de11a158d05bb7bfb74725523",
+        "size_bytes": 15720
       },
       {
         "path": "tests/test_verify_mobile_release_proof_contract.py",
@@ -443,96 +443,96 @@
         "path": ".codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json",
         "exists": true,
         "worktree_status": " M",
-        "sha256": "ec89fdea9c02366ee6f4a3ef54425efa078b92fb975e6bab8ec125f494a6a951",
-        "size_bytes": 36260,
+        "sha256": "848d43571385a537f557567411d04e506e6b6a4cfc3e0c11d4c9a02b6c8b06dd",
+        "size_bytes": 38824,
         "status": "pass",
         "contract_name": "chummer6-mobile.release_boundary.v1",
-        "generated_at_utc": "2026-08-01T03:00:30Z",
+        "generated_at_utc": "2026-08-06T21:16:24Z",
         "machine_local_noise_findings": []
       },
       {
         "path": ".codex-studio/published/MOBILE_CROSS_SURFACE_READINESS.generated.json",
         "exists": true,
         "worktree_status": " M",
-        "sha256": "36e240f592d7d0a84107cfb5c8d34af7ca17cac862e02e0b2be749089ecb99e6",
-        "size_bytes": 7531,
+        "sha256": "91ea10a2cc58c30460c6251b02b46d3ac15d20a59ab83a2c8d5cbf9128de51ee",
+        "size_bytes": 7593,
         "status": "pass",
         "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
-        "generated_at_utc": "2026-08-01T03:00:19Z",
+        "generated_at_utc": "2026-08-06T21:16:15Z",
         "machine_local_noise_findings": []
       },
       {
         "path": ".codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "26ee74a550ff0b258f582f7f49decdd600cd05ff430a158840079e8732a1f455",
-        "size_bytes": 70661,
+        "worktree_status": " M",
+        "sha256": "f7ba8ec55b69feb290cd23d32d7ef7e81315ca4cf920336b3aabb512eeff00b8",
+        "size_bytes": 72223,
         "status": "passed",
         "contract_name": "chummer6-mobile.local_release_proof",
-        "generated_at_utc": "2026-08-01T02:44:44Z",
+        "generated_at_utc": "2026-08-06T21:16:24Z",
         "machine_local_noise_findings": []
       },
       {
         "path": ".codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "5c262eb18213d39dde39ebac1b3d5c2baf6520466786dc150dc9431ee4f741ad",
-        "size_bytes": 8005,
+        "worktree_status": " M",
+        "sha256": "dfb3ec6d10071ebb35eae032ca78c82ec13c9db0ba88f2aad507ad1e1a7e6916",
+        "size_bytes": 8398,
         "status": "pass",
         "contract_name": "chummer6-mobile.strict_public_edge_follow_through.v1",
-        "generated_at_utc": "2026-08-01T02:44:44Z",
+        "generated_at_utc": "2026-08-06T21:16:24Z",
         "machine_local_noise_findings": []
       },
       {
         "path": ".codex-studio/published/MOBILE_PWA_ANALYTICS_SMOKE.generated.json",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "c84deefa2df6ab77617b0d0883c02ca5bf274fca32dbea70a877f5e30f451322",
-        "size_bytes": 1159,
+        "worktree_status": " M",
+        "sha256": "28fa1b47300700f923ad9ab80c951709084614c306117b2d3a6d157b2c079392",
+        "size_bytes": 1158,
         "status": "pass",
         "contract_name": "chummer_play.mobile_pwa_analytics_smoke.v2",
-        "generated_at_utc": "2026-08-01T02:44:11Z",
+        "generated_at_utc": "2026-08-06T10:36:11Z",
         "machine_local_noise_findings": []
       },
       {
         "path": ".codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "9e20aa1dbb95b4210b24d987103aa027335a165719619c942c59c9c458d8d7aa",
-        "size_bytes": 3043,
+        "worktree_status": " M",
+        "sha256": "d723e6ca0c1a872cb99fffd5a5f13263df873328c2d8e435710506679885ec36",
+        "size_bytes": 3061,
         "status": "pass",
         "contract_name": "chummer_play.mobile_pwa_performance_budget.v1",
-        "generated_at_utc": "2026-08-01T02:44:34.194738Z",
+        "generated_at_utc": "2026-08-06T21:16:15.790483Z",
         "machine_local_noise_findings": []
       },
       {
         "path": ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "fb197c6a79bd54aef8a3addfaa72e9c10d8617e5f3f23f49194ae1b378f2c918",
-        "size_bytes": 1558,
+        "worktree_status": " M",
+        "sha256": "f97f055b793a3b6d11735d96461a088dbd06d8ec39767742d4e8d85701cf8fee",
+        "size_bytes": 1557,
         "status": "pass",
         "contract_name": "chummer_play.mobile_pwa_runtime_smoke.v2",
-        "generated_at_utc": "2026-08-01T02:42:45Z",
+        "generated_at_utc": "2026-08-06T10:36:08Z",
         "machine_local_noise_findings": []
       },
       {
         "path": ".codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "625a1bc454e4a1e6556e6985f4ed2ca4fdfc6b8a719f61e65c21ec809a710663",
-        "size_bytes": 2184,
+        "worktree_status": " M",
+        "sha256": "0fc0ab0a574d7a30a1c2696add960275f896d320a3d8aa2f9328a859548e62a3",
+        "size_bytes": 2183,
         "status": "pass",
         "contract_name": "chummer_play.mobile_pwa_viewport_smoke.v2",
-        "generated_at_utc": "2026-08-01T02:42:48Z",
+        "generated_at_utc": "2026-08-06T10:36:09Z",
         "machine_local_noise_findings": []
       },
       {
         "path": ".codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json",
         "exists": true,
-        "worktree_status": "",
-        "sha256": "621f9375cc559d078aace30423cf50838e369187ffb87b003b5efafd81c97f4e",
-        "size_bytes": 325,
+        "worktree_status": " M",
+        "sha256": "134c4581f6fb6b1c4e9420fd3222724ebdd89c3b926447155857bb04521898b7",
+        "size_bytes": 324,
         "status": "pass",
         "contract_name": "chummer6-mobile.verification-mode/v1",
         "generated_at_utc": null,
@@ -542,10 +542,10 @@
   },
   "worktree": {
     "play": {
-      "total_entry_count": 2,
-      "owned_entry_count": 2,
-      "owned_source_test_entry_count": 0,
-      "owned_release_receipt_entry_count": 2,
+      "total_entry_count": 14,
+      "owned_entry_count": 14,
+      "owned_source_test_entry_count": 5,
+      "owned_release_receipt_entry_count": 9,
       "foreign_entry_count": 0,
       "disposable_entry_count": 0,
       "external_blocker_entry_count": 0,
@@ -558,11 +558,97 @@
         },
         {
           "status": " M",
+          "path": ".codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_PWA_ANALYTICS_SMOKE.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_PWA_ANALYTICS_SMOKE.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json"
+        },
+        {
+          "status": " M",
           "path": ".codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json",
           "raw": " M .codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json"
+        },
+        {
+          "status": " M",
+          "path": "docs/PLAY_RELEASE_SIGNOFF.md",
+          "raw": " M docs/PLAY_RELEASE_SIGNOFF.md"
+        },
+        {
+          "status": " M",
+          "path": "scripts/run_mobile_strict_public_edge_follow_through.py",
+          "raw": " M scripts/run_mobile_strict_public_edge_follow_through.py"
+        },
+        {
+          "status": " M",
+          "path": "scripts/verify_mobile_pwa_performance_budget.py",
+          "raw": " M scripts/verify_mobile_pwa_performance_budget.py"
+        },
+        {
+          "status": " M",
+          "path": "tests/test_mobile_pwa_performance_budget.py",
+          "raw": " M tests/test_mobile_pwa_performance_budget.py"
+        },
+        {
+          "status": " M",
+          "path": "tests/test_mobile_strict_public_edge_follow_through.py",
+          "raw": " M tests/test_mobile_strict_public_edge_follow_through.py"
         }
       ],
-      "owned_source_test_entries": [],
+      "owned_source_test_entries": [
+        {
+          "status": " M",
+          "path": "docs/PLAY_RELEASE_SIGNOFF.md",
+          "raw": " M docs/PLAY_RELEASE_SIGNOFF.md"
+        },
+        {
+          "status": " M",
+          "path": "scripts/run_mobile_strict_public_edge_follow_through.py",
+          "raw": " M scripts/run_mobile_strict_public_edge_follow_through.py"
+        },
+        {
+          "status": " M",
+          "path": "scripts/verify_mobile_pwa_performance_budget.py",
+          "raw": " M scripts/verify_mobile_pwa_performance_budget.py"
+        },
+        {
+          "status": " M",
+          "path": "tests/test_mobile_pwa_performance_budget.py",
+          "raw": " M tests/test_mobile_pwa_performance_budget.py"
+        },
+        {
+          "status": " M",
+          "path": "tests/test_mobile_strict_public_edge_follow_through.py",
+          "raw": " M tests/test_mobile_strict_public_edge_follow_through.py"
+        }
+      ],
       "owned_release_receipt_entries": [
         {
           "status": " M",
@@ -571,8 +657,43 @@
         },
         {
           "status": " M",
+          "path": ".codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_PWA_ANALYTICS_SMOKE.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_PWA_ANALYTICS_SMOKE.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_PWA_PERFORMANCE_BUDGET.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json"
+        },
+        {
+          "status": " M",
           "path": ".codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json",
           "raw": " M .codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json"
+        },
+        {
+          "status": " M",
+          "path": ".codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json",
+          "raw": " M .codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json"
         }
       ],
       "disposable_entry_examples": [],
@@ -582,14 +703,14 @@
       "repo_root": "/docker/chummercomplete/chummer-play"
     },
     "run_services": {
-      "total_entry_count": 21,
+      "total_entry_count": 3,
       "owned_entry_count": 0,
       "owned_source_test_entry_count": 0,
       "owned_release_receipt_entry_count": 0,
       "foreign_entry_count": 0,
       "disposable_entry_count": 0,
       "external_blocker_entry_count": 0,
-      "ambient_entry_count": 21,
+      "ambient_entry_count": 3,
       "owned_entries": [],
       "owned_source_test_entries": [],
       "owned_release_receipt_entries": [],
@@ -598,63 +719,8 @@
       "ambient_entry_examples": [
         {
           "status": " M",
-          "path": ".codex-design/product/WEEKLY_PRODUCT_PULSE.generated.json",
-          "raw": " M .codex-design/product/WEEKLY_PRODUCT_PULSE.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/FINAL_GOLD_JANITOR.generated.json",
-          "raw": " M .codex-studio/published/FINAL_GOLD_JANITOR.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/FINAL_GOLD_VERDICT.md",
-          "raw": " M .codex-studio/published/FINAL_GOLD_VERDICT.md"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json",
-          "raw": " M .codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/FLAGSHIP_PRODUCT_READINESS_GATE.generated.json",
-          "raw": " M .codex-studio/published/FLAGSHIP_PRODUCT_READINESS_GATE.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/GOOGLE_OAUTH_LINKING_OPERATOR_EVIDENCE_REQUEST.generated.json",
-          "raw": " M .codex-studio/published/GOOGLE_OAUTH_LINKING_OPERATOR_EVIDENCE_REQUEST.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/GOOGLE_OAUTH_LINKING_PROOF.generated.json",
-          "raw": " M .codex-studio/published/GOOGLE_OAUTH_LINKING_PROOF.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/HUB_CAMPAIGN_OS_LOCAL_PROOF.generated.json",
-          "raw": " M .codex-studio/published/HUB_CAMPAIGN_OS_LOCAL_PROOF.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/HUB_LOCAL_RELEASE_PROOF.generated.json",
-          "raw": " M .codex-studio/published/HUB_LOCAL_RELEASE_PROOF.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/LIVE_PUBLIC_WINDOWS_INSTALLER.generated.json",
-          "raw": " M .codex-studio/published/LIVE_PUBLIC_WINDOWS_INSTALLER.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/OPERATOR_RELEASE_DASHBOARD.generated.json",
-          "raw": " M .codex-studio/published/OPERATOR_RELEASE_DASHBOARD.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/OPERATOR_RELEASE_DASHBOARD.md",
-          "raw": " M .codex-studio/published/OPERATOR_RELEASE_DASHBOARD.md"
+          "path": ".codex-studio/published/PUBLIC_EDGE_DEPLOY_PREFLIGHT.generated.json",
+          "raw": " M .codex-studio/published/PUBLIC_EDGE_DEPLOY_PREFLIGHT.generated.json"
         },
         {
           "status": " M",
@@ -662,52 +728,16 @@
           "raw": " M .codex-studio/published/PUBLIC_EDGE_POSTDEPLOY_GATE.generated.json"
         },
         {
-          "status": " M",
-          "path": ".codex-studio/published/WINDOWS_INSTALLER_VISUAL_AUDIT.generated.json",
-          "raw": " M .codex-studio/published/WINDOWS_INSTALLER_VISUAL_AUDIT.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/WINDOWS_INSTALLER_VISUAL_AUDIT_INTAKE_REQUEST.generated.json",
-          "raw": " M .codex-studio/published/WINDOWS_INSTALLER_VISUAL_AUDIT_INTAKE_REQUEST.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/compile.manifest.json",
-          "raw": " M .codex-studio/published/compile.manifest.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/portal/RELEASE_CHANNEL.generated.json",
-          "raw": " M .codex-studio/published/portal/RELEASE_CHANNEL.generated.json"
-        },
-        {
-          "status": " M",
-          "path": ".codex-studio/published/portal/releases.json",
-          "raw": " M .codex-studio/published/portal/releases.json"
-        },
-        {
-          "status": " M",
-          "path": "Chummer.Run.Api/wwwroot/proofs/mac-codex-release/HUB_LOCAL_RELEASE_PROOF.generated.json",
-          "raw": " M Chummer.Run.Api/wwwroot/proofs/mac-codex-release/HUB_LOCAL_RELEASE_PROOF.generated.json"
-        },
-        {
-          "status": " M",
-          "path": "NEXT_SESSION_HANDOFF.md",
-          "raw": " M NEXT_SESSION_HANDOFF.md"
+          "status": " D",
+          "path": ".codex-studio/published/RELEASE_READY.generated.json",
+          "raw": " D .codex-studio/published/RELEASE_READY.generated.json"
         }
       ],
       "foreign_entry_examples": [],
       "repo_root": "/docker/chummercomplete/chummer.run-services"
     }
   },
-  "owned_disposable_local_artifacts": [
-    {
-      "path": "/tmp/chummer-play-verify-20260729.log",
-      "is_file": true,
-      "size_bytes": 4697
-    }
-  ],
+  "owned_disposable_local_artifacts": [],
   "shared_external_temp_artifacts": [
     {
       "path": "/tmp/chummer-public-edge-deploy-preflight-current.json",
@@ -715,94 +745,89 @@
       "size_bytes": 225363
     },
     {
-      "path": "/tmp/chummer-public-edge-overlay-publish-current.json",
+      "path": "/tmp/chummer-public-edge-overlay-current-release.json",
       "is_file": true,
-      "size_bytes": 37642
-    },
-    {
-      "path": "/tmp/chummer-public-edge-overlay-publish-runtime-identity.json",
-      "is_file": true,
-      "size_bytes": 37674
+      "size_bytes": 37758
     },
     {
       "path": "/tmp/chummer-public-edge-postdeploy-canonical-current.json",
       "is_file": true,
-      "size_bytes": 312341
+      "size_bytes": 312366
     },
     {
-      "path": "/tmp/chummer-public-edge-source-preflight-current.json",
+      "path": "/tmp/chummer-public-edge-source-preflight.json",
       "is_file": true,
       "size_bytes": 55720
     },
     {
-      "path": "/tmp/chummer-public-edge-source-preflight-runtime-identity.json",
-      "is_file": true,
-      "size_bytes": 55720
-    },
-    {
-      "path": "/tmp/chummer-frontdoor-navigation-_l_kwuo7",
+      "path": "/tmp/chummer-frontdoor-navigation-62313j2s",
       "is_file": false,
       "size_bytes": null
     },
     {
-      "path": "/tmp/chummer-frontdoor-navigation-bohsg_0n",
+      "path": "/tmp/chummer-frontdoor-navigation-9svoldwn",
       "is_file": false,
       "size_bytes": null
     },
     {
-      "path": "/tmp/chummer-mobile-frontdoor-inspect",
+      "path": "/tmp/chummer-frontdoor-navigation-crk_6gob",
+      "is_file": false,
+      "size_bytes": null
+    },
+    {
+      "path": "/tmp/chummer-frontdoor-navigation-jbr_7jd6",
+      "is_file": false,
+      "size_bytes": null
+    },
+    {
+      "path": "/tmp/chummer-frontdoor-navigation-q5ghxwnf",
       "is_file": false,
       "size_bytes": null
     }
   ],
   "disposable_local_artifacts": [
     {
-      "path": "/tmp/chummer-play-verify-20260729.log",
-      "is_file": true,
-      "size_bytes": 4697
-    },
-    {
       "path": "/tmp/chummer-public-edge-deploy-preflight-current.json",
       "is_file": true,
       "size_bytes": 225363
     },
     {
-      "path": "/tmp/chummer-public-edge-overlay-publish-current.json",
+      "path": "/tmp/chummer-public-edge-overlay-current-release.json",
       "is_file": true,
-      "size_bytes": 37642
-    },
-    {
-      "path": "/tmp/chummer-public-edge-overlay-publish-runtime-identity.json",
-      "is_file": true,
-      "size_bytes": 37674
+      "size_bytes": 37758
     },
     {
       "path": "/tmp/chummer-public-edge-postdeploy-canonical-current.json",
       "is_file": true,
-      "size_bytes": 312341
+      "size_bytes": 312366
     },
     {
-      "path": "/tmp/chummer-public-edge-source-preflight-current.json",
+      "path": "/tmp/chummer-public-edge-source-preflight.json",
       "is_file": true,
       "size_bytes": 55720
     },
     {
-      "path": "/tmp/chummer-public-edge-source-preflight-runtime-identity.json",
-      "is_file": true,
-      "size_bytes": 55720
-    },
-    {
-      "path": "/tmp/chummer-frontdoor-navigation-_l_kwuo7",
+      "path": "/tmp/chummer-frontdoor-navigation-62313j2s",
       "is_file": false,
       "size_bytes": null
     },
     {
-      "path": "/tmp/chummer-frontdoor-navigation-bohsg_0n",
+      "path": "/tmp/chummer-frontdoor-navigation-9svoldwn",
       "is_file": false,
       "size_bytes": null
     },
     {
-      "path": "/tmp/chummer-mobile-frontdoor-inspect",
+      "path": "/tmp/chummer-frontdoor-navigation-crk_6gob",
+      "is_file": false,
+      "size_bytes": null
+    },
+    {
+      "path": "/tmp/chummer-frontdoor-navigation-jbr_7jd6",
+      "is_file": false,
+      "size_bytes": null
+    },
+    {
+      "path": "/tmp/chummer-frontdoor-navigation-q5ghxwnf",
       "is_file": false,
       "size_bytes": null
     }
@@ -830,7 +855,7 @@
     "failures": [],
     "online_launch_status": "pass",
     "online_launch_final_url": "https://chummer.run/blazor/app?command=character_roster",
-    "expected_release_version": "run-20260801-013900",
+    "expected_release_version": "run-20260802-160500",
     "expected_release_status": "published",
     "expected_release_channel": "preview",
     "expected_release_supportability_state": "review_required",
@@ -842,13 +867,26 @@
     "path": "/tmp/chummer-public-edge-postdeploy-canonical-current.json"
   },
   "design_mirror_snapshot": {
-    "status": "pass",
+    "status": "fail",
     "script_path": "scripts/ai/verify_design_mirror.py",
     "command": "python3 scripts/ai/verify_design_mirror.py",
-    "blocking_findings": [],
-    "blocking_finding_count": 0,
-    "repair_commands": [],
-    "stdout": "design mirror ok"
+    "blocking_findings": [
+      "stale .codex-design/product/README.md",
+      "stale .codex-design/product/WEEKLY_PRODUCT_PULSE.generated.json",
+      "stale .codex-design/product/FINAL_GOLD_GRAPH.generated.json",
+      "stale .codex-design/product/CAMPAIGN_OPERABILITY_SCORECARD.generated.json",
+      "stale .codex-design/product/CAMPAIGN_OS_FLAGSHIP_CLOSEOUT.md",
+      "stale .codex-design/product/HUMAN_ONLY_RELEASE_BOUNDARIES.generated.md",
+      "stale .codex-design/product/WHAT_IS_STILL_BELOW_GOLD.md",
+      "stale .codex-design/product/GROUP_BLOCKERS.md",
+      "stale .codex-design/product/HORIZON_REGISTRY.yaml"
+    ],
+    "blocking_finding_count": 9,
+    "repair_commands": [
+      "bash scripts/ai/repair_design_mirror.sh",
+      "python3 /docker/chummercomplete/chummer-design/scripts/ai/publish_local_mirrors.py"
+    ],
+    "stdout": ""
   },
   "live_build_lock_probe": {
     "status": "clear",
@@ -860,7 +898,7 @@
   "canonical_release_blockers": {
     "path": "/docker/chummercomplete/RELEASE_BLOCKERS.generated.json",
     "status": "present",
-    "generated_at": "2026-08-01T03:00:19Z",
+    "generated_at": "2026-08-06T17:05:33Z",
     "root_blocker_ids": [
       "release_posture:non_flagship_channel",
       "release_truth:release_ready",
@@ -875,7 +913,7 @@
         "blocker_id": "release_posture:non_flagship_channel",
         "owning_repo": "chummer6-hub-registry",
         "failing_gate": "published release channel is not in flagship public-stable posture",
-        "stable_promotion_command": "RELEASE_CHANNEL=public_stable RELEASE_VERSION=run-20260801-013900 RELEASE_PUBLISHED_AT=2026-08-01T00:25:00Z bash /docker/chummercomplete/chummer6-ui/scripts/publish-download-bundle.sh /docker/chummercomplete/chummer.run-services/Chummer.Portal/downloads /docker/chummercomplete/chummer.run-services/Chummer.Portal/downloads",
+        "stable_promotion_command": "RELEASE_CHANNEL=public_stable RELEASE_VERSION=run-20260802-160500 RELEASE_PUBLISHED_AT=2026-08-06T15:12:19Z bash /docker/chummercomplete/chummer6-ui/scripts/publish-download-bundle.sh /docker/chummercomplete/chummer.run-services/Chummer.Portal/downloads /docker/chummercomplete/chummer.run-services/Chummer.Portal/downloads",
         "post_promotion_verify_command": "python3 scripts/materialize_release_ready_receipt.py --force-global-verifier && python3 scripts/materialize_operator_release_dashboard.py && python3 scripts/final_gold_janitor.py && python3 ../scripts/release/_release_gate_common.py && python3 ../scripts/materialize_codex_flagship_handoff.py --timestamp \"$(date --iso-8601=seconds)\"",
         "expected_bundle_path": null,
         "expected_bundle_path_exists": null
@@ -907,7 +945,7 @@
         "failing_gate": "windows_installer_visual_audit is not passing for public-stable release truth",
         "stable_promotion_command": null,
         "post_promotion_verify_command": null,
-        "expected_bundle_path": "/docker/chummercomplete/chummer.run-services/.state/incoming_windows_installer_gold_proof/windows-installer-gold-proof-5555a5571bc1.zip",
+        "expected_bundle_path": "/docker/chummercomplete/chummer.run-services/.state/incoming_windows_installer_gold_proof/windows-installer-gold-proof-040659ba0fd0.zip",
         "expected_bundle_path_exists": false
       },
       {
@@ -924,9 +962,22 @@
   },
   "external_follow_through": {
     "design_mirror": {
-      "status": "clear",
-      "blocking_findings": [],
-      "repair_commands": []
+      "status": "blocked",
+      "blocking_findings": [
+        "stale .codex-design/product/README.md",
+        "stale .codex-design/product/WEEKLY_PRODUCT_PULSE.generated.json",
+        "stale .codex-design/product/FINAL_GOLD_GRAPH.generated.json",
+        "stale .codex-design/product/CAMPAIGN_OPERABILITY_SCORECARD.generated.json",
+        "stale .codex-design/product/CAMPAIGN_OS_FLAGSHIP_CLOSEOUT.md",
+        "stale .codex-design/product/HUMAN_ONLY_RELEASE_BOUNDARIES.generated.md",
+        "stale .codex-design/product/WHAT_IS_STILL_BELOW_GOLD.md",
+        "stale .codex-design/product/GROUP_BLOCKERS.md",
+        "stale .codex-design/product/HORIZON_REGISTRY.yaml"
+      ],
+      "repair_commands": [
+        "bash scripts/ai/repair_design_mirror.sh",
+        "python3 /docker/chummercomplete/chummer-design/scripts/ai/publish_local_mirrors.py"
+      ]
     },
     "strict_public_edge": {
       "status": "ready_to_rerun",

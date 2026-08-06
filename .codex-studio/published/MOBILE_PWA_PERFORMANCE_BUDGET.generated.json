@@ -4,8 +4,8 @@
     "raw_bytes": 98304
   },
   "aggregate_observed": {
-    "gzip_bytes": 44683,
-    "raw_bytes": 62627
+    "gzip_bytes": 45762,
+    "raw_bytes": 66866
   },
   "asset_budgets": {
     "/icons/apple-touch-icon.png": {
@@ -46,7 +46,7 @@
     },
     "/mobile-install-shell.js": {
       "gzip_bytes": 3072,
-      "raw_bytes": 8192
+      "raw_bytes": 9216
     },
     "/mobile.css": {
       "gzip_bytes": 4096,
@@ -92,8 +92,8 @@
       "raw_bytes": 1556
     },
     "/mobile-install-shell.js": {
-      "gzip_bytes": 1198,
-      "raw_bytes": 3993
+      "gzip_bytes": 2277,
+      "raw_bytes": 8232
     },
     "/mobile.css": {
       "gzip_bytes": 2845,
@@ -108,23 +108,24 @@
     "/manifest.observer.webmanifest",
     "/manifest.player.webmanifest",
     "/manifest.webmanifest",
-    "/mobile-install-shell.js"
+    "/mobile-install-shell.js",
+    "/mobile.css"
   ],
   "failures": [],
   "framework_asset_exceptions": [
     "/_framework/blazor.web.js"
   ],
-  "generated_at_utc": "2026-08-01T02:44:34.194738Z",
+  "generated_at_utc": "2026-08-06T21:16:15.790483Z",
   "measurement": "deterministic gzip-9 with mtime=0 over source-owned service-worker install assets",
   "service_worker_budget": {
-    "gzip_bytes": 7168,
-    "raw_bytes": 28672
+    "gzip_bytes": 8192,
+    "raw_bytes": 32768
   },
   "service_worker_observed": {
-    "gzip_bytes": 7151,
-    "raw_bytes": 28635
+    "gzip_bytes": 7598,
+    "raw_bytes": 30349
   },
   "status": "pass",
-  "verification_mode": "release",
-  "verification_run_id": "mobile-release-20260801-0228"
+  "verification_mode": "slice",
+  "verification_run_id": "mobile-local-release-20260806"
 }

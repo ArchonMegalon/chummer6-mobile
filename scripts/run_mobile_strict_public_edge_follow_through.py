@@ -5,6 +5,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import secrets
 import subprocess
 import time
 from pathlib import Path
@@ -18,6 +19,13 @@ LOCAL_RELEASE_PROOF_RECEIPT = ROOT / ".codex-studio" / "published" / "MOBILE_LOC
 OUT = ROOT / ".codex-studio" / "published" / "MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json"
 LEGACY_OUT = ROOT / ".state" / "mobile_strict_public_edge_follow_through.generated.json"
 BOUNDARY_MATERIALIZE_COMMAND = "python3 scripts/materialize_mobile_release_boundary.py"
+VERIFICATION_MODE_WRITER = ROOT / "scripts" / "ai" / "write_verification_mode_receipt.py"
+ALLOWED_VERIFICATION_MODES = {"scaffold", "slice", "integration", "release"}
+MODE_BOUND_SMOKE_RECEIPTS = (
+    ROOT / ".codex-studio" / "published" / "MOBILE_PWA_ANALYTICS_SMOKE.generated.json",
+    ROOT / ".codex-studio" / "published" / "MOBILE_PWA_RUNTIME_SMOKE.generated.json",
+    ROOT / ".codex-studio" / "published" / "MOBILE_PWA_VIEWPORT_SMOKE.generated.json",
+)
 
 
 def iso_now() -> str:
@@ -53,7 +61,53 @@ def load_optional_json(path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def run_shell_command(command: str) -> dict[str, Any]:
+def build_verification_context() -> dict[str, Any]:
+    mode = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
+    if mode not in ALLOWED_VERIFICATION_MODES:
+        raise SystemExit(f"unsupported CHUMMER_VERIFY_MODE: {mode}")
+    run_id = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
+    run_id_source = "environment"
+    if not run_id:
+        smoke_payloads = [load_optional_json(path) for path in MODE_BOUND_SMOKE_RECEIPTS]
+        smoke_run_ids = {
+            str(payload.get("verification_run_id") or "").strip()
+            for payload in smoke_payloads
+            if payload.get("verification_mode") == mode
+            and str(payload.get("verification_run_id") or "").strip()
+        }
+        if (
+            len(smoke_payloads) == 3
+            and all(payload.get("verification_mode") == mode for payload in smoke_payloads)
+            and len(smoke_run_ids) == 1
+        ):
+            run_id = next(iter(smoke_run_ids))
+            run_id_source = "mode_bound_smoke_receipts"
+        else:
+            run_id = f"mobile-strict-public-edge-{secrets.token_hex(16)}"
+            run_id_source = "generated"
+    stub_packages_allowed = os.environ.get("CHUMMER_ALLOW_STUB_PACKAGES", "").strip()
+    if not stub_packages_allowed:
+        stub_packages_allowed = "1" if mode in {"scaffold", "slice"} else "0"
+    if stub_packages_allowed not in {"0", "1"}:
+        raise SystemExit("CHUMMER_ALLOW_STUB_PACKAGES must be 0 or 1")
+    if mode in {"integration", "release"} and stub_packages_allowed != "0":
+        raise SystemExit(f"{mode} verification forbids stub packages")
+    environment = {
+        **os.environ,
+        "CHUMMER_VERIFY_MODE": mode,
+        "CHUMMER_VERIFY_RUN_ID": run_id,
+        "CHUMMER_ALLOW_STUB_PACKAGES": stub_packages_allowed,
+    }
+    return {
+        "mode": mode,
+        "run_id": run_id,
+        "run_id_source": run_id_source,
+        "stub_packages_allowed": stub_packages_allowed == "1",
+        "environment": environment,
+    }
+
+
+def run_shell_command(command: str, environment: dict[str, str] | None = None) -> dict[str, Any]:
     started = time.monotonic()
     completed = subprocess.run(
         ["bash", "-lc", command],
@@ -61,12 +115,47 @@ def run_shell_command(command: str) -> dict[str, Any]:
         check=False,
         text=True,
         capture_output=True,
+        env=environment,
     )
     duration_seconds = round(time.monotonic() - started, 3)
     return {
         "command": command,
         "returncode": completed.returncode,
         "duration_seconds": duration_seconds,
+        "stdout_tail": trim_output(completed.stdout),
+        "stderr_tail": trim_output(completed.stderr),
+    }
+
+
+def materialize_verification_mode_receipt(
+    status: str,
+    verification_context: dict[str, Any],
+) -> dict[str, Any]:
+    command = [
+        "python3",
+        str(VERIFICATION_MODE_WRITER),
+        "--mode",
+        str(verification_context["mode"]),
+        "--status",
+        status,
+        "--stub-packages-allowed",
+        "1" if verification_context["stub_packages_allowed"] else "0",
+        "--verification-run-id",
+        str(verification_context["run_id"]),
+    ]
+    started = time.monotonic()
+    completed = subprocess.run(
+        command,
+        cwd=ROOT,
+        check=False,
+        text=True,
+        capture_output=True,
+        env=verification_context["environment"],
+    )
+    return {
+        "status": status,
+        "returncode": completed.returncode,
+        "duration_seconds": round(time.monotonic() - started, 3),
         "stdout_tail": trim_output(completed.stdout),
         "stderr_tail": trim_output(completed.stderr),
     }
@@ -91,8 +180,11 @@ def extract_strict_follow_through(boundary_payload: dict[str, Any]) -> dict[str,
     return strict_follow_through
 
 
-def materialize_boundary_state() -> dict[str, Any]:
-    command_result = run_shell_command(BOUNDARY_MATERIALIZE_COMMAND)
+def materialize_boundary_state(verification_context: dict[str, Any]) -> dict[str, Any]:
+    command_result = run_shell_command(
+        BOUNDARY_MATERIALIZE_COMMAND,
+        verification_context["environment"],
+    )
     boundary_payload = load_json(BOUNDARY_RECEIPT, "mobile release boundary receipt")
     strict_follow_through = extract_strict_follow_through(boundary_payload)
     live_build_lock_probe = (
@@ -133,16 +225,23 @@ def local_release_proof_summary() -> dict[str, Any]:
     }
 
 
-def write_receipt(output_path: Path, payload: dict[str, Any]) -> None:
-    payload["verification_mode"] = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
-    payload["verification_run_id"] = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
+def write_receipt(
+    output_path: Path,
+    payload: dict[str, Any],
+    verification_context: dict[str, Any],
+) -> None:
+    payload["verification_mode"] = verification_context["mode"]
+    payload["verification_run_id"] = verification_context["run_id"]
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if LEGACY_OUT != output_path and LEGACY_OUT.exists():
         LEGACY_OUT.unlink()
 
 
-def write_bootstrap_receipt(output_path: Path) -> None:
+def write_bootstrap_receipt(
+    output_path: Path,
+    verification_context: dict[str, Any],
+) -> None:
     write_receipt(
         output_path,
         {
@@ -151,6 +250,7 @@ def write_bootstrap_receipt(output_path: Path) -> None:
             "script_path": "scripts/run_mobile_strict_public_edge_follow_through.py",
             "status": "bootstrapping",
         },
+        verification_context,
     )
 
 
@@ -168,8 +268,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.poll_interval_seconds <= 0:
         raise SystemExit("--poll-interval-seconds must be greater than zero")
 
+    verification_context = build_verification_context()
     output_path = Path(args.output).resolve()
-    write_bootstrap_receipt(output_path)
+    write_bootstrap_receipt(output_path, verification_context)
     started_at = time.monotonic()
     deadline = started_at + args.timeout_seconds
     poll_count = 0
@@ -178,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
 
     while True:
         poll_count += 1
-        current_state = materialize_boundary_state()
+        current_state = materialize_boundary_state(verification_context)
         boundary_payload = current_state["boundary_payload"]
         strict_follow_through = current_state["strict_follow_through"]
         live_build_lock_probe = current_state["live_build_lock_probe"]
@@ -218,17 +319,25 @@ def main(argv: list[str] | None = None) -> int:
     rerun_executed = False
     rerun_failed = False
     post_rerun_boundary_state: dict[str, Any] | None = None
+    verification_mode_receipt_updates: list[dict[str, Any]] = []
 
     if strict_follow_through.get("status") == "ready_to_rerun" and args.execute_rerun:
         rerun_executed = True
+        if verification_context["mode"] != "release":
+            mode_update = materialize_verification_mode_receipt(
+                "in_progress",
+                verification_context,
+            )
+            verification_mode_receipt_updates.append(mode_update)
+            rerun_failed = mode_update["returncode"] != 0
         rerun_commands = [str(item).strip() for item in strict_follow_through.get("rerun_commands", []) if str(item).strip()]
-        for command in rerun_commands:
-            result = run_shell_command(command)
+        for command in (rerun_commands if not rerun_failed else []):
+            result = run_shell_command(command, verification_context["environment"])
             command_results.append(result)
             if result["returncode"] != 0:
                 rerun_failed = True
                 break
-        post_rerun_boundary_state = materialize_boundary_state()
+        post_rerun_boundary_state = materialize_boundary_state(verification_context)
         boundary_payload = post_rerun_boundary_state["boundary_payload"]
         strict_follow_through = post_rerun_boundary_state["strict_follow_through"]
         live_build_lock_probe = post_rerun_boundary_state["live_build_lock_probe"]
@@ -248,6 +357,15 @@ def main(argv: list[str] | None = None) -> int:
             final_status = "pass"
         else:
             final_status = "rerun_failed"
+        if verification_context["mode"] != "release":
+            mode_update = materialize_verification_mode_receipt(
+                "pass" if final_status == "pass" else "fail",
+                verification_context,
+            )
+            verification_mode_receipt_updates.append(mode_update)
+            if mode_update["returncode"] != 0:
+                final_status = "rerun_failed"
+                rerun_failed = True
     elif strict_follow_through.get("status") == "ready_to_rerun":
         final_status = "ready_to_rerun"
 
@@ -277,13 +395,15 @@ def main(argv: list[str] | None = None) -> int:
         "live_build_lock_probe": live_build_lock_probe,
         "rerun_executed": rerun_executed,
         "command_results": command_results,
+        "verification_mode_receipt_updates": verification_mode_receipt_updates,
+        "verification_run_id_source": verification_context["run_id_source"],
         "cross_surface_summary": cross_summary,
         "local_release_proof_summary": proof_summary,
     }
     if post_rerun_boundary_state is not None:
         receipt["post_rerun_boundary_refresh"] = post_rerun_boundary_state["command_result"]
-    write_receipt(output_path, receipt)
-    final_boundary_state = materialize_boundary_state()
+    write_receipt(output_path, receipt, verification_context)
+    final_boundary_state = materialize_boundary_state(verification_context)
 
     if current_state["command_result"]["returncode"] != 0:
         return 1

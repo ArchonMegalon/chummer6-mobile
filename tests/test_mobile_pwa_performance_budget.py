@@ -24,6 +24,7 @@ ASSET_PATHS = [
     "icons/icon-512.svg",
 ]
 CRITICAL_SHELL_URLS = [
+    "/mobile.css",
     "/mobile-install-shell.js",
     "/manifest.webmanifest",
     "/manifest.player.webmanifest",
@@ -106,7 +107,7 @@ class MobilePwaPerformanceBudgetTests(unittest.TestCase):
             root = Path(temp_dir) / "wwwroot"
             output = Path(temp_dir) / "receipt.json"
             _write_asset_fixture(root)
-            (root / "mobile-install-shell.js").write_bytes(b"x" * (8 * 1024 + 1))
+            (root / "mobile-install-shell.js").write_bytes(b"x" * (9 * 1024 + 1))
 
             completed = _run(root, output)
 
@@ -177,7 +178,11 @@ class MobilePwaPerformanceBudgetTests(unittest.TestCase):
             mobile_release,
         )
         self.assertIn(
-            'MATERIALIZER = ROOT / "chummer.run-services/scripts/materialize_release_ready_receipt.py"',
+            'MATERIALIZER = RUN_SERVICES_ROOT / "scripts" / "materialize_release_ready_receipt.py"',
+            root_release,
+        )
+        self.assertIn(
+            'configured_run_services_root = os.environ.get("CHUMMER_RUN_SERVICES_ROOT", "").strip()',
             root_release,
         )
         self.assertIn('"--run-authoritative-controller"', root_release)

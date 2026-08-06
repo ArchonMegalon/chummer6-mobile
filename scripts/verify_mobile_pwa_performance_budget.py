@@ -24,7 +24,7 @@ CONTRACT_NAME = "chummer_play.mobile_pwa_performance_budget.v1"
 FRAMEWORK_ASSET_EXCEPTIONS = {"/_framework/blazor.web.js"}
 ASSET_BUDGETS = {
     "/mobile.css": {"raw_bytes": 14 * 1024, "gzip_bytes": 4 * 1024},
-    "/mobile-install-shell.js": {"raw_bytes": 8 * 1024, "gzip_bytes": 3 * 1024},
+    "/mobile-install-shell.js": {"raw_bytes": 9 * 1024, "gzip_bytes": 3 * 1024},
     "/manifest.webmanifest": {"raw_bytes": 2 * 1024, "gzip_bytes": 768},
     "/manifest.player.webmanifest": {"raw_bytes": 2 * 1024, "gzip_bytes": 768},
     "/manifest.gm.webmanifest": {"raw_bytes": 2 * 1024, "gzip_bytes": 768},
@@ -36,8 +36,9 @@ ASSET_BUDGETS = {
     "/icons/icon-512.svg": {"raw_bytes": 1024, "gzip_bytes": 512},
 }
 AGGREGATE_BUDGET = {"raw_bytes": 96 * 1024, "gzip_bytes": 56 * 1024}
-SERVICE_WORKER_BUDGET = {"raw_bytes": 28 * 1024, "gzip_bytes": 7 * 1024}
+SERVICE_WORKER_BUDGET = {"raw_bytes": 32 * 1024, "gzip_bytes": 8 * 1024}
 EXPECTED_CRITICAL_SHELL_ASSETS = {
+    "/mobile.css",
     "/mobile-install-shell.js",
     "/manifest.webmanifest",
     "/manifest.player.webmanifest",

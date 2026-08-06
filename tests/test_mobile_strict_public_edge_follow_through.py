@@ -23,6 +23,31 @@ def load_module(script_path: Path, module_name: str):
 
 
 class MobileStrictPublicEdgeFollowThroughTests(unittest.TestCase):
+    def test_verification_context_reuses_the_consistent_mode_bound_smoke_run(self) -> None:
+        module = load_module(SCRIPT_PATH, "run_mobile_strict_public_edge_follow_through_context")
+        smoke_payload = {
+            "verification_mode": "slice",
+            "verification_run_id": "mobile-smoke-run",
+        }
+
+        with (
+            mock.patch.dict(
+                module.os.environ,
+                {"CHUMMER_VERIFY_MODE": "slice", "CHUMMER_VERIFY_RUN_ID": ""},
+                clear=False,
+            ),
+            mock.patch.object(
+                module,
+                "load_optional_json",
+                side_effect=[dict(smoke_payload), dict(smoke_payload), dict(smoke_payload)],
+            ),
+        ):
+            context = module.build_verification_context()
+
+        self.assertEqual("mobile-smoke-run", context["run_id"])
+        self.assertEqual("mode_bound_smoke_receipts", context["run_id_source"])
+        self.assertEqual("mobile-smoke-run", context["environment"]["CHUMMER_VERIFY_RUN_ID"])
+
     def test_main_writes_waiting_receipt_without_rerun_when_locks_remain(self) -> None:
         module = load_module(SCRIPT_PATH, "run_mobile_strict_public_edge_follow_through_waiting")
 
@@ -169,6 +194,14 @@ class MobileStrictPublicEdgeFollowThroughTests(unittest.TestCase):
             with (
                 mock.patch.object(module, "materialize_boundary_state", side_effect=[ready_state, post_rerun_state, post_rerun_state]),
                 mock.patch.object(module, "run_shell_command", side_effect=command_results),
+                mock.patch.object(
+                    module,
+                    "materialize_verification_mode_receipt",
+                    side_effect=[
+                        {"status": "in_progress", "returncode": 0},
+                        {"status": "pass", "returncode": 0},
+                    ],
+                ),
                 mock.patch.object(module, "cross_surface_summary", return_value={"status": "pass", "strict_public_edge_gate_pass": True}),
                 mock.patch.object(module, "local_release_proof_summary", return_value={"status": "passed"}),
             ):
@@ -180,6 +213,10 @@ class MobileStrictPublicEdgeFollowThroughTests(unittest.TestCase):
         self.assertEqual("pass", payload["status"])
         self.assertTrue(payload["rerun_executed"])
         self.assertEqual(["cmd-a", "cmd-b"], [item["command"] for item in payload["command_results"]])
+        self.assertEqual(
+            ["in_progress", "pass"],
+            [item["status"] for item in payload["verification_mode_receipt_updates"]],
+        )
         self.assertEqual("clear", payload["live_build_lock_probe"]["status"])
         self.assertEqual("pass", payload["preflight_snapshot"]["status"])
         self.assertEqual("pass", payload["postdeploy_snapshot"]["status"])
@@ -256,6 +293,14 @@ class MobileStrictPublicEdgeFollowThroughTests(unittest.TestCase):
             with (
                 mock.patch.object(module, "materialize_boundary_state", side_effect=[ready_state, post_rerun_state, post_rerun_state]),
                 mock.patch.object(module, "run_shell_command", side_effect=command_results),
+                mock.patch.object(
+                    module,
+                    "materialize_verification_mode_receipt",
+                    side_effect=[
+                        {"status": "in_progress", "returncode": 0},
+                        {"status": "pass", "returncode": 0},
+                    ],
+                ),
                 mock.patch.object(module, "cross_surface_summary", return_value={"status": "pass", "strict_public_edge_gate_pass": True}),
                 mock.patch.object(module, "local_release_proof_summary", return_value={"status": "passed"}),
             ):

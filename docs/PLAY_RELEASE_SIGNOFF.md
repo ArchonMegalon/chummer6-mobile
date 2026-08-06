@@ -30,7 +30,7 @@ The Player/GM Blazor PWA handoff is integration-ready only when the mobile relea
 
 - Accessibility: the installable shell must keep `<html lang="en">` and the polite live-status region in `src/Chummer.Play.Web/wwwroot/index.html`.
 - Localization: the shell must keep explicit document-language and role-entry semantics instead of relying on implicit browser defaults.
-- Performance: runtime-bundle cache pressure must preserve the current bounded quota budget (`RuntimeBundleQuota == 8`) and continue to report backpressure when the budget is saturated. The service-worker's source-owned install assets must also remain within the fixed 180 KiB raw / 72 KiB deterministic-gzip aggregate budget; any newly precached asset must be explicitly budgeted. The SDK-owned `/_framework/blazor.web.js` loader is disclosed as an unmeasured exception in the generated receipt rather than being counted as source-owned proof.
+- Performance: runtime-bundle cache pressure must preserve the current bounded quota budget (`RuntimeBundleQuota == 8`) and continue to report backpressure when the budget is saturated. The service-worker's source-owned install assets must remain within the fixed 96 KiB raw / 56 KiB deterministic-gzip aggregate budget; the worker itself is capped at 32 KiB raw / 8 KiB gzip and the install shell at 9 KiB raw / 3 KiB gzip. Every newly precached source-owned asset, including `/mobile.css`, must be explicitly listed and budgeted. The SDK-owned `/_framework/blazor.web.js` loader is disclosed as an unmeasured exception in the generated receipt rather than being counted as source-owned proof.
 
 ## Real-Host PWA Runtime Criteria
 

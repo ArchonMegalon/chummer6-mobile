@@ -1,8 +1,8 @@
 {
   "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
   "verification_mode": "slice",
-  "verification_run_id": "",
-  "generated_at_utc": "2026-08-01T03:00:19Z",
+  "verification_run_id": "mobile-local-release-20260806",
+  "generated_at_utc": "2026-08-06T21:16:15Z",
   "status": "pass",
   "base_url": "https://chummer.run",
   "commands": {
@@ -23,7 +23,7 @@
       },
       {
         "path": "src/Chummer.Play.Web/wwwroot/service-worker.js",
-        "sha256": "cb4ffa6fa18e2334ae88771e86fb6859f402a19f60fd63783b62530866900a72"
+        "sha256": "a01c2b747efad10a055cf7390bb6a5f84399da10f4a8f47a945cbd6b660e9594"
       },
       {
         "path": "src/Chummer.Play.Web/wwwroot/manifest.webmanifest",
@@ -80,13 +80,14 @@
   "fleet_readiness": {
     "source_receipt_mode": "ephemeral_tempfile_materialization",
     "published_script_path": "/docker/fleet/scripts/materialize_flagship_product_readiness.py",
-    "generated_at": "2026-08-01T03:00:19Z",
+    "generated_at": "2026-08-06T21:16:16Z",
     "generated_at_utc": null,
     "status": "fail",
-    "warning_keys": [],
-    "missing_keys": [
-      "desktop_client"
+    "warning_keys": [
+      "desktop_client",
+      "fleet_and_operator_loop"
     ],
+    "missing_keys": [],
     "readiness_plane_gap_keys": [
       "flagship_ready",
       "veteran_deep_workflow_ready",
@@ -98,7 +99,7 @@
     ],
     "coverage": {
       "mobile_play_shell": "ready",
-      "desktop_client": "missing"
+      "desktop_client": "warning"
     },
     "mobile_play_shell": {
       "status": "ready",
@@ -118,12 +119,12 @@
     "frontdoor_receipt_present": true,
     "strict_status": "pass",
     "strict_preflight_receipt_path": "/tmp/chummer-public-edge-deploy-preflight-current.json",
-    "strict_preflight_generated_at_utc": "2026-08-01T02:44:26.257930+00:00",
+    "strict_preflight_generated_at_utc": "2026-08-06T21:16:08.807355+00:00",
     "strict_preflight_status": "pass",
     "strict_preflight_allow_foreign_build_locks": false,
     "strict_preflight_allow_stale_foreign_build_locks": false,
     "strict_postdeploy_receipt_path": "/tmp/chummer-public-edge-postdeploy-canonical-current.json",
-    "strict_postdeploy_generated_at_utc": "2026-08-01T02:44:34.129070+00:00",
+    "strict_postdeploy_generated_at_utc": "2026-08-06T21:16:15.727512+00:00",
     "strict_postdeploy_status": "pass",
     "strict_postdeploy_stale": false,
     "strict_postdeploy_preflight_status": "pass",

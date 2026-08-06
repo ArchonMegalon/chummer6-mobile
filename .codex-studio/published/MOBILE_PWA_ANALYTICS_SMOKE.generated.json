@@ -1,6 +1,6 @@
 {
   "contract_name": "chummer_play.mobile_pwa_analytics_smoke.v2",
-  "generated_at_utc": "2026-08-01T02:44:11Z",
+  "generated_at_utc": "2026-08-06T10:36:11Z",
   "live_session_boundary": {
     "analytics_role": "Player",
     "events": [
@@ -34,6 +34,6 @@
     "query_secret_leak_free": true
   },
   "status": "pass",
-  "verification_mode": "release",
-  "verification_run_id": "mobile-release-20260801-0228"
+  "verification_mode": "slice",
+  "verification_run_id": "mobile-local-release-20260806"
 }

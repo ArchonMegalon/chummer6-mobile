@@ -1,7 +1,7 @@
 {
   "contract_name": "chummer6-mobile.local_release_proof",
-  "verification_mode": "release",
-  "verification_run_id": "mobile-release-20260801-0228",
+  "verification_mode": "slice",
+  "verification_run_id": "mobile-local-release-20260806",
   "status": "passed",
   "proof_kind": "source_backed_local_regression_contract",
   "source_files": [
@@ -93,7 +93,7 @@
     },
     {
       "path": "src/Chummer.Play.Web/wwwroot/mobile-install-shell.js",
-      "sha256": "bd691178430f3feb36113686a8c665e356ede6cce39194918f52cef8fe6b2cdb"
+      "sha256": "9fd0ffe46b39ddbe2532091373ed3de18c6ae055b418c4527bae32ac5f1a283c"
     },
     {
       "path": "src/Chummer.Play.Web/wwwroot/mobile.css",
@@ -113,7 +113,7 @@
     },
     {
       "path": "src/Chummer.Play.Web/wwwroot/service-worker.js",
-      "sha256": "cb4ffa6fa18e2334ae88771e86fb6859f402a19f60fd63783b62530866900a72"
+      "sha256": "a01c2b747efad10a055cf7390bb6a5f84399da10f4a8f47a945cbd6b660e9594"
     },
     {
       "path": "src/Chummer.Play.Web/wwwroot/manifest.webmanifest",
@@ -137,7 +137,7 @@
     },
     {
       "path": "docs/PLAY_RELEASE_SIGNOFF.md",
-      "sha256": "dd9e9f9abc050b03051d27b8a4e60acb3f43417e9aa543cad8205add916d9c2b"
+      "sha256": "6277ef8cb31f9e387a80fbe55dacaf187f1430344103f62262f69c05632959e5"
     },
     {
       "path": "scripts/ai/verify.sh",
@@ -165,7 +165,7 @@
     },
     {
       "path": "scripts/verify_mobile_pwa_performance_budget.py",
-      "sha256": "4957ff5b9e72a6f1e71962008c40799a6b0174a42e88c111e84a43fd1f5ae2b9"
+      "sha256": "b71372b1386a1aa3afa1052326682d1767bd51b1e432e6ceda5cae8648165794"
     },
     {
       "path": "docs/next90-m112-mobile-campaign-continuity.proof.md",
@@ -825,9 +825,9 @@
       "receipt_path": ".codex-studio/published/MOBILE_PWA_ANALYTICS_SMOKE.generated.json",
       "contract_name": "chummer_play.mobile_pwa_analytics_smoke.v2",
       "status": "pass",
-      "generated_at_utc": "2026-08-01T02:44:11Z",
-      "verification_mode": "release",
-      "verification_run_id": "mobile-release-20260801-0228",
+      "generated_at_utc": "2026-08-06T10:36:11Z",
+      "verification_mode": "slice",
+      "verification_run_id": "mobile-local-release-20260806",
       "required_before_materialize": true
     },
     {
@@ -836,9 +836,9 @@
       "receipt_path": ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json",
       "contract_name": "chummer_play.mobile_pwa_runtime_smoke.v2",
       "status": "pass",
-      "generated_at_utc": "2026-08-01T02:42:45Z",
-      "verification_mode": "release",
-      "verification_run_id": "mobile-release-20260801-0228",
+      "generated_at_utc": "2026-08-06T10:36:08Z",
+      "verification_mode": "slice",
+      "verification_run_id": "mobile-local-release-20260806",
       "required_before_materialize": true
     },
     {
@@ -847,9 +847,9 @@
       "receipt_path": ".codex-studio/published/MOBILE_PWA_VIEWPORT_SMOKE.generated.json",
       "contract_name": "chummer_play.mobile_pwa_viewport_smoke.v2",
       "status": "pass",
-      "generated_at_utc": "2026-08-01T02:42:48Z",
-      "verification_mode": "release",
-      "verification_run_id": "mobile-release-20260801-0228",
+      "generated_at_utc": "2026-08-06T10:36:09Z",
+      "verification_mode": "slice",
+      "verification_run_id": "mobile-local-release-20260806",
       "required_before_materialize": true
     }
   ],
@@ -1029,7 +1029,7 @@
     "status": "pass",
     "contract_name": "chummer6-mobile.cross_surface_readiness.v1",
     "fleet_flagship_readiness_path": "/docker/fleet/.codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json",
-    "fleet_generated_at": "2026-07-18T00:25:10Z",
+    "fleet_generated_at": "2026-08-05T19:55:46Z",
     "fleet_status": "fail",
     "ready_keys": [
       "rules_engine_and_import",
@@ -1037,17 +1037,17 @@
       "mobile_play_shell",
       "ui_kit_and_flagship_polish",
       "media_artifacts",
-      "horizons_and_public_surface"
-    ],
-    "warning_keys": [
+      "horizons_and_public_surface",
       "fleet_and_operator_loop"
     ],
-    "missing_keys": [
+    "warning_keys": [
       "desktop_client"
     ],
+    "missing_keys": [],
     "readiness_plane_gap_keys": [
       "flagship_ready",
       "veteran_deep_workflow_ready",
+      "primary_route_ready",
       "dense_workbench_ready",
       "feedback_loop_ready",
       "public_shelf_ready",
@@ -1055,7 +1055,7 @@
     ],
     "coverage": {
       "mobile_play_shell": "ready",
-      "desktop_client": "missing"
+      "desktop_client": "warning"
     },
     "mobile_play_shell": {
       "status": "ready",
@@ -1065,10 +1065,10 @@
       "recover_from_sync_conflict_owner_scoped_effective_state": "ready"
     },
     "flagship_ready": {
-      "status": "missing",
+      "status": "warning",
       "summary": "Flagship replacement truth is still stricter than the current structural closure.",
       "reasons": [
-        "Whole-product coverage still has open flagship gaps: fleet_and_operator_loop, desktop_client.",
+        "Primary-route readiness plane is not ready.",
         "Dense-workbench readiness plane is not ready.",
         "Feedback-loop readiness plane is not ready.",
         "Veteran deep-workflow readiness plane is not ready.",
@@ -1087,7 +1087,7 @@
       "desktop_client",
       "feedback_loop_ready",
       "flagship_ready",
-      "fleet_and_operator_loop",
+      "primary_route_ready",
       "public_shelf_ready",
       "recovery_trust_ready",
       "veteran_deep_workflow_ready"
@@ -1097,15 +1097,16 @@
     "status": "pass",
     "required": false,
     "contract_name": "chummer6-mobile.cross_surface_readiness_refresh.v2",
-    "generated_at_utc": "2026-08-01T02:44:34Z",
+    "generated_at_utc": "2026-08-06T21:16:15Z",
     "script_path": "scripts/materialize_mobile_cross_surface_readiness.py",
     "receipt_path": ".codex-studio/published/MOBILE_CROSS_SURFACE_READINESS.generated.json",
     "base_url": "https://chummer.run",
     "fleet_status": "fail",
-    "fleet_warning_keys": [],
-    "fleet_missing_keys": [
-      "desktop_client"
+    "fleet_warning_keys": [
+      "desktop_client",
+      "fleet_and_operator_loop"
     ],
+    "fleet_missing_keys": [],
     "mobile_play_shell": {
       "status": "ready",
       "summary": "Mobile play-shell continuity and reconnect proof are current.",
@@ -1192,7 +1193,7 @@
     "script_path": "scripts/materialize_mobile_release_boundary.py",
     "receipt_path": ".codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json",
     "contract_name": "chummer6-mobile.release_boundary.v1",
-    "generated_at_utc": "2026-08-01T02:44:23Z",
+    "generated_at_utc": "2026-08-06T21:16:06Z",
     "ownership_checks": {
       "owned_play_source_files_present": true,
       "owned_play_test_files_present": true,
@@ -1201,18 +1202,18 @@
       "owned_release_receipts_present": true,
       "release_receipts_machine_local_noise_free": true
     },
-    "play_owned_entry_count": 15,
+    "play_owned_entry_count": 14,
     "play_foreign_entry_count": 0,
     "play_disposable_entry_count": 0,
-    "play_external_blocker_entry_count": 3,
+    "play_external_blocker_entry_count": 0,
     "play_ambient_entry_count": 0,
     "run_services_owned_entry_count": 0,
     "run_services_foreign_entry_count": 0,
-    "run_services_ambient_entry_count": 18,
+    "run_services_ambient_entry_count": 3,
     "release_receipt_count": 9,
-    "owned_disposable_local_artifact_count": 1,
+    "owned_disposable_local_artifact_count": 0,
     "shared_external_temp_artifact_count": 9,
-    "disposable_local_artifact_count": 10,
+    "disposable_local_artifact_count": 9,
     "preflight_snapshot": {
       "status": "pass",
       "active_lock_count": 0,
@@ -1236,7 +1237,7 @@
       "failures": [],
       "online_launch_status": "pass",
       "online_launch_final_url": "https://chummer.run/blazor/app?command=character_roster",
-      "expected_release_version": "run-20260801-013900",
+      "expected_release_version": "run-20260802-160500",
       "expected_release_status": "published",
       "expected_release_channel": "preview",
       "expected_release_supportability_state": "review_required",
@@ -1248,13 +1249,26 @@
       "path": "/tmp/chummer-public-edge-postdeploy-canonical-current.json"
     },
     "design_mirror_snapshot": {
-      "status": "pass",
+      "status": "fail",
       "script_path": "scripts/ai/verify_design_mirror.py",
       "command": "python3 scripts/ai/verify_design_mirror.py",
-      "blocking_findings": [],
-      "blocking_finding_count": 0,
-      "repair_commands": [],
-      "stdout": "design mirror ok"
+      "blocking_findings": [
+        "stale .codex-design/product/README.md",
+        "stale .codex-design/product/WEEKLY_PRODUCT_PULSE.generated.json",
+        "stale .codex-design/product/FINAL_GOLD_GRAPH.generated.json",
+        "stale .codex-design/product/CAMPAIGN_OPERABILITY_SCORECARD.generated.json",
+        "stale .codex-design/product/CAMPAIGN_OS_FLAGSHIP_CLOSEOUT.md",
+        "stale .codex-design/product/HUMAN_ONLY_RELEASE_BOUNDARIES.generated.md",
+        "stale .codex-design/product/WHAT_IS_STILL_BELOW_GOLD.md",
+        "stale .codex-design/product/GROUP_BLOCKERS.md",
+        "stale .codex-design/product/HORIZON_REGISTRY.yaml"
+      ],
+      "blocking_finding_count": 9,
+      "repair_commands": [
+        "bash scripts/ai/repair_design_mirror.sh",
+        "python3 /docker/chummercomplete/chummer-design/scripts/ai/publish_local_mirrors.py"
+      ],
+      "stdout": ""
     },
     "live_build_lock_probe": {
       "status": "clear",
@@ -1266,7 +1280,7 @@
     "canonical_release_blockers": {
       "path": "/docker/chummercomplete/RELEASE_BLOCKERS.generated.json",
       "status": "present",
-      "generated_at": "2026-07-31T19:34:29Z",
+      "generated_at": "2026-08-06T17:05:33Z",
       "root_blocker_ids": [
         "release_posture:non_flagship_channel",
         "release_truth:release_ready",
@@ -1281,7 +1295,7 @@
           "blocker_id": "release_posture:non_flagship_channel",
           "owning_repo": "chummer6-hub-registry",
           "failing_gate": "published release channel is not in flagship public-stable posture",
-          "stable_promotion_command": "RELEASE_CHANNEL=public_stable RELEASE_VERSION=run-20260731-095000 RELEASE_PUBLISHED_AT=2026-07-31T07:59:45Z bash /docker/chummercomplete/chummer6-ui/scripts/publish-download-bundle.sh /docker/chummercomplete/chummer.run-services/Chummer.Portal/downloads /docker/chummercomplete/chummer.run-services/Chummer.Portal/downloads",
+          "stable_promotion_command": "RELEASE_CHANNEL=public_stable RELEASE_VERSION=run-20260802-160500 RELEASE_PUBLISHED_AT=2026-08-06T15:12:19Z bash /docker/chummercomplete/chummer6-ui/scripts/publish-download-bundle.sh /docker/chummercomplete/chummer.run-services/Chummer.Portal/downloads /docker/chummercomplete/chummer.run-services/Chummer.Portal/downloads",
           "post_promotion_verify_command": "python3 scripts/materialize_release_ready_receipt.py --force-global-verifier && python3 scripts/materialize_operator_release_dashboard.py && python3 scripts/final_gold_janitor.py && python3 ../scripts/release/_release_gate_common.py && python3 ../scripts/materialize_codex_flagship_handoff.py --timestamp \"$(date --iso-8601=seconds)\"",
           "expected_bundle_path": null,
           "expected_bundle_path_exists": null
@@ -1313,7 +1327,7 @@
           "failing_gate": "windows_installer_visual_audit is not passing for public-stable release truth",
           "stable_promotion_command": null,
           "post_promotion_verify_command": null,
-          "expected_bundle_path": "/docker/chummercomplete/chummer.run-services/.state/incoming_windows_installer_gold_proof/windows-installer-gold-proof-17a02613f7d9.zip",
+          "expected_bundle_path": "/docker/chummercomplete/chummer.run-services/.state/incoming_windows_installer_gold_proof/windows-installer-gold-proof-040659ba0fd0.zip",
           "expected_bundle_path_exists": false
         },
         {
@@ -1330,9 +1344,22 @@
     },
     "external_follow_through": {
       "design_mirror": {
-        "status": "clear",
-        "blocking_findings": [],
-        "repair_commands": []
+        "status": "blocked",
+        "blocking_findings": [
+          "stale .codex-design/product/README.md",
+          "stale .codex-design/product/WEEKLY_PRODUCT_PULSE.generated.json",
+          "stale .codex-design/product/FINAL_GOLD_GRAPH.generated.json",
+          "stale .codex-design/product/CAMPAIGN_OPERABILITY_SCORECARD.generated.json",
+          "stale .codex-design/product/CAMPAIGN_OS_FLAGSHIP_CLOSEOUT.md",
+          "stale .codex-design/product/HUMAN_ONLY_RELEASE_BOUNDARIES.generated.md",
+          "stale .codex-design/product/WHAT_IS_STILL_BELOW_GOLD.md",
+          "stale .codex-design/product/GROUP_BLOCKERS.md",
+          "stale .codex-design/product/HORIZON_REGISTRY.yaml"
+        ],
+        "repair_commands": [
+          "bash scripts/ai/repair_design_mirror.sh",
+          "python3 /docker/chummercomplete/chummer-design/scripts/ai/publish_local_mirrors.py"
+        ]
       },
       "strict_public_edge": {
         "status": "ready_to_rerun",
@@ -1355,6 +1382,6 @@
   },
   "source_file_count": 44,
   "source_file_digest_count": 44,
-  "generated_at": "2026-08-01T02:44:44Z",
-  "generated_at_utc": "2026-08-01T02:44:44Z"
+  "generated_at": "2026-08-06T21:16:24Z",
+  "generated_at_utc": "2026-08-06T21:16:24Z"
 }
