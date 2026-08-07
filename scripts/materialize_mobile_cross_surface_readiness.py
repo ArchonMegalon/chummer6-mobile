@@ -309,6 +309,10 @@ def main() -> int:
             )
             strict_public_edge_gate_pass = all(
                 [
+                    # A previously passing strict receipt cannot keep the
+                    # current surface green after the live current-head gate
+                    # has failed (for example after source/overlay drift).
+                    public_edge_gate_pass,
                     strict_preflight_receipt_present,
                     strict_preflight_pass,
                     strict_preflight_no_allowances,

@@ -1,7 +1,7 @@
 {
   "contract_name": "chummer.campaign_operability_scorecard",
   "contract_version": 1,
-  "generated_at_utc": "2026-07-17T04:37:51Z",
+  "generated_at_utc": "2026-08-06T20:05:34Z",
   "status": "fail",
   "verdict": "CAMPAIGN_OPERABILITY_NOT_READY",
   "rubric_path": "products/chummer/CAMPAIGN_OPERABILITY_SCORING_RUBRIC.yaml",
@@ -72,7 +72,7 @@
           "status": "fail",
           "source_status": "fail",
           "source_verdict": "",
-          "generated_at": "2026-07-13T04:39:23Z",
+          "generated_at": "2026-08-05T19:55:46Z",
           "failure": "fleet_flagship is not passing"
         },
         {
@@ -81,7 +81,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T03:51:29.190961Z",
+          "generated_at": "2026-08-06T12:25:49.752779Z",
           "failure": ""
         },
         {
@@ -90,7 +90,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T04:39:22.679304Z",
+          "generated_at": "2026-08-06T12:26:05.412937Z",
           "failure": ""
         }
       ],
@@ -139,7 +139,7 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-06-20T22:36:41Z",
+          "generated_at": "2026-07-28T16:43:24Z",
           "failure": ""
         },
         {
@@ -148,7 +148,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:10:13.855471Z",
+          "generated_at": "2026-08-01T13:32:39.658463Z",
           "failure": ""
         },
         {
@@ -157,7 +157,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T23:39:57Z",
+          "generated_at": "2026-08-06T14:05:05Z",
           "failure": ""
         }
       ],
@@ -203,16 +203,16 @@
           "status": "fail",
           "source_status": "fail",
           "source_verdict": "",
-          "generated_at": "2026-07-13T05:05:19.851311Z",
+          "generated_at": "2026-08-06T12:27:22.845222Z",
           "failure": "desktop_executable is not passing"
         },
         {
           "id": "release_ready",
           "path": "$CHUMMER_WORKSPACE/chummer.run-services/.codex-studio/published/RELEASE_READY.generated.json",
           "status": "fail",
-          "source_status": "fail",
-          "source_verdict": "NOT_RELEASE_READY",
-          "generated_at": "2026-07-14T03:51:45Z",
+          "source_status": "missing",
+          "source_verdict": "",
+          "generated_at": "",
           "failure": "release_ready is not passing"
         }
       ],
@@ -259,9 +259,9 @@
           "id": "release_ready",
           "path": "$CHUMMER_WORKSPACE/chummer.run-services/.codex-studio/published/RELEASE_READY.generated.json",
           "status": "fail",
-          "source_status": "fail",
-          "source_verdict": "NOT_RELEASE_READY",
-          "generated_at": "2026-07-14T03:51:45Z",
+          "source_status": "missing",
+          "source_verdict": "",
+          "generated_at": "",
           "failure": "release_ready is not passing"
         },
         {
@@ -270,7 +270,7 @@
           "status": "fail",
           "source_status": "published",
           "source_verdict": "",
-          "generated_at": "2026-07-12T18:46:26Z",
+          "generated_at": "2026-08-06T18:27:11Z",
           "failure": "release channel is not public_stable and gold_supported"
         }
       ],
@@ -319,7 +319,7 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-06-20T22:36:41Z",
+          "generated_at": "2026-07-28T16:43:24Z",
           "failure": ""
         },
         {
@@ -328,7 +328,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T04:39:22.679304Z",
+          "generated_at": "2026-08-06T12:26:05.412937Z",
           "failure": ""
         }
       ],
@@ -375,7 +375,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T03:51:29.190961Z",
+          "generated_at": "2026-08-06T12:25:49.752779Z",
           "failure": ""
         },
         {
@@ -384,7 +384,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "DESIGN_READY",
-          "generated_at": "2026-07-12T17:18:37Z",
+          "generated_at": "2026-08-01T13:33:10Z",
           "failure": ""
         },
         {
@@ -393,7 +393,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T23:39:57Z",
+          "generated_at": "2026-08-06T14:05:05Z",
           "failure": ""
         }
       ],
@@ -439,7 +439,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:09:53.656297Z",
+          "generated_at": "2026-08-01T13:31:41.792765Z",
           "failure": ""
         },
         {
@@ -448,7 +448,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:16:47.060432+00:00",
+          "generated_at": "2026-08-06T17:04:50.694752+00:00",
           "failure": ""
         }
       ],
@@ -494,7 +494,7 @@
           "status": "fail",
           "source_status": "published",
           "source_verdict": "",
-          "generated_at": "2026-07-12T18:46:26Z",
+          "generated_at": "2026-08-06T18:27:11Z",
           "failure": "release channel is not public_stable and gold_supported"
         },
         {
@@ -503,7 +503,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:08:53Z",
+          "generated_at": "2026-08-01T13:33:09Z",
           "failure": ""
         }
       ],
@@ -560,7 +560,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "READY",
-          "generated_at": "2026-07-14T01:41:00Z",
+          "generated_at": "2026-08-01T13:33:09Z",
           "failure": ""
         }
       ],
@@ -614,9 +614,9 @@
           "id": "release_ready",
           "path": "$CHUMMER_WORKSPACE/chummer.run-services/.codex-studio/published/RELEASE_READY.generated.json",
           "status": "fail",
-          "source_status": "fail",
-          "source_verdict": "NOT_RELEASE_READY",
-          "generated_at": "2026-07-14T03:51:45Z",
+          "source_status": "missing",
+          "source_verdict": "",
+          "generated_at": "",
           "failure": "release_ready is not passing"
         },
         {
@@ -625,7 +625,7 @@
           "status": "fail",
           "source_status": "published",
           "source_verdict": "",
-          "generated_at": "2026-07-12T18:46:26Z",
+          "generated_at": "2026-08-06T18:27:11Z",
           "failure": "release channel is not public_stable and gold_supported"
         }
       ],
@@ -674,7 +674,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:16:47.060432+00:00",
+          "generated_at": "2026-08-06T17:04:50.694752+00:00",
           "failure": ""
         },
         {
@@ -683,7 +683,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "READY",
-          "generated_at": "2026-07-12T17:08:45.455Z",
+          "generated_at": "2026-08-01T13:48:48.919Z",
           "failure": ""
         }
       ],
@@ -730,7 +730,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "DESIGN_READY",
-          "generated_at": "2026-07-12T17:18:37Z",
+          "generated_at": "2026-08-01T13:33:10Z",
           "failure": ""
         },
         {
@@ -739,7 +739,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "READY",
-          "generated_at": "2026-07-12T17:08:45.455Z",
+          "generated_at": "2026-08-01T13:48:48.919Z",
           "failure": ""
         },
         {
@@ -748,7 +748,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:08:53Z",
+          "generated_at": "2026-08-01T13:33:09Z",
           "failure": ""
         }
       ],
@@ -785,7 +785,7 @@
           "status": "fail",
           "source_status": "fail",
           "source_verdict": "",
-          "generated_at": "2026-07-13T05:05:19.851311Z",
+          "generated_at": "2026-08-06T12:27:22.845222Z",
           "failure": "desktop_executable is not passing"
         },
         {
@@ -794,7 +794,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:09:53.656297Z",
+          "generated_at": "2026-08-01T13:31:41.792765Z",
           "failure": ""
         }
       ],
@@ -833,7 +833,7 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-06-20T22:36:41Z",
+          "generated_at": "2026-07-28T16:43:24Z",
           "failure": ""
         },
         {
@@ -842,7 +842,7 @@
           "status": "fail",
           "source_status": "published",
           "source_verdict": "",
-          "generated_at": "2026-07-12T18:46:26Z",
+          "generated_at": "2026-08-06T18:27:11Z",
           "failure": "release channel is not public_stable and gold_supported"
         }
       ],
@@ -881,7 +881,7 @@
           "status": "fail",
           "source_status": "fail",
           "source_verdict": "",
-          "generated_at": "2026-07-13T05:05:19.851311Z",
+          "generated_at": "2026-08-06T12:27:22.845222Z",
           "failure": "desktop_executable is not passing"
         },
         {
@@ -890,7 +890,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "READY",
-          "generated_at": "2026-07-14T01:41:00Z",
+          "generated_at": "2026-08-01T13:33:09Z",
           "failure": ""
         }
       ],
@@ -930,7 +930,7 @@
           "status": "fail",
           "source_status": "published",
           "source_verdict": "",
-          "generated_at": "2026-07-12T18:46:26Z",
+          "generated_at": "2026-08-06T18:27:11Z",
           "failure": "release channel is not public_stable and gold_supported"
         },
         {
@@ -939,16 +939,16 @@
           "status": "fail",
           "source_status": "fail",
           "source_verdict": "",
-          "generated_at": "2026-07-14T03:53:53Z",
+          "generated_at": "2026-08-06T17:05:44Z",
           "failure": "windows_visual is not passing"
         },
         {
           "id": "release_ready",
           "path": "$CHUMMER_WORKSPACE/chummer.run-services/.codex-studio/published/RELEASE_READY.generated.json",
           "status": "fail",
-          "source_status": "fail",
-          "source_verdict": "NOT_RELEASE_READY",
-          "generated_at": "2026-07-14T03:51:45Z",
+          "source_status": "missing",
+          "source_verdict": "",
+          "generated_at": "",
           "failure": "release_ready is not passing"
         }
       ],
@@ -989,7 +989,7 @@
           "status": "fail",
           "source_status": "fail",
           "source_verdict": "",
-          "generated_at": "2026-07-13T05:05:19.851311Z",
+          "generated_at": "2026-08-06T12:27:22.845222Z",
           "failure": "desktop_executable is not passing"
         },
         {
@@ -998,7 +998,7 @@
           "status": "fail",
           "source_status": "fail",
           "source_verdict": "",
-          "generated_at": "2026-07-14T03:53:53Z",
+          "generated_at": "2026-08-06T17:05:44Z",
           "failure": "windows_visual is not passing"
         }
       ],
@@ -1039,7 +1039,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T03:51:29.190961Z",
+          "generated_at": "2026-08-06T12:25:49.752779Z",
           "failure": ""
         },
         {
@@ -1048,7 +1048,7 @@
           "status": "fail",
           "source_status": "fail",
           "source_verdict": "",
-          "generated_at": "2026-07-14T03:53:53Z",
+          "generated_at": "2026-08-06T17:05:44Z",
           "failure": "windows_visual is not passing"
         },
         {
@@ -1057,7 +1057,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T23:39:57Z",
+          "generated_at": "2026-08-06T14:05:05Z",
           "failure": ""
         }
       ],
@@ -1096,7 +1096,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T04:39:22.679304Z",
+          "generated_at": "2026-08-06T12:26:05.412937Z",
           "failure": ""
         },
         {
@@ -1105,7 +1105,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:09:53.656297Z",
+          "generated_at": "2026-08-01T13:31:41.792765Z",
           "failure": ""
         }
       ],
@@ -1142,7 +1142,7 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-06-20T22:36:41Z",
+          "generated_at": "2026-07-28T16:43:24Z",
           "failure": ""
         },
         {
@@ -1151,7 +1151,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:10:13.855471Z",
+          "generated_at": "2026-08-01T13:32:39.658463Z",
           "failure": ""
         }
       ],
@@ -1188,16 +1188,16 @@
           "status": "fail",
           "source_status": "fail",
           "source_verdict": "",
-          "generated_at": "2026-07-13T05:05:19.851311Z",
+          "generated_at": "2026-08-06T12:27:22.845222Z",
           "failure": "desktop_executable is not passing"
         },
         {
           "id": "release_ready",
           "path": "$CHUMMER_WORKSPACE/chummer.run-services/.codex-studio/published/RELEASE_READY.generated.json",
           "status": "fail",
-          "source_status": "fail",
-          "source_verdict": "NOT_RELEASE_READY",
-          "generated_at": "2026-07-14T03:51:45Z",
+          "source_status": "missing",
+          "source_verdict": "",
+          "generated_at": "",
           "failure": "release_ready is not passing"
         }
       ],
@@ -1238,7 +1238,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T16:55:40Z",
+          "generated_at": "2026-08-01T13:32:51Z",
           "failure": ""
         },
         {
@@ -1247,16 +1247,16 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:10:11Z",
+          "generated_at": "2026-08-01T13:33:07Z",
           "failure": ""
         },
         {
           "id": "release_ready",
           "path": "$CHUMMER_WORKSPACE/chummer.run-services/.codex-studio/published/RELEASE_READY.generated.json",
           "status": "fail",
-          "source_status": "fail",
-          "source_verdict": "NOT_RELEASE_READY",
-          "generated_at": "2026-07-14T03:51:45Z",
+          "source_status": "missing",
+          "source_verdict": "",
+          "generated_at": "",
           "failure": "release_ready is not passing"
         }
       ],
@@ -1295,7 +1295,7 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-06-20T22:36:41Z",
+          "generated_at": "2026-07-28T16:43:24Z",
           "failure": ""
         },
         {
@@ -1304,7 +1304,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T04:39:22.679304Z",
+          "generated_at": "2026-08-06T12:26:05.412937Z",
           "failure": ""
         }
       ],
@@ -1342,7 +1342,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T03:51:29.190961Z",
+          "generated_at": "2026-08-06T12:25:49.752779Z",
           "failure": ""
         },
         {
@@ -1351,7 +1351,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "DESIGN_READY",
-          "generated_at": "2026-07-12T17:18:37Z",
+          "generated_at": "2026-08-01T13:33:10Z",
           "failure": ""
         },
         {
@@ -1360,7 +1360,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T23:39:57Z",
+          "generated_at": "2026-08-06T14:05:05Z",
           "failure": ""
         }
       ],
@@ -1406,7 +1406,7 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-07-14T03:51:44Z",
+          "generated_at": "2026-08-06T16:54:03Z",
           "failure": ""
         },
         {
@@ -1415,7 +1415,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:09:53.656297Z",
+          "generated_at": "2026-08-01T13:31:41.792765Z",
           "failure": ""
         }
       ],
@@ -1461,7 +1461,7 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-07-14T03:51:44Z",
+          "generated_at": "2026-08-06T16:54:03Z",
           "failure": ""
         },
         {
@@ -1470,7 +1470,7 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-06-20T22:36:41Z",
+          "generated_at": "2026-07-28T16:43:24Z",
           "failure": ""
         }
       ],
@@ -1516,16 +1516,16 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-07-14T03:51:44Z",
+          "generated_at": "2026-08-06T16:54:03Z",
           "failure": ""
         },
         {
           "id": "release_ready",
           "path": "$CHUMMER_WORKSPACE/chummer.run-services/.codex-studio/published/RELEASE_READY.generated.json",
           "status": "fail",
-          "source_status": "fail",
-          "source_verdict": "NOT_RELEASE_READY",
-          "generated_at": "2026-07-14T03:51:45Z",
+          "source_status": "missing",
+          "source_verdict": "",
+          "generated_at": "",
           "failure": "release_ready is not passing"
         }
       ],
@@ -1573,16 +1573,16 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-07-14T03:51:44Z",
+          "generated_at": "2026-08-06T16:54:03Z",
           "failure": ""
         },
         {
           "id": "release_ready",
           "path": "$CHUMMER_WORKSPACE/chummer.run-services/.codex-studio/published/RELEASE_READY.generated.json",
           "status": "fail",
-          "source_status": "fail",
-          "source_verdict": "NOT_RELEASE_READY",
-          "generated_at": "2026-07-14T03:51:45Z",
+          "source_status": "missing",
+          "source_verdict": "",
+          "generated_at": "",
           "failure": "release_ready is not passing"
         }
       ],
@@ -1630,7 +1630,7 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-07-14T03:51:44Z",
+          "generated_at": "2026-08-06T16:54:03Z",
           "failure": ""
         },
         {
@@ -1639,7 +1639,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:16:47.060432+00:00",
+          "generated_at": "2026-08-06T17:04:50.694752+00:00",
           "failure": ""
         }
       ],
@@ -1686,7 +1686,7 @@
           "status": "pass",
           "source_status": "passed",
           "source_verdict": "",
-          "generated_at": "2026-07-14T03:51:44Z",
+          "generated_at": "2026-08-06T16:54:03Z",
           "failure": ""
         },
         {
@@ -1695,7 +1695,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "DESIGN_READY",
-          "generated_at": "2026-07-12T17:18:37Z",
+          "generated_at": "2026-08-01T13:33:10Z",
           "failure": ""
         },
         {
@@ -1704,7 +1704,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T23:39:57Z",
+          "generated_at": "2026-08-06T14:05:05Z",
           "failure": ""
         }
       ],
@@ -1759,7 +1759,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:09:53.656297Z",
+          "generated_at": "2026-08-01T13:31:41.792765Z",
           "failure": ""
         }
       ],
@@ -1805,7 +1805,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:08:53Z",
+          "generated_at": "2026-08-01T13:33:09Z",
           "failure": ""
         },
         {
@@ -1814,7 +1814,7 @@
           "status": "fail",
           "source_status": "published",
           "source_verdict": "",
-          "generated_at": "2026-07-12T18:46:26Z",
+          "generated_at": "2026-08-06T18:27:11Z",
           "failure": "release channel is not public_stable and gold_supported"
         }
       ],
@@ -1871,7 +1871,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "READY",
-          "generated_at": "2026-07-14T01:41:00Z",
+          "generated_at": "2026-08-01T13:33:09Z",
           "failure": ""
         }
       ],
@@ -1925,23 +1925,24 @@
           "id": "release_ready",
           "path": "$CHUMMER_WORKSPACE/chummer.run-services/.codex-studio/published/RELEASE_READY.generated.json",
           "status": "fail",
-          "source_status": "fail",
-          "source_verdict": "NOT_RELEASE_READY",
-          "generated_at": "2026-07-14T03:51:45Z",
+          "source_status": "missing",
+          "source_verdict": "",
+          "generated_at": "",
           "failure": "release_ready is not passing"
         },
         {
           "id": "google_oauth",
           "path": "$CHUMMER_WORKSPACE/chummer.run-services/.codex-studio/published/GOOGLE_OAUTH_LINKING_PROOF.generated.json",
-          "status": "pass",
-          "source_status": "pass",
+          "status": "fail",
+          "source_status": "fail",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:18:08.965804Z",
-          "failure": ""
+          "generated_at": "2026-08-01T13:33:14.000266Z",
+          "failure": "google_oauth is not passing"
         }
       ],
       "failures": [
-        "release_ready is not passing"
+        "release_ready is not passing",
+        "google_oauth is not passing"
       ]
     },
     {
@@ -1984,7 +1985,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-12T17:16:47.060432+00:00",
+          "generated_at": "2026-08-06T17:04:50.694752+00:00",
           "failure": ""
         },
         {
@@ -1993,7 +1994,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "READY",
-          "generated_at": "2026-07-12T17:08:45.455Z",
+          "generated_at": "2026-08-01T13:48:48.919Z",
           "failure": ""
         }
       ],
@@ -2040,7 +2041,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "DESIGN_READY",
-          "generated_at": "2026-07-12T17:18:37Z",
+          "generated_at": "2026-08-01T13:33:10Z",
           "failure": ""
         },
         {
@@ -2049,7 +2050,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "READY",
-          "generated_at": "2026-07-12T17:08:45.455Z",
+          "generated_at": "2026-08-01T13:48:48.919Z",
           "failure": ""
         },
         {
@@ -2058,7 +2059,7 @@
           "status": "pass",
           "source_status": "pass",
           "source_verdict": "",
-          "generated_at": "2026-07-13T23:39:57Z",
+          "generated_at": "2026-08-06T14:05:05Z",
           "failure": ""
         }
       ],
@@ -2082,6 +2083,6 @@
     "run_and_rejoin.recovery_confidence: release_ready is not passing",
     "run_and_rejoin.closure_honesty: release_ready is not passing",
     "improve_and_close_the_loop.rules_and_continuity_truth: release channel is not public_stable and gold_supported",
-    "improve_and_close_the_loop.closure_honesty: release_ready is not passing"
+    "improve_and_close_the_loop.closure_honesty: release_ready is not passing, google_oauth is not passing"
   ]
 }

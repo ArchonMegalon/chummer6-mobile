@@ -5,27 +5,26 @@
 Give Fleet one explicit closeout order for finishing Chummer6 as a flagship Campaign OS, including horizon posture.
 
 This file is narrower than the full product canon.
-It exists to stop the loop from scattering effort across desktop polish, localization, public copy, and future horizons without closing the two real red blockers first.
+It exists to stop the loop from scattering effort across desktop polish, localization, public copy, and future horizons without closing current release proof first.
 
 ## Current verdict
 
-Current promoted-scope verdict: `GOLD_READY`.
+Current promoted-scope verdict: `REVIEW_REQUIRED`.
 
-The current public-stable Chummer release clears the flagship closeout bar for the promoted Avalonia desktop scope. This is a bounded release claim, not a claim that every future horizon or additive product lane is finished.
+The current Chummer shelf is `preview`, with `coverage_incomplete` rollout and `review_required` supportability. Linux and Windows downloads are public, but the authoritative final-gold graph still has release-control, campaign-operability, platform-proof, provider-proof, and supply-chain evidence blockers.
 
-The remaining blocker truth is already explicit:
+The historical structural blocker register remains clear:
 
 - `BLK-009` flagship localization proof is cleared
 - `BLK-010` campaign-OS lived-system proof is cleared
 
-There are no current red blockers in `GROUP_BLOCKERS.md`.
-This file now exists to preserve the closeout order that was required to reach that state, and to stop future release summaries from skipping the same sequence when similar blockers reappear.
+There are no current structural red blockers in `GROUP_BLOCKERS.md`. That does not clear the current release blockers; those are owned by `FINAL_GOLD_GRAPH.generated.json` and its cited receipts.
 
 ## Closeout order
 
 ### 1. Preserve the promoted Windows desktop tuple
 
-This was the first required closeout lane before `BLK-010` could clear and remains a regression gate.
+This was the first required closeout lane before `BLK-010` could clear and remains a regression gate. The Windows artifact is on the preview shelf, while native Windows proof remains an external evidence boundary.
 
 That means:
 
@@ -58,7 +57,7 @@ No horizon may be treated as near-term flagship scope unless:
 Desktop polish, horizon storytelling, and adjacent wow lanes matter.
 They do not outrank executable Windows proof or lived-system proof.
 
-The current widened claim covers the promoted Avalonia Linux x64 and Windows x64 artifacts. macOS and any future second desktop head remain outside the current public-shelf promise until independently proven and promoted.
+The current bounded claim covers downloadable preview Avalonia Linux x64 and Windows x64 artifacts. It is not a public-stable gold claim. macOS and any future second desktop head remain outside the current public shelf until independently proven and promoted.
 
 ## Fleet execution rule
 

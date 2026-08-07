@@ -1,14 +1,14 @@
 {
   "contract_name": "chummer.final_gold_graph",
-  "contract_version": 1,
+  "contract_version": 2,
   "product": "chummer",
-  "generated_at_utc": "2026-07-29T18:54:25Z",
+  "generated_at_utc": "2026-08-06T20:18:38Z",
   "status": "review_required",
   "verdict": "PUBLIC_RELEASE_REVIEW_REQUIRED",
   "spine_ref": "products/chummer/PRODUCT_SPINE.yaml",
   "design_ref": "products/chummer/PRODUCT_SPINE_REDESIGN.md",
   "live_release": {
-    "version": "run-20260712-174412",
+    "version": "run-20260802-160500",
     "channel": "preview",
     "status": "published",
     "rollout_state": "coverage_incomplete",
@@ -91,7 +91,8 @@
     {
       "kind": "campaign_os_flagship_closeout",
       "path": "products/chummer/CAMPAIGN_OS_FLAGSHIP_CLOSEOUT.md",
-      "status": "pass"
+      "status": "pass",
+      "declared_verdict": "review_required"
     },
     {
       "kind": "release_evidence_pack",
@@ -108,7 +109,7 @@
       "kind": "campaign_operability_scorecard",
       "path": "products/chummer/CAMPAIGN_OPERABILITY_SCORECARD.generated.json",
       "status": "fail",
-      "generated_at": "2026-07-17T04:37:51Z",
+      "generated_at": "2026-08-06T20:05:34Z",
       "cell_count": 36
     },
     {
@@ -121,55 +122,62 @@
       "kind": "fleet_flagship_readiness",
       "path": "$FLEET_WORKSPACE/.codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json",
       "status": "fail",
-      "generated_at": "2026-07-18T00:25:10Z"
+      "generated_at": "2026-08-05T19:55:46Z"
     },
     {
       "kind": "operator_release_dashboard",
       "path": "$RUN_SERVICES_WORKSPACE/.codex-studio/published/OPERATOR_RELEASE_DASHBOARD.generated.json",
       "status": "fail",
-      "generated_at": "2026-07-28T05:15:42Z"
+      "generated_at": "2026-08-06T16:57:44Z"
     },
     {
       "kind": "final_gold_janitor",
       "path": "$RUN_SERVICES_WORKSPACE/.codex-studio/published/FINAL_GOLD_JANITOR.generated.json",
       "status": "fail",
-      "generated_at": "2026-07-29T18:51:33Z"
+      "generated_at": "2026-08-06T16:57:44Z"
     },
     {
       "kind": "flagship_product_readiness_gate",
       "path": "$RUN_SERVICES_WORKSPACE/.codex-studio/published/FLAGSHIP_PRODUCT_READINESS_GATE.generated.json",
       "status": "fail",
-      "generated_at": "2026-07-29T09:29:43Z"
+      "generated_at": "2026-08-06T17:05:45Z"
     },
     {
       "kind": "google_oauth_linking_proof",
       "path": "$RUN_SERVICES_WORKSPACE/.codex-studio/published/GOOGLE_OAUTH_LINKING_PROOF.generated.json",
       "status": "fail",
-      "generated_at": "2026-07-28T04:38:03.466853Z"
+      "generated_at": "2026-08-01T13:33:14.000266Z"
     },
     {
       "kind": "public_edge_postdeploy_gate",
       "path": "$RUN_SERVICES_WORKSPACE/.codex-studio/published/PUBLIC_EDGE_POSTDEPLOY_GATE.generated.json",
       "status": "pass",
-      "generated_at": "2026-07-28T10:18:51.794205+00:00"
+      "generated_at": "2026-08-06T17:04:50.694752+00:00"
     },
     {
       "kind": "black_ledger_live_media_proof",
       "path": "$RUN_SERVICES_WORKSPACE/.codex-studio/published/BLACK_LEDGER_LIVE_MEDIA_PROOF.generated.json",
       "status": "pass",
-      "generated_at": "2026-07-29T09:29:35Z"
+      "generated_at": "2026-08-01T13:32:51Z"
     },
     {
       "kind": "ui_localization_release_gate",
       "path": "$UI_WORKSPACE/.codex-studio/published/UI_LOCALIZATION_RELEASE_GATE.generated.json",
       "status": "pass",
-      "generated_at": "2026-07-28T19:04:49Z"
+      "generated_at": "2026-08-06T14:05:05Z"
+    },
+    {
+      "kind": "ltd_horizon_proof_debt",
+      "path": "products/chummer/LTD_HORIZON_PROOF_DEBT.generated.json",
+      "status": "pass",
+      "promoted_proof_debt_count": 28,
+      "release_blocking_proof_debt_count": 0
     },
     {
       "kind": "horizon_e2e_gold_matrix",
       "path": "$RUN_SERVICES_WORKSPACE/.codex-studio/published/HORIZON_E2E_GOLD_MATRIX.generated.json",
       "status": "pass",
-      "generated_at": "2026-07-29T18:53:14Z",
+      "generated_at": "2026-08-06T20:02:41Z",
       "horizon_count": 9,
       "gold_count": 9,
       "assertion_count": 129
@@ -178,15 +186,15 @@
       "kind": "release_ready_matrix",
       "path": "$RUN_SERVICES_WORKSPACE/.codex-studio/published/RELEASE_READY.generated.json",
       "status": "fail",
-      "generated_at": "2026-07-29T09:29:43Z",
-      "required_gate_count": 42,
+      "generated_at": "",
+      "required_gate_count": 47,
       "completed_gate_count": 0
     },
     {
       "kind": "ea_release_critical_readiness",
       "path": "$RUN_SERVICES_WORKSPACE/.codex-studio/published/EA_OPERATOR_READINESS.generated.json",
       "status": "pass",
-      "generated_at": "2026-07-28T04:38:04Z",
+      "generated_at": "2026-08-01T13:33:14Z",
       "required_component_keys": [
         "google_workspace_oauth",
         "mymedia_alexa",
@@ -201,12 +209,13 @@
       "kind": "registry_release_channel",
       "path": "$REGISTRY_WORKSPACE/.codex-studio/published/RELEASE_CHANNEL.generated.json",
       "status": "fail",
-      "generated_at": "2026-07-12T18:46:26Z"
+      "generated_at": "2026-08-06T18:27:11Z"
     },
     {
       "kind": "below_gold_platform_truth",
       "path": "products/chummer/WHAT_IS_STILL_BELOW_GOLD.md",
       "status": "pass",
+      "declared_verdict": "review_required",
       "claimed_platforms": [
         "linux",
         "windows"
@@ -231,7 +240,7 @@
       "kind": "live_release_manifest",
       "path": "https://chummer.run/downloads/releases.json",
       "status": "fail",
-      "generated_at": "2026-07-12T18:46:26+00:00"
+      "generated_at": "2026-08-06T18:27:11+00:00"
     }
   ],
   "completion_audit": {
@@ -359,7 +368,8 @@
         "status": "pass",
         "proof_kinds": [
           "ea_release_critical_readiness",
-          "black_ledger_live_media_proof"
+          "black_ledger_live_media_proof",
+          "ltd_horizon_proof_debt"
         ],
         "missing_or_failed_proof_kinds": []
       },
@@ -423,7 +433,7 @@
     {
       "id": "proof_7",
       "severity": "release_truth",
-      "summary": "release-ready receipt does not prove the exact current 42-gate matrix and projection"
+      "summary": "release-ready receipt does not prove the exact current 47-gate matrix and projection"
     },
     {
       "id": "proof_8",
@@ -437,6 +447,146 @@
     }
   ],
   "advisory_findings": [
+    {
+      "id": "ltd_proof_debt_alice_aimagicx",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: alice:aimagicx"
+    },
+    {
+      "id": "ltd_proof_debt_black_ledger_deftform",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: black-ledger:deftform"
+    },
+    {
+      "id": "ltd_proof_debt_black_ledger_lunacal",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: black-ledger:lunacal"
+    },
+    {
+      "id": "ltd_proof_debt_black_ledger_markupgo",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: black-ledger:markupgo"
+    },
+    {
+      "id": "ltd_proof_debt_black_ledger_metasurvey",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: black-ledger:metasurvey"
+    },
+    {
+      "id": "ltd_proof_debt_black_ledger_nextstep",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: black-ledger:nextstep"
+    },
+    {
+      "id": "ltd_proof_debt_black_ledger_peekshot",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: black-ledger:peekshot"
+    },
+    {
+      "id": "ltd_proof_debt_black_ledger_soundmadeseen",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: black-ledger:soundmadeseen"
+    },
+    {
+      "id": "ltd_proof_debt_black_ledger_vidboard",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: black-ledger:vidboard"
+    },
+    {
+      "id": "ltd_proof_debt_jackpoint_documentationai",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: jackpoint:documentationai"
+    },
+    {
+      "id": "ltd_proof_debt_jackpoint_markupgo",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: jackpoint:markupgo"
+    },
+    {
+      "id": "ltd_proof_debt_jackpoint_peekshot",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: jackpoint:peekshot"
+    },
+    {
+      "id": "ltd_proof_debt_jackpoint_soundmadeseen",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: jackpoint:soundmadeseen"
+    },
+    {
+      "id": "ltd_proof_debt_karma_forge_deftform",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: karma-forge:deftform"
+    },
+    {
+      "id": "ltd_proof_debt_karma_forge_icanpreneur",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: karma-forge:icanpreneur"
+    },
+    {
+      "id": "ltd_proof_debt_karma_forge_lunacal",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: karma-forge:lunacal"
+    },
+    {
+      "id": "ltd_proof_debt_karma_forge_metasurvey",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: karma-forge:metasurvey"
+    },
+    {
+      "id": "ltd_proof_debt_karma_forge_nextstep",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: karma-forge:nextstep"
+    },
+    {
+      "id": "ltd_proof_debt_knowledge_fabric_aimagicx",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: knowledge-fabric:aimagicx"
+    },
+    {
+      "id": "ltd_proof_debt_knowledge_fabric_documentationai",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: knowledge-fabric:documentationai"
+    },
+    {
+      "id": "ltd_proof_debt_knowledge_fabric_promptarchitects",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: knowledge-fabric:promptarchitects"
+    },
+    {
+      "id": "ltd_proof_debt_runbook_press_documentationai",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: runbook-press:documentationai"
+    },
+    {
+      "id": "ltd_proof_debt_runbook_press_firstbookai",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: runbook-press:firstbookai"
+    },
+    {
+      "id": "ltd_proof_debt_runbook_press_markupgo",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: runbook-press:markupgo"
+    },
+    {
+      "id": "ltd_proof_debt_runbook_press_subscribr",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: runbook-press:subscribr"
+    },
+    {
+      "id": "ltd_proof_debt_runsite_avomap",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: runsite:avomap"
+    },
+    {
+      "id": "ltd_proof_debt_runsite_crezlotours",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: runsite:crezlotours"
+    },
+    {
+      "id": "ltd_proof_debt_runsite_peekshot",
+      "severity": "advisory",
+      "summary": "Promoted LTD runtime proof debt remains: runsite:peekshot"
+    },
     {
       "id": "ea_optional_teable_recovery",
       "severity": "advisory",

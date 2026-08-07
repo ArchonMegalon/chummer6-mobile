@@ -1,6 +1,10 @@
 # Group blockers
 
-Last reviewed: 2026-04-10
+Last reviewed: 2026-08-06
+
+This register tracks structural program blockers. It is not the current release verdict.
+Current release blockers are generated in `FINAL_GOLD_GRAPH.generated.json`; a clear
+structural register must never be interpreted as public-stable, gold-supported proof.
 
 Review-template mirror drift status:
 - `BLK-007` remains cleared after WL-D012 drift follow-up completion and the `chummer6-ui` UI-template parity revalidation recorded on `2026-03-13T18:15:19Z`.
@@ -57,7 +61,7 @@ Current Fleet readiness proof, journey gates, support packets, release-channel t
 
 None.
 
-## GREEN candidates once current blockers clear
+## GREEN candidates once current release blockers clear
 
 * recurring canon freshness and mirror maintenance
 * additive product evolution beyond the foundational split/release wave

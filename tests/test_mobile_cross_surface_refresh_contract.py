@@ -357,6 +357,7 @@ class MobileCrossSurfaceRefreshContractTests(unittest.TestCase):
         self.assertTrue(payload["checks"]["frontdoor_player_gm_install_shells_live"])
         self.assertFalse(payload["checks"]["public_edge_pwa_static_pass"])
         self.assertFalse(payload["checks"]["public_edge_gate_pass"])
+        self.assertFalse(payload["checks"]["strict_public_edge_gate_pass"])
         self.assertEqual(payload["public_edge"]["status"], "fail")
         self.assertEqual(payload["public_edge"]["gate_exit_code"], 1)
         self.assertEqual("present", payload["public_edge"]["live_build_lock_probe"]["status"])
