@@ -18,6 +18,8 @@ from pathlib import Path
 
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
+from mobile_evidence_binding import build_evidence_binding
+
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_PROJECT = ROOT / "src" / "Chummer.Play.Web" / "Chummer.Play.Web.csproj"
@@ -35,6 +37,22 @@ EXPECTED_SHELL_CACHE = "chummer-shell-play-shell-v16"
 PREVIOUS_SHELL_CACHE = "chummer-shell-play-shell-v15"
 LEGACY_SHELL_CACHE = "chummer-shell-play-shell-v10"
 FOREIGN_CACHE = "foreign-origin-cache-smoke"
+CURRENT_PUBLIC_SHELL_CACHE = "chummer-mobile-play-static-play-source-v2-v21"
+PREVIOUS_PUBLIC_SHELL_CACHE = "chummer-mobile-play-static-play-source-v2-v20"
+PREVIOUS_PUBLIC_MEDIA_CACHE = "chummer-mobile-play-media-play-source-v2-v20"
+PREVIOUS_PUBLIC_MEDIA_META_CACHE = "chummer-mobile-play-media-meta-play-source-v2-v20"
+LEGACY_PRIVATE_SHELL_CACHE = "chummer-shell-play-shell-v16"
+PUBLIC_LIFECYCLE_FOREIGN_CACHE = "foreign-origin-cache-smoke"
+CRITICAL_PUBLIC_ASSETS = [
+    "/mobile.css",
+    "/mobile-install-shell.js",
+    "/manifest.webmanifest",
+    "/manifest.player.webmanifest",
+    "/manifest.gm.webmanifest",
+    "/manifest.observer.webmanifest",
+    "/icons/icon-192.svg",
+    "/icons/icon-512.svg",
+]
 LAST_ROUTE_KEY = "chummer-play-turn-companion:last-route"
 PLAYER_ROUTE_KEY = f"{LAST_ROUTE_KEY}:{PLAYER_ROLE.lower()}"
 GM_ROUTE_KEY = f"{LAST_ROUTE_KEY}:{GM_ROLE.lower()}"
@@ -666,8 +684,212 @@ def read_server_log_tail(process: subprocess.Popen[str], limit: int = 4000) -> s
 def write_runtime_receipt(payload: dict[str, object]) -> None:
     payload["verification_mode"] = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
     payload["verification_run_id"] = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
+    payload["authority_binding"] = build_evidence_binding(
+        ROOT,
+        [
+            Path(__file__),
+            ROOT / "src" / "Chummer.Play.Web" / "wwwroot" / "service-worker.js",
+            ROOT / "src" / "Chummer.Play.Web" / "wwwroot" / "mobile-install-shell.js",
+            ROOT / "src" / "Chummer.Play.Web" / "PlayWebApplication.cs",
+        ],
+    )
     RECEIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
     RECEIPT_PATH.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def verify_current_service_worker_lifecycle(browser, base_url: str) -> dict[str, object]:
+    context = browser.new_context(service_workers="allow")
+    seed_page = context.new_page()
+    try:
+        goto_dom(seed_page, f"{base_url}/health")
+        seeded = seed_page.evaluate(
+            """async (names) => {
+                for (const name of names.managed) {
+                    const cache = await caches.open(name);
+                    await cache.put('/stale-worker-marker', new Response(name));
+                }
+                const foreign = await caches.open(names.foreign);
+                await foreign.put('/foreign-worker-marker', new Response('preserve'));
+                return await caches.keys();
+            }""",
+            {
+                "managed": [
+                    PREVIOUS_PUBLIC_SHELL_CACHE,
+                    PREVIOUS_PUBLIC_MEDIA_CACHE,
+                    PREVIOUS_PUBLIC_MEDIA_META_CACHE,
+                    LEGACY_PRIVATE_SHELL_CACHE,
+                ],
+                "foreign": PUBLIC_LIFECYCLE_FOREIGN_CACHE,
+            },
+        )
+        assert_true(
+            all(name in seeded for name in [
+                PREVIOUS_PUBLIC_SHELL_CACHE,
+                PREVIOUS_PUBLIC_MEDIA_CACHE,
+                PREVIOUS_PUBLIC_MEDIA_META_CACHE,
+                LEGACY_PRIVATE_SHELL_CACHE,
+                PUBLIC_LIFECYCLE_FOREIGN_CACHE,
+            ]),
+            "lifecycle setup must seed previous managed caches and one foreign cache",
+        )
+    finally:
+        seed_page.close()
+
+    page = context.new_page()
+    try:
+        response = page.goto(
+            f"{base_url}/mobile/player",
+            wait_until="domcontentloaded",
+            timeout=NAVIGATION_TIMEOUT_MS,
+        )
+        assert_true(response is not None and response.status == 200, "fresh install page must load")
+        page.wait_for_selector("[data-play-surface='install-only'][data-authority='none']", timeout=NAVIGATION_TIMEOUT_MS)
+        page.evaluate("() => navigator.serviceWorker.ready.then(() => true)")
+        if page.evaluate("() => navigator.serviceWorker.controller === null"):
+            page.reload(wait_until="domcontentloaded", timeout=NAVIGATION_TIMEOUT_MS)
+            page.wait_for_selector("[data-play-surface='install-only']", timeout=NAVIGATION_TIMEOUT_MS)
+        page.wait_for_function("() => navigator.serviceWorker?.controller?.state === 'activated'", timeout=NAVIGATION_TIMEOUT_MS)
+        page.wait_for_function(
+            """async (expected) => {
+                const names = await caches.keys();
+                return names.includes(expected.current)
+                    && !expected.retired.some((name) => names.includes(name))
+                    && names.includes(expected.foreign);
+            }""",
+            arg={
+                "current": CURRENT_PUBLIC_SHELL_CACHE,
+                "retired": [
+                    PREVIOUS_PUBLIC_SHELL_CACHE,
+                    PREVIOUS_PUBLIC_MEDIA_CACHE,
+                    PREVIOUS_PUBLIC_MEDIA_META_CACHE,
+                    LEGACY_PRIVATE_SHELL_CACHE,
+                ],
+                "foreign": PUBLIC_LIFECYCLE_FOREIGN_CACHE,
+            },
+            timeout=NAVIGATION_TIMEOUT_MS,
+        )
+
+        cache_state = page.evaluate(
+            """async (expected) => {
+                const names = await caches.keys();
+                const assets = {};
+                for (const asset of expected.assets) {
+                    const response = await caches.match(asset);
+                    assets[asset] = response ? {
+                        status: response.status,
+                        contentType: response.headers.get('content-type') || '',
+                        byteLength: (await response.clone().arrayBuffer()).byteLength
+                    } : null;
+                }
+                const cachedRequests = [];
+                for (const name of names) {
+                    const cache = await caches.open(name);
+                    const requests = await cache.keys();
+                    cachedRequests.push(...requests.map((request) => new URL(request.url).pathname));
+                }
+                return { names, assets, cachedRequests };
+            }""",
+            {"assets": CRITICAL_PUBLIC_ASSETS},
+        )
+        for asset in CRITICAL_PUBLIC_ASSETS:
+            cached_asset = cache_state["assets"].get(asset)
+            assert_true(isinstance(cached_asset, dict), f"critical public asset was not cached: {asset}")
+            assert_true(cached_asset["status"] == 200 and cached_asset["byteLength"] > 0, f"critical public asset was invalid: {asset}")
+        assert_true(
+            "text/css" in cache_state["assets"]["/mobile.css"]["contentType"],
+            "critical mobile stylesheet must be cached as CSS",
+        )
+        assert_true(
+            not any(path.startswith("/api/") or path.startswith("/account") for path in cache_state["cachedRequests"]),
+            "public caches must not contain private API or account paths",
+        )
+
+        context.set_offline(True)
+        offline_response = page.goto(
+            f"{base_url}/mobile/player",
+            wait_until="domcontentloaded",
+            timeout=NAVIGATION_TIMEOUT_MS,
+        )
+        assert_true(offline_response is not None and offline_response.status == 503, "offline navigation must use the fail-closed shell")
+        offline_body = page.locator("body").inner_text()
+        assert_true("Reconnect to reopen this play shell" in offline_body, "offline navigation must show reconnect guidance")
+        assert_true("Private table state is never restored from Cache Storage" in offline_body, "offline navigation must state the private-data boundary")
+        context.set_offline(False)
+
+        return {
+            "fresh_install": "activated",
+            "active_worker_state": "activated",
+            "scope": "/mobile/",
+            "cache_contract": CURRENT_PUBLIC_SHELL_CACHE,
+            "critical_assets": cache_state["assets"],
+            "previous_managed_caches_removed": True,
+            "legacy_private_cache_removed": True,
+            "foreign_cache_preserved": True,
+            "offline_navigation": {
+                "status": offline_response.status,
+                "private_state_restored": False,
+            },
+        }
+    finally:
+        context.set_offline(False)
+        context.close()
+
+
+def verify_private_api_offline_boundary(browser, base_url: str) -> dict[str, object]:
+    session_id = "session-runtime-offline-grant"
+    device_id = "runtime-offline-device"
+    context = browser.new_context(
+        service_workers="allow",
+        extra_http_headers={
+            "X-Chummer-Play-Grant-Id": "runtime-offline-grant-0001",
+            "X-Chummer-Play-Grant-Session-Id": session_id,
+            "X-Chummer-Play-Grant-Role": PLAYER_ROLE,
+            "X-Chummer-Play-Grant-Device-Id": device_id,
+        },
+    )
+    page = context.new_page()
+    try:
+        page.goto(f"{base_url}/mobile/live", wait_until="domcontentloaded", timeout=NAVIGATION_TIMEOUT_MS)
+        page.wait_for_selector("[data-turn-root][data-session-grant-backed='true']", timeout=NAVIGATION_TIMEOUT_MS)
+        page.evaluate("() => navigator.serviceWorker.ready.then(() => true)")
+        if page.evaluate("() => navigator.serviceWorker.controller === null"):
+            page.reload(wait_until="domcontentloaded", timeout=NAVIGATION_TIMEOUT_MS)
+            page.wait_for_selector("[data-turn-root][data-session-grant-backed='true']", timeout=NAVIGATION_TIMEOUT_MS)
+        page.wait_for_function("() => navigator.serviceWorker?.controller?.state === 'activated'", timeout=NAVIGATION_TIMEOUT_MS)
+
+        online = verify_private_api_boundary(
+            page,
+            session_id=session_id,
+            role=PLAYER_ROLE,
+            device_id=device_id,
+        )
+        online["cached"] = page.evaluate(
+            """async (path) => !!(await caches.match(path))""",
+            f"/api/play/turn-companion/{session_id}?role={PLAYER_ROLE}&deviceId={device_id}",
+        )
+        assert_true(online["status"] == 200, "trusted online private API must remain reachable")
+        assert_true(online["cached"] is False, "online private API response must not enter Cache Storage")
+        assert_true("no-store" in str(online["cacheControl"]).lower(), "online private API response must be no-store")
+
+        context.set_offline(True)
+        offline = verify_private_api_boundary(
+            page,
+            session_id=session_id,
+            role=PLAYER_ROLE,
+            device_id=device_id,
+        )
+        offline["cached"] = page.evaluate(
+            """async (path) => !!(await caches.match(path))""",
+            f"/api/play/turn-companion/{session_id}?role={PLAYER_ROLE}&deviceId={device_id}",
+        )
+        assert_true(offline["status"] == 503, "offline private API must fail closed")
+        assert_true(offline["error"] == "play_api_network_unavailable", "offline private API must name the network boundary")
+        assert_true(offline["cached"] is False, "offline private API must not replay Cache Storage")
+        assert_true("no-store" in str(offline["cacheControl"]).lower(), "offline private API failure must be no-store")
+        return {"online": online, "offline": offline}
+    finally:
+        context.set_offline(False)
+        context.close()
 
 
 def main() -> int:
@@ -1351,6 +1573,12 @@ def main_grant_boundaries() -> int:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
 
+            current_step = "current service-worker lifecycle"
+            lifecycle = verify_current_service_worker_lifecycle(browser, base_url)
+
+            current_step = "private API offline boundary"
+            private_api_lifecycle = verify_private_api_offline_boundary(browser, base_url)
+
             current_step = "public install boundary"
             public_context = browser.new_context(service_workers="allow")
             public_page = public_context.new_page()
@@ -1469,9 +1697,10 @@ def main_grant_boundaries() -> int:
 
         write_runtime_receipt(
             {
-                "contract_name": "chummer_play.mobile_pwa_runtime_smoke.v2",
+                "contract_name": "chummer_play.mobile_pwa_runtime_smoke.v3",
                 "status": "pass",
                 "generated_at_utc": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                "service_worker_lifecycle": lifecycle,
                 "public_install_boundary": {
                     "routes": ["/mobile", "/mobile/player", "/mobile/gm", "/mobile/observer"],
                     "authority": "none",
@@ -1497,12 +1726,22 @@ def main_grant_boundaries() -> int:
                 "private_api_boundary": {
                     "online_status": private_api["status"],
                     "online_cache_control": private_api["cacheControl"],
+                    "online_cached": private_api_lifecycle["online"]["cached"],
+                    "offline_status": private_api_lifecycle["offline"]["status"],
+                    "offline_error": private_api_lifecycle["offline"]["error"],
+                    "offline_cache_control": private_api_lifecycle["offline"]["cacheControl"],
+                    "offline_cached": private_api_lifecycle["offline"]["cached"],
                 },
             }
         )
         print("mobile_pwa_runtime_smoke ok")
         print("  public_install_boundary: /mobile /mobile/player /mobile/gm /mobile/observer")
         print("  public_authority: none")
+        print(f"  service_worker_cache: {lifecycle['cache_contract']}")
+        print("  critical_public_assets: cached")
+        print("  stale_managed_cache_cleanup: pass")
+        print("  foreign_cache_preserved: true")
+        print("  offline_navigation: 503 / private state not restored")
         print("  query_parameters_grant_access: false")
         print("  live_session_boundary: /mobile/live")
         print("  live_grant_source: trusted_server_headers")

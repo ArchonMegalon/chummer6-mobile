@@ -5,7 +5,7 @@ Successor frontier: `3440617449`
 Active flagship frontier: `3371889980`  
 Work task: `117.4`  
 Milestone: `117`  
-Concrete checkout root: `/docker/chummercomplete/chummer-play`  
+Checkout policy: `location-independent; source paths are repository-relative`
 Canonical queue/registry repo label: `chummer6-mobile`
 
 This repo-local closure receipt covers the `artifact_shelf:mobile` and `artifact_recap_view:mobile` slice, closes the canonical successor queue and registry rows for `chummer6-mobile`, and preserves the historical active-flagship frontier anchor without reopening that shipped wave.

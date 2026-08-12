@@ -16,6 +16,7 @@ WORK_TASK_ID = "121.4"
 QUEUE_FRONTIER_ID = 6121780841
 REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
+CHECKOUT_POLICY = "location-independent; source paths are repository-relative"
 REGISTRY = ROOT / ".codex-design" / "product" / "NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml"
 DESIGN_QUEUE = ROOT / ".codex-design" / "product" / "NEXT_90_DAY_QUEUE_STAGING.generated.yaml"
 FLEET_QUEUE = Path("/docker/fleet/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
@@ -110,7 +111,7 @@ PROOF_TOKENS = (
     f"Package: `{PACKAGE_ID}`",
     f"Work task: `{WORK_TASK_ID}`",
     f"Milestone: `{MILESTONE_ID}`",
-    f"Concrete checkout root: `{CHECKOUT_ROOT}`",
+    f"Checkout policy: `{CHECKOUT_POLICY}`",
     f"Canonical queue/registry repo label: `{REPO_LABEL}`",
     "player table cards",
     "between-turn affordances",

@@ -8,7 +8,13 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-WORKSPACE_ROOT = REPO_ROOT.parent
+GIT_COMMON_DIR = Path(
+    subprocess.check_output(
+        ["git", "-C", str(REPO_ROOT), "rev-parse", "--git-common-dir"],
+        text=True,
+    ).strip()
+).resolve()
+WORKSPACE_ROOT = GIT_COMMON_DIR.parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "verify_mobile_pwa_performance_budget.py"
 ASSET_PATHS = [
     "mobile.css",

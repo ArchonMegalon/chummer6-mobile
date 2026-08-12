@@ -1,12 +1,12 @@
 {
   "contractName": "chummer6-mobile.verification-mode/v1",
   "contractVersion": 1,
-  "generatedAtUtc": "2026-08-06T21:16:24Z",
-  "mode": "slice",
+  "generatedAtUtc": "2026-08-12T16:39:04Z",
+  "mode": "integration",
   "releaseEvidenceEligible": false,
   "skipCount": 0,
   "skips": [],
   "status": "pass",
-  "stubPackagesAllowed": true,
-  "verificationRunId": "mobile-local-release-20260806"
+  "stubPackagesAllowed": false,
+  "verificationRunId": "mobile-post-august-20260812"
 }

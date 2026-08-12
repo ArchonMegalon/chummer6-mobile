@@ -102,7 +102,7 @@ expected_verification_commands = {
 
 expected_smoke_receipt_contracts = {
     "mobile_pwa_analytics_smoke": "chummer_play.mobile_pwa_analytics_smoke.v2",
-    "pwa_runtime_smoke": "chummer_play.mobile_pwa_runtime_smoke.v2",
+    "pwa_runtime_smoke": "chummer_play.mobile_pwa_runtime_smoke.v3",
     "mobile_pwa_viewport_smoke": "chummer_play.mobile_pwa_viewport_smoke.v2",
 }
 expected_local_origin = "http://127.0.0.1:<port>"
@@ -491,7 +491,7 @@ require(runtime_receipt_path == ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOK
 runtime_receipt = repo / str(runtime_receipt_path or "")
 if runtime_receipt_path and runtime_receipt.is_file():
     runtime_payload = json.loads(runtime_receipt.read_text(encoding="utf-8"))
-    require(runtime_payload.get("contract_name") == "chummer_play.mobile_pwa_runtime_smoke.v2", "runtime smoke receipt contract drifted")
+    require(runtime_payload.get("contract_name") == "chummer_play.mobile_pwa_runtime_smoke.v3", "runtime smoke receipt contract drifted")
     require(runtime_payload.get("status") == "pass", "runtime smoke receipt is not pass")
     public_install = runtime_payload.get("public_install_boundary")
     require(isinstance(public_install, dict), "runtime smoke receipt public install boundary missing")

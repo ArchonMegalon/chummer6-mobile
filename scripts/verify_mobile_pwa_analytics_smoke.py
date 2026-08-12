@@ -18,6 +18,8 @@ from pathlib import Path
 
 from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError, sync_playwright
 
+from mobile_evidence_binding import build_evidence_binding
+
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_PROJECT = ROOT / "src" / "Chummer.Play.Web" / "Chummer.Play.Web.csproj"
@@ -190,6 +192,15 @@ def redact_handoff_url(value: object) -> str:
 def write_analytics_receipt(payload: dict[str, object]) -> None:
     payload["verification_mode"] = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
     payload["verification_run_id"] = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
+    payload["authority_binding"] = build_evidence_binding(
+        ROOT,
+        [
+            Path(__file__),
+            ROOT / "src" / "Chummer.Play.Web" / "wwwroot" / "mobile-turn-companion.js",
+            ROOT / "src" / "Chummer.Play.Web" / "wwwroot" / "mobile-install-shell.js",
+            ROOT / "src" / "Chummer.Play.Web" / "Components" / "Pages" / "MobileLiveTurnCompanionPage.razor",
+        ],
+    )
     RECEIPT_PATH.parent.mkdir(parents=True, exist_ok=True)
     RECEIPT_PATH.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

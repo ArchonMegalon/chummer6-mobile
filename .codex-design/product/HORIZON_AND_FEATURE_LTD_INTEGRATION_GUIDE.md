@@ -205,6 +205,7 @@ Do not let any LTD own:
 Profits from long-form authoring, render, and explainer LTDs.
 
 * `Subscribr.ai` is the default creative and production layer for approved runbook scripts, tutorials, hooks, titles, and shot lists.
+* `AIWriteBook` is the verified operator-only Chronicle Studio lane for consented, spoiler-reviewed, redaction-reviewed campaign-book packets and hash-validated PDF/EPUB/DOCX return. Upload, generation, publication, and external send remain separate Chummer decisions; no unattended provider automation is allowed.
 * `First Book ai` materially improves premium long-form manual and handbook creation after approved packet sets exist.
 * `MarkupGo`, `Documentation.AI`, `vidBoard`, and `Soundmadeseen` materially improve package creation, export, explainers, and companion assets.
 * `Paperguide` and `Unmixr AI` remain bounded helper lanes.
@@ -417,6 +418,29 @@ Purpose:
 * hosted-local parity checks
 * operator capture
 * guidance projection
+
+### chronicle_studio_long_form
+
+Best fit:
+
+* `AIWriteBook`
+* `Teable` for status-only operator projection after a separate adapter proof
+* `MarkupGo` and `PeekShot` for public-safe previews only after publication approval
+* `Emailit` for delivery only after external-send approval
+
+Purpose:
+
+* versioned campaign-book source packets
+* bounded long-form generation through a human operator
+* PDF, EPUB, and DOCX return with digest verification
+* separate source, upload, generation, outline, publication, and send decisions
+
+Current truth:
+
+* the AIWriteBook Tier 4 account and synthetic 13-credit export/deletion canary are verified
+* Chummer and native Android implement the governed record and packet workflow
+* the provider lane remains runtime-disabled and operator-only
+* Teable, render, and delivery additions are opportunities, not current hot-path dependencies
 
 ## Design result
 

@@ -4,7 +4,7 @@ Package: `next90-m119-mobile-onboarding-continuity`
 Frontier: `2766704797`  
 Work task: `119.3`  
 Milestone: `119`  
-Concrete checkout root: `/docker/chummercomplete/chummer-play`  
+Checkout policy: `location-independent; source paths are repository-relative`
 Canonical queue/registry repo label: `chummer6-mobile`
 
 This repo-local implementation receipt covers the `starter_onboarding:mobile` and `first_session_briefing:mobile` slice while the canonical successor queue row is now `complete`.
@@ -26,5 +26,5 @@ This repo-local implementation receipt covers the `starter_onboarding:mobile` an
   - `.codex-design/product/NEXT_90_DAY_QUEUE_STAGING.generated.yaml`
   - `/docker/fleet/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml`
 - The successor-wave registry row is complete, and the Fleet queue mirror already carries the closed-package repeat-prevention posture.
-- The mirrored design staging queue still shows the same package row as `in_progress`; the mobile verifier now fail-closes on package identity and owned-surface drift there while keeping closure status pinned to the fleet-published queue plus the complete registry row.
+- The mirrored Design and Fleet queue rows both carry the same closed-package posture; the mobile verifier fail-closes on package identity, status, and owned-surface drift in either mirror.
 - Future shards should extend this package through the same evidence gates and should not reopen these shipped mobile starter-lane continuity mechanics.

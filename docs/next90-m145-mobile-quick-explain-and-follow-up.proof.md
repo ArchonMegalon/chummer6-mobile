@@ -4,7 +4,7 @@ Package: `next90-m145-mobile-quick-explain-and-follow-up`
 Work task: `145.3`
 Milestone: `145`
 Owner: `chummer6-mobile`
-Concrete checkout root: `/docker/chummercomplete/chummer-play`
+Checkout policy: `location-independent; source paths are repository-relative`
 Canonical queue/registry repo label: `chummer6-mobile`
 
 ## Scope
