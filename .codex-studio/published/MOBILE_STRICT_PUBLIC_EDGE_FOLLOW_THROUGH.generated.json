@@ -1,67 +1,24 @@
 {
-  "boundary_generated_at_utc": "2026-08-06T21:16:24Z",
-  "boundary_receipt_path": "/docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json",
+  "boundary_generated_at_utc": "2026-08-12T16:39:04Z",
+  "boundary_receipt_path": "/docker/chummercomplete/.state/worktrees/chummer-mobile-goal-audit-20260812/.codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json",
   "boundary_refresh": {
     "command": "python3 scripts/materialize_mobile_release_boundary.py",
-    "duration_seconds": 0.206,
+    "duration_seconds": 0.264,
     "returncode": 0,
     "stderr_tail": "",
-    "stdout_tail": "wrote mobile release boundary: /docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json"
+    "stdout_tail": "wrote mobile release boundary: /docker/chummercomplete/.state/worktrees/chummer-mobile-goal-audit-20260812/.codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json"
   },
-  "command_results": [
-    {
-      "command": "python3 /docker/chummercomplete/chummer.run-services/scripts/check_public_edge_deploy_preflight.py --output /tmp/chummer-public-edge-deploy-preflight-current.json",
-      "duration_seconds": 1.919,
-      "returncode": 0,
-      "stderr_tail": "",
-      "stdout_tail": "{\n  \"activeLockCount\": 0,\n  \"activeLocks\": [],\n  \"allowForeignBuildLocks\": false,\n  \"allowStaleForeignBuildLocks\": false,\n  \"autoIgnoreStaleForeignLockSeconds\": 86400,\n  \"autoIgnoredStaleForeignLockCount\": 0,\n  \"contractName\": \"chummer.public_edge_deploy_preflight.v1\",\n  \"findings\": [],\n  \"foreignLockCount\": 0,\n  \"foreignLocksIgnored\": false,\n  \"generatedAtUtc\": \"2026-08-06T21:16:08.807355+00:00\",\n  \"ignoredForeignLockCount\": 0,\n  \"lockPatterns\": [\n    \"build-chummer6-linux\",\n    \"Chummer.Presentation\",\n    \"Chummer.Play\",\n    \"/Roslyn/bincore/csc\",\n    \"docker compose\",\n    \"docker-compose\"\n  ],\n  \"operationalMirrorChecks\": [\n    {\n      \"controllerPath\": \"/docker/chummercomplete/chummer.run-services-public-edge-main/Chummer.Run.Api/Controllers/PublicLandingController.cs\",\n      \"controllerPresent\": true,\n      \"downloadsViewMatchesCanonical\": true,\n      \"downloadsViewPath\": \"/docker/chummercomplete/chummer.run-services-public-edge-main/Chummer.Run.Api/Views/PublicLanding/Downloads.cshtml\",\n      \"downloadsViewPresent\": true,\n      \"homeViewMatchesCanonical\": true,\n      \"homeViewPath\": \"/docker/chummercomplete/chummer.run-services-public-edge-main/Chummer.Run.Api/Views/Public..."
-    },
-    {
-      "command": "python3 /docker/chummercomplete/chummer.run-services/scripts/verify_public_edge_postdeploy_gate.py --base-url https://chummer.run --strict-preflight --output /tmp/chummer-public-edge-postdeploy-canonical-current.json",
-      "duration_seconds": 6.922,
-      "returncode": 0,
-      "stderr_tail": "",
-      "stdout_tail": ""
-    },
-    {
-      "command": "python3 scripts/verify_mobile_pwa_performance_budget.py",
-      "duration_seconds": 0.042,
-      "returncode": 0,
-      "stderr_tail": "",
-      "stdout_tail": "mobile_pwa_performance_budget:pass raw=66866 gzip=45762"
-    },
-    {
-      "command": "python3 scripts/materialize_mobile_cross_surface_readiness.py",
-      "duration_seconds": 8.537,
-      "returncode": 0,
-      "stderr_tail": "",
-      "stdout_tail": "wrote mobile cross-surface readiness: /docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_CROSS_SURFACE_READINESS.generated.json"
-    },
-    {
-      "command": "python3 scripts/materialize_mobile_local_release_proof.py",
-      "duration_seconds": 0.082,
-      "returncode": 0,
-      "stderr_tail": "",
-      "stdout_tail": "wrote mobile local release proof: /docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json"
-    },
-    {
-      "command": "bash scripts/release/verify_mobile_release_proof.sh",
-      "duration_seconds": 0.138,
-      "returncode": 0,
-      "stderr_tail": "",
-      "stdout_tail": "mobile release proof ok"
-    }
-  ],
+  "command_results": [],
   "contract_name": "chummer6-mobile.strict_public_edge_follow_through.v1",
   "cross_surface_summary": {
-    "generated_at_utc": "2026-08-06T21:16:15Z",
-    "public_edge_gate_pass": true,
-    "status": "pass",
-    "strict_public_edge_gate_pass": true
+    "generated_at_utc": "2026-08-12T16:36:59Z",
+    "public_edge_gate_pass": false,
+    "status": "fail",
+    "strict_public_edge_gate_pass": false
   },
-  "elapsed_seconds": 18.125,
-  "execute_rerun": true,
-  "generated_at_utc": "2026-08-06T21:16:24Z",
+  "elapsed_seconds": 0.264,
+  "execute_rerun": false,
+  "generated_at_utc": "2026-08-12T16:39:04Z",
   "live_build_lock_probe": {
     "command": "ps -eo pid=,args=",
     "entries": [],
@@ -70,72 +27,41 @@
     "status": "clear"
   },
   "local_release_proof_summary": {
-    "cross_surface_refresh_status": "pass",
-    "generated_at_utc": "2026-08-06T21:16:24Z",
+    "cross_surface_refresh_status": "fail",
+    "generated_at_utc": "2026-08-12T16:37:09Z",
     "status": "passed"
   },
-  "output_path": "/docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json",
+  "output_path": "/docker/chummercomplete/.state/worktrees/chummer-mobile-goal-audit-20260812/.codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json",
   "poll_count": 1,
   "poll_history": [
     {
-      "boundary_generated_at_utc": "2026-08-06T21:16:06Z",
+      "boundary_generated_at_utc": "2026-08-12T16:39:04Z",
       "live_build_lock_probe_status": "clear",
       "live_build_lock_process_count": 0,
-      "observed_at_utc": "2026-08-06T21:16:06Z",
+      "observed_at_utc": "2026-08-12T16:39:04Z",
       "strict_status": "ready_to_rerun"
     }
   ],
   "poll_interval_seconds": 30.0,
-  "post_rerun_boundary_refresh": {
-    "command": "python3 scripts/materialize_mobile_release_boundary.py",
-    "duration_seconds": 0.211,
-    "returncode": 0,
-    "stderr_tail": "",
-    "stdout_tail": "wrote mobile release boundary: /docker/chummercomplete/chummer-play/.codex-studio/published/MOBILE_RELEASE_BOUNDARY.generated.json"
-  },
   "postdeploy_snapshot": {
-    "downloads_version_marker_matches_release_channel": true,
-    "expected_release_channel": "preview",
-    "expected_release_rollout_state": "coverage_incomplete",
-    "expected_release_status": "published",
-    "expected_release_supportability_state": "review_required",
-    "expected_release_version": "run-20260802-160500",
-    "failure_count": 0,
     "failures": [],
-    "online_launch_final_url": "https://chummer.run/blazor/app?command=character_roster",
-    "online_launch_status": "pass",
     "path": "/tmp/chummer-public-edge-postdeploy-canonical-current.json",
-    "preflight_status": "pass",
-    "skip_release_version_match": false,
-    "status": "pass",
-    "status_redirect_version_marker_matches_release_channel": true,
-    "status_redirect_version_matches_release_channel": true,
-    "strict_invocation": true,
-    "strict_no_allowance_invocation": true,
-    "strict_preflight": true,
-    "visible_version_matches_release_channel": true
+    "status": "not_found"
   },
   "preflight_snapshot": {
-    "active_lock_count": 0,
     "blocking_findings": [],
-    "finding_count": 0,
-    "foreign_lock_count": 0,
-    "ignored_foreign_lock_count": 0,
-    "overlay_root": "/docker/chummercomplete/chummer.run-services/.state/public-edge-portal-overlay/app",
     "path": "/tmp/chummer-public-edge-deploy-preflight-current.json",
-    "stale_foreign_lock_count": 0,
-    "stale_looking_lock_count": 0,
-    "status": "pass"
+    "status": "not_found"
   },
-  "rerun_executed": true,
+  "rerun_executed": false,
   "script_path": "scripts/run_mobile_strict_public_edge_follow_through.py",
-  "status": "pass",
+  "status": "ready_to_rerun",
   "strict_follow_through": {
     "follow_through_command": "python3 scripts/run_mobile_strict_public_edge_follow_through.py --wait-for-clear --execute-rerun --timeout-seconds 21600 --poll-interval-seconds 60",
     "follow_through_receipt_path": ".codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json",
     "live_build_lock_probe_status": "clear",
     "preflight_blocking_findings": [],
-    "preflight_snapshot_status": "pass",
+    "preflight_snapshot_status": "not_found",
     "rerun_commands": [
       "python3 /docker/chummercomplete/chummer.run-services/scripts/check_public_edge_deploy_preflight.py --output /tmp/chummer-public-edge-deploy-preflight-current.json",
       "python3 /docker/chummercomplete/chummer.run-services/scripts/verify_public_edge_postdeploy_gate.py --base-url https://chummer.run --strict-preflight --output /tmp/chummer-public-edge-postdeploy-canonical-current.json",
@@ -148,24 +74,9 @@
     "wait_reason": null
   },
   "timeout_seconds": 0.0,
-  "verification_mode": "slice",
-  "verification_mode_receipt_updates": [
-    {
-      "duration_seconds": 0.032,
-      "returncode": 0,
-      "status": "in_progress",
-      "stderr_tail": "",
-      "stdout_tail": ""
-    },
-    {
-      "duration_seconds": 0.036,
-      "returncode": 0,
-      "status": "pass",
-      "stderr_tail": "",
-      "stdout_tail": ""
-    }
-  ],
-  "verification_run_id": "mobile-local-release-20260806",
-  "verification_run_id_source": "mode_bound_smoke_receipts",
+  "verification_mode": "integration",
+  "verification_mode_receipt_updates": [],
+  "verification_run_id": "mobile-post-august-20260812",
+  "verification_run_id_source": "environment",
   "wait_for_clear": false
 }

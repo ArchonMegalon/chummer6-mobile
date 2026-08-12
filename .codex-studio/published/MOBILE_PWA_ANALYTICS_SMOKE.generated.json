@@ -1,6 +1,40 @@
 {
+  "authority_binding": {
+    "binding_status": "source_bound_only",
+    "candidate_authority": {
+      "manifestSha256": "",
+      "releaseDecisionSha256": "",
+      "releaseScopeDecisionSha256": "",
+      "releaseVersion": "",
+      "snapshotSha256": ""
+    },
+    "contract_name": "chummer6-mobile.evidence_binding.v1",
+    "does_not_assert": [
+      "desktop_artifact_delivery_readiness",
+      "whole_product_preview_readiness",
+      "stable_readiness",
+      "flagship_readiness"
+    ],
+    "readiness_scope": "mobile_pwa_evidence",
+    "release_evidence_eligible": false,
+    "source": {
+      "cleanliness_policy": "all repository paths except direct .codex-studio/published/*.generated.json outputs",
+      "commit": "6d62828d3f29fcd654bc2ba13c07a2a9c10d5947",
+      "file_sha256": {
+        "scripts/verify_mobile_pwa_analytics_smoke.py": "3af4182c8255f01f954ccec3c84d6c408ba4e06f659253d1a00d588e84e4a604",
+        "src/Chummer.Play.Web/Components/Pages/MobileLiveTurnCompanionPage.razor": "cfbb9e1b061eeb36e3b10a9201f1417a55ddd2569878e3a261c9ee1f0e0a350e",
+        "src/Chummer.Play.Web/wwwroot/mobile-install-shell.js": "9fd0ffe46b39ddbe2532091373ed3de18c6ae055b418c4527bae32ac5f1a283c",
+        "src/Chummer.Play.Web/wwwroot/mobile-turn-companion.js": "1073fc565b570616355cf6592c82e377f8725c355958976a546ff3213f791f41"
+      },
+      "repository": "ArchonMegalon/chummer6-mobile",
+      "tree": "e2afa4046197ffd0147cded3723b2737a62b7b49",
+      "worktree_clean": true
+    },
+    "verification_mode": "integration",
+    "verification_run_id": "mobile-post-august-20260812"
+  },
   "contract_name": "chummer_play.mobile_pwa_analytics_smoke.v2",
-  "generated_at_utc": "2026-08-06T10:36:11Z",
+  "generated_at_utc": "2026-08-12T16:39:03Z",
   "live_session_boundary": {
     "analytics_role": "Player",
     "events": [
@@ -34,6 +68,6 @@
     "query_secret_leak_free": true
   },
   "status": "pass",
-  "verification_mode": "slice",
-  "verification_run_id": "mobile-local-release-20260806"
+  "verification_mode": "integration",
+  "verification_run_id": "mobile-post-august-20260812"
 }
