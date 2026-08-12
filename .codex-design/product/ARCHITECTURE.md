@@ -54,6 +54,8 @@ If campaign continuity, product control, or world-state semantics live in Hub, t
 
 `chummer6-ui` owns builder/workbench/admin/browser/desktop UX.
 `chummer6-mobile` owns live-session/mobile/PWA/player/GM shell UX.
+`chummer-android` owns the Android host and platform adaptations for the reused
+full workbench, and hands live play to `chummer6-mobile`.
 
 No silent re-merging of those surfaces is allowed.
 

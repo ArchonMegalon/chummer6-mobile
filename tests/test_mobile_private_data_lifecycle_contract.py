@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 
@@ -12,6 +13,17 @@ PAGE = WEB_ROOT / "Components" / "Pages" / "MobileTurnCompanionPage.razor"
 LIVE_PAGE = WEB_ROOT / "Components" / "Pages" / "MobileLiveTurnCompanionPage.razor"
 APPLICATION = WEB_ROOT / "PlayWebApplication.cs"
 WORKER = WEB_ROOT / "wwwroot" / "service-worker.js"
+RUNTIME_SMOKE = REPO_ROOT / "scripts" / "verify_mobile_pwa_runtime_smoke.py"
+LOCAL_PROOF = REPO_ROOT / "scripts" / "materialize_mobile_local_release_proof.py"
+EVIDENCE_BINDING = REPO_ROOT / "scripts" / "mobile_evidence_binding.py"
+
+
+def load_evidence_binding_module():
+    spec = importlib.util.spec_from_file_location("mobile_evidence_binding", EVIDENCE_BINDING)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_private_play_projection_and_continuity_are_memory_only() -> None:
@@ -246,6 +258,52 @@ def test_worker_retries_network_after_offline_hint_and_never_replays_private_nav
     assert 'status: 503' in worker
     assert '"cache-control": "no-store"' in worker
     assert "caches.match(request)" not in navigation
+
+
+def test_runtime_smoke_covers_current_public_worker_lifecycle_and_is_authority_bound() -> None:
+    smoke = RUNTIME_SMOKE.read_text(encoding="utf-8")
+    proof = LOCAL_PROOF.read_text(encoding="utf-8")
+    binding = EVIDENCE_BINDING.read_text(encoding="utf-8")
+
+    assert 'CURRENT_PUBLIC_SHELL_CACHE = "chummer-mobile-play-static-play-source-v2-v21"' in smoke
+    assert '"/mobile.css"' in smoke
+    assert "verify_current_service_worker_lifecycle(browser, base_url)" in smoke
+    assert '"previous_managed_caches_removed": True' in smoke
+    assert '"legacy_private_cache_removed": True' in smoke
+    assert '"foreign_cache_preserved": True' in smoke
+    assert '"private_state_restored": False' in smoke
+    assert '"contract_name": "chummer_play.mobile_pwa_runtime_smoke.v3"' in smoke
+    assert '"pwa_runtime_smoke": "chummer_play.mobile_pwa_runtime_smoke.v3"' in proof
+    assert "offline local queue replay" not in proof
+
+    for field in (
+        "releaseVersion",
+        "snapshotSha256",
+        "manifestSha256",
+        "releaseDecisionSha256",
+        "releaseScopeDecisionSha256",
+    ):
+        assert field in binding
+    assert 'verification_mode == "release"' in binding
+    assert "release evidence requires a clean source worktree" in binding
+
+
+def test_evidence_cleanliness_ignores_only_direct_governed_json_receipts() -> None:
+    binding = load_evidence_binding_module()
+
+    assert binding._is_governed_generated_receipt(
+        ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json"
+    )
+    assert not binding._is_governed_generated_receipt("scripts/generated.generated.json")
+    assert not binding._is_governed_generated_receipt(
+        ".codex-studio/published/nested/forged.generated.json"
+    )
+    assert not binding._is_governed_generated_receipt(
+        ".codex-design/product/ARCHITECTURE.generated.json"
+    )
+    assert not binding._is_governed_generated_receipt(
+        ".codex-studio/published/not-a-receipt.py"
+    )
 
 
 def test_open_tab_copy_does_not_claim_install_local_private_state() -> None:

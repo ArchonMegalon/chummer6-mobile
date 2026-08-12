@@ -301,10 +301,10 @@ class MobileReleaseBoundaryTests(unittest.TestCase):
             module.OWNED_RELEASE_RECEIPTS,
         )
 
-    def test_owned_play_source_files_include_repo_local_handoff(self) -> None:
+    def test_owned_play_source_files_exclude_machine_local_handoff_history(self) -> None:
         module = load_module("materialize_mobile_release_boundary", BOUNDARY_SCRIPT_PATH)
 
-        self.assertIn("NEXT_SESSION_HANDOFF.md", module.OWNED_PLAY_SOURCE_FILES)
+        self.assertNotIn("NEXT_SESSION_HANDOFF.md", module.OWNED_PLAY_SOURCE_FILES)
 
     def test_summarize_preflight_receipt_surfaces_blocking_findings(self) -> None:
         module = load_module("materialize_mobile_release_boundary", BOUNDARY_SCRIPT_PATH)
@@ -792,6 +792,7 @@ class MobileReleaseBoundaryTests(unittest.TestCase):
         proof = load_module("materialize_mobile_local_release_proof", PROOF_SCRIPT_PATH)
 
         owned_boundary = set(boundary.OWNED_PLAY_SOURCE_FILES)
+        self.assertIn("scripts/ai/repair_design_mirror.sh", owned_boundary)
         proof_sources = {
             str(proof.REGRESSION_SOURCE.relative_to(proof.ROOT)),
             str(proof.PLAY_WEB_APPLICATION.relative_to(proof.ROOT)),

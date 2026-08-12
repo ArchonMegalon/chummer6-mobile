@@ -16,7 +16,8 @@ MILESTONE_ID = "117"
 WORK_TASK_ID = "117.4"
 REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
-QUEUE_PROOF_ROOT = CHECKOUT_ROOT
+CHECKOUT_POLICY = "location-independent; source paths are repository-relative"
+QUEUE_PROOF_ROOT = "/docker/chummercomplete/chummer-play"
 
 REGISTRY = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml")
 DESIGN_QUEUE = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
@@ -138,10 +139,10 @@ DESIGN_QUEUE_TOKENS = QUEUE_BASE_TOKENS + (
 )
 
 FLEET_QUEUE_TOKENS = QUEUE_BASE_TOKENS + (
-    f"{CHECKOUT_ROOT}/docs/next90-m117-mobile-artifact-shelf.proof.md",
-    f"{CHECKOUT_ROOT}/scripts/verify_next90_m117_mobile_artifact_shelf.py",
-    f"{CHECKOUT_ROOT}/scripts/materialize_mobile_local_release_proof.py",
-    f"{CHECKOUT_ROOT}/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
+    f"{QUEUE_PROOF_ROOT}/docs/next90-m117-mobile-artifact-shelf.proof.md",
+    f"{QUEUE_PROOF_ROOT}/scripts/verify_next90_m117_mobile_artifact_shelf.py",
+    f"{QUEUE_PROOF_ROOT}/scripts/materialize_mobile_local_release_proof.py",
+    f"{QUEUE_PROOF_ROOT}/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
 )
 
 REGISTRY_TOKENS = (
@@ -156,7 +157,7 @@ PROOF_TOKENS = (
     f"Active flagship frontier: `{ACTIVE_FLAGSHIP_FRONTIER_ID}`",
     f"Work task: `{WORK_TASK_ID}`",
     f"Milestone: `{MILESTONE_ID}`",
-    f"Concrete checkout root: `{CHECKOUT_ROOT}`",
+    f"Checkout policy: `{CHECKOUT_POLICY}`",
     f"Canonical queue/registry repo label: `{REPO_LABEL}`",
     "artifact_shelf:mobile",
     "artifact_recap_view:mobile",

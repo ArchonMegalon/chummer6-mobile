@@ -14,7 +14,8 @@ WORK_TASK_ID = "145.3"
 QUEUE_FRONTIER_ID = "1453045303"
 REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
-QUEUE_PROOF_ROOT = CHECKOUT_ROOT
+CHECKOUT_POLICY = "location-independent; source paths are repository-relative"
+QUEUE_PROOF_ROOT = "/docker/chummercomplete/chummer-play"
 REGISTRY = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml")
 DESIGN_QUEUE = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
 FLEET_QUEUE = Path("/docker/fleet/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
@@ -105,10 +106,10 @@ DESIGN_QUEUE_TOKENS = QUEUE_BASE_TOKENS + (
 )
 
 FLEET_QUEUE_TOKENS = QUEUE_BASE_TOKENS + (
-    f"{CHECKOUT_ROOT}/docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md",
-    f"{CHECKOUT_ROOT}/scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py",
-    f"{CHECKOUT_ROOT}/scripts/materialize_mobile_local_release_proof.py",
-    f"{CHECKOUT_ROOT}/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
+    f"{QUEUE_PROOF_ROOT}/docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md",
+    f"{QUEUE_PROOF_ROOT}/scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py",
+    f"{QUEUE_PROOF_ROOT}/scripts/materialize_mobile_local_release_proof.py",
+    f"{QUEUE_PROOF_ROOT}/.codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json",
 )
 
 REGISTRY_TOKENS = (
@@ -121,7 +122,7 @@ PROOF_TOKENS = (
     f"Package: `{PACKAGE_ID}`",
     f"Work task: `{WORK_TASK_ID}`",
     f"Milestone: `{MILESTONE_ID}`",
-    f"Concrete checkout root: `{CHECKOUT_ROOT}`",
+    f"Checkout policy: `{CHECKOUT_POLICY}`",
     f"Canonical queue/registry repo label: `{REPO_LABEL}`",
     "quick_explain:mobile",
     "grounded_follow_up:mobile",

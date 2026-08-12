@@ -8,6 +8,10 @@ local-first play, reconnect/replay behavior, mobile/tablet UX, installable PWA h
 The mobile lane is not a downsized builder.
 It is the table-side companion that helps a player resolve the next useful action quickly during live play.
 
+The separate `chummer-android` Play-distributed app may host the full reused
+workbench. That does not widen this repo: when the Android app enters live play,
+it consumes or hands off to this canonical session shell.
+
 ## Owns
 
 * player shell and GM shell for live play

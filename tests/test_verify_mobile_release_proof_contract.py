@@ -9,6 +9,12 @@ VERIFY_SCRIPT = ROOT / "scripts" / "release" / "verify_mobile_release_proof.sh"
 
 
 class VerifyMobileReleaseProofContractTests(unittest.TestCase):
+    def test_runtime_receipt_uses_current_private_data_lifecycle_contract(self) -> None:
+        text = VERIFY_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertEqual(2, text.count("chummer_play.mobile_pwa_runtime_smoke.v3"))
+        self.assertNotIn("chummer_play.mobile_pwa_runtime_smoke.v2", text)
+
     def test_live_release_blocker_validation_ignores_only_the_self_referential_release_wrapper(self) -> None:
         text = VERIFY_SCRIPT.read_text(encoding="utf-8")
 

@@ -17,7 +17,8 @@ MILESTONE_ID = "112"
 WORK_TASK_ID = "112.4"
 REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
-CANONICAL_QUEUE_ROOT = f"/docker/chummercomplete/{REPO_LABEL}"
+CHECKOUT_POLICY = "location-independent; source paths are repository-relative"
+CANONICAL_QUEUE_ROOT = "/docker/chummercomplete/chummer-play"
 REGISTRY = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml")
 DESIGN_QUEUE = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
 FLEET_QUEUE = Path("/docker/fleet/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
@@ -205,7 +206,7 @@ REGISTRY_TOKENS = (
 PROOF_TOKENS = (
     f"Package: `{PACKAGE_ID}`",
     "Milestone: `112`",
-    f"Concrete checkout root: `{CHECKOUT_ROOT}`",
+    f"Checkout policy: `{CHECKOUT_POLICY}`",
     f"Canonical queue/registry repo label: `{REPO_LABEL}`",
     "Allowed package paths: `src`, `tests`, `docs`, `scripts`",
     f"Active flagship frontier: `{ACTIVE_FLAGSHIP_FRONTIER_ID}`",

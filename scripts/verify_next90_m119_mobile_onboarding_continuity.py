@@ -14,6 +14,7 @@ MILESTONE_ID = "119"
 WORK_TASK_ID = "119.3"
 REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
+CHECKOUT_POLICY = "location-independent; source paths are repository-relative"
 
 REGISTRY = ROOT / ".codex-design" / "product" / "NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml"
 DESIGN_QUEUE = ROOT / ".codex-design" / "product" / "NEXT_90_DAY_QUEUE_STAGING.generated.yaml"
@@ -117,7 +118,7 @@ FLEET_QUEUE_TOKENS = QUEUE_BASE_TOKENS + (
     "do_not_reopen_reason:",
 )
 
-DESIGN_QUEUE_ALLOWED_STATES = ("status: in_progress", "status: complete")
+DESIGN_QUEUE_ALLOWED_STATES = ("status: complete",)
 
 REGISTRY_TOKENS = (
     "id: 119.3",
@@ -130,7 +131,7 @@ PROOF_TOKENS = (
     f"Frontier: `{FRONTIER_ID}`",
     f"Work task: `{WORK_TASK_ID}`",
     f"Milestone: `{MILESTONE_ID}`",
-    f"Concrete checkout root: `{CHECKOUT_ROOT}`",
+    f"Checkout policy: `{CHECKOUT_POLICY}`",
     f"Canonical queue/registry repo label: `{REPO_LABEL}`",
     "starter_onboarding:mobile",
     "first_session_briefing:mobile",
@@ -138,7 +139,7 @@ PROOF_TOKENS = (
     "first-session briefing",
     "claimed-device artifact lane",
     "The successor-wave registry row is complete, and the Fleet queue mirror already carries the closed-package repeat-prevention posture.",
-    "The mirrored design staging queue still shows the same package row as `in_progress`",
+    "The mirrored Design and Fleet queue rows both carry the same closed-package posture",
 )
 
 SIGNOFF_TOKENS = (

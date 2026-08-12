@@ -2872,8 +2872,12 @@ static async Task VerifyTurnCompanionClientRuntimeHardeningContractAsync()
     Assert(script.Contains("params.delete(\"sessionId\")", StringComparison.Ordinal)
         && script.Contains("params.delete(\"deviceId\")", StringComparison.Ordinal)
         && script.Contains("params.delete(\"role\")", StringComparison.Ordinal), "private launch identity must be removed from the visible route after bootstrap");
-    Assert(script.IndexOf("inferRoleFromPath(window.location.pathname)", StringComparison.Ordinal)
-        < script.IndexOf("params.get(\"role\")", StringComparison.Ordinal), "canonical role paths must win over conflicting legacy role queries");
+    var roleResolutionStart = script.IndexOf("var requestedRoleName = bootstrap.roleName || root.getAttribute(\"data-role\") || \"Player\";", StringComparison.Ordinal);
+    var roleResolutionEnd = script.IndexOf("var resumeRoute", Math.Max(roleResolutionStart, 0), StringComparison.Ordinal);
+    Assert(roleResolutionStart >= 0 && roleResolutionEnd > roleResolutionStart, "live role resolution must be explicit and inspectable");
+    var roleResolution = script[roleResolutionStart..roleResolutionEnd];
+    Assert(!roleResolution.Contains("params.get(\"role\")", StringComparison.Ordinal)
+        && !roleResolution.Contains("inferRoleFromPath", StringComparison.Ordinal), "live role authority must come from the server-granted bootstrap, never path or query labels");
     Assert(script.Contains("function isClickHandledTurnKind(turnKind)", StringComparison.Ordinal), "delegated clicks must be restricted to click-native controls");
     Assert(script.Contains("turnKind !== \"toggle-modifier\" && turnKind !== \"select-anchor\"", StringComparison.Ordinal), "checkboxes and selects must retain native change behavior");
     Assert(script.Contains("var logicalFocus = captureLogicalFocus();", StringComparison.Ordinal)

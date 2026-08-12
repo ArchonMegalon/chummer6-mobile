@@ -3,7 +3,7 @@
 Package: `next90-m121-mobile-add-player-table-cards-between-turn-affordances-and-gm-l`  
 Work task: `121.4`  
 Milestone: `121`  
-Concrete checkout root: `/docker/chummercomplete/chummer-play`  
+Checkout policy: `location-independent; source paths are repository-relative`
 Canonical queue/registry repo label: `chummer6-mobile`
 
 This implementation receipt covers the `add_player_table_cards_between:mobile` slice for player table cards, between-turn affordances, and GM-lite continuity views.

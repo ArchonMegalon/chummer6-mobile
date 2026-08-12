@@ -3,7 +3,7 @@
 Package: `next90-m122-mobile-add-mobile-runner-goal-updates-and-player-safe-consequen`  
 Work task: `122.4`  
 Milestone: `122`  
-Concrete checkout root: `/docker/chummercomplete/chummer-play`  
+Checkout policy: `location-independent; source paths are repository-relative`
 Canonical queue/registry repo label: `chummer6-mobile`
 
 This implementation receipt covers the `add_mobile_runner_goal_updates:mobile` slice for mobile runner-goal return updates and player-safe consequence feed views.

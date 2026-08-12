@@ -44,7 +44,6 @@ MOBILE_RECEIPT_REFRESH_COMMANDS = [
 
 OWNED_PLAY_SOURCE_FILES = [
     ".gitignore",
-    "NEXT_SESSION_HANDOFF.md",
     "README.md",
     "docs/migration-map.md",
     "docs/PLAY_RELEASE_SIGNOFF.md",
@@ -55,10 +54,12 @@ OWNED_PLAY_SOURCE_FILES = [
     "docs/next90-m122-mobile-runner-goal-updates-and-consequence-feed.proof.md",
     "docs/next90-m145-mobile-quick-explain-and-follow-up.proof.md",
     "scripts/ai/verify.sh",
+    "scripts/ai/repair_design_mirror.sh",
     "scripts/ai/with-package-plane.sh",
     "scripts/ai/write_verification_mode_receipt.py",
     "scripts/cleanup_mobile_disposable_artifacts.py",
     "scripts/materialize_mobile_cross_surface_readiness.py",
+    "scripts/mobile_evidence_binding.py",
     "scripts/materialize_mobile_local_release_proof.py",
     "scripts/materialize_mobile_release_boundary.py",
     "scripts/release/verify_mobile_release_proof.sh",
@@ -97,6 +98,7 @@ OWNED_PLAY_TEST_FILES = [
     "tests/test_verification_modes.py",
     "tests/test_mobile_release_boundary.py",
     "tests/test_mobile_pwa_performance_budget.py",
+    "tests/test_mobile_private_data_lifecycle_contract.py",
     "tests/test_cleanup_mobile_disposable_artifacts.py",
     "tests/test_mobile_strict_public_edge_follow_through.py",
     "tests/test_verify_mobile_release_proof_contract.py",

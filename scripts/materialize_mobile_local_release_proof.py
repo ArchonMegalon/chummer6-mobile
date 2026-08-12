@@ -84,11 +84,12 @@ VERIFICATION_COMMANDS = [
         "receipt_path": ".codex-studio/published/MOBILE_PWA_RUNTIME_SMOKE.generated.json",
         "required_before_materialize": True,
         "proves": [
-            "interactive Blazor mobile shell",
-            "hero dropdown Play launch to Player and GM PWA routes",
-            "Player and GM offline local queue replay after reconnect",
-            "device-neutral session handoff receivers",
-            "private play API fail-closed offline boundary",
+            "fresh v21 service-worker activation and critical public-asset precache",
+            "previous managed and legacy private cache cleanup",
+            "foreign cache preservation",
+            "offline navigation that never restores private table state",
+            "private play API network-only fail-closed boundary",
+            "public install labels remain separate from server-granted live state",
         ],
     },
     {
@@ -107,7 +108,7 @@ VERIFICATION_COMMANDS = [
 
 SMOKE_RECEIPT_CONTRACTS = {
     "mobile_pwa_analytics_smoke": "chummer_play.mobile_pwa_analytics_smoke.v2",
-    "pwa_runtime_smoke": "chummer_play.mobile_pwa_runtime_smoke.v2",
+    "pwa_runtime_smoke": "chummer_play.mobile_pwa_runtime_smoke.v3",
     "mobile_pwa_viewport_smoke": "chummer_play.mobile_pwa_viewport_smoke.v2",
 }
 
@@ -780,6 +781,12 @@ REQUIRED_MARKERS["pwa_runtime_smoke"] = [
     "mobile_pwa_runtime_smoke ok",
     "public_install_boundary: /mobile /mobile/player /mobile/gm /mobile/observer",
     "public_authority: none",
+    'CURRENT_PUBLIC_SHELL_CACHE = "chummer-mobile-play-static-play-source-v2-v21"',
+    "service_worker_cache:",
+    "critical_public_assets: cached",
+    "stale_managed_cache_cleanup: pass",
+    "foreign_cache_preserved: true",
+    "offline_navigation: 503 / private state not restored",
     "query_parameters_grant_access: false",
     "live_session_boundary: /mobile/live",
     "live_grant_source: trusted_server_headers",
@@ -981,6 +988,9 @@ def sha256_file(path: Path) -> str:
 def load_required_smoke_receipts() -> tuple[list[dict[str, object]], list[str]]:
     summaries: list[dict[str, object]] = []
     errors: list[str] = []
+    common_source_commit = ""
+    common_source_tree = ""
+    common_candidate_authority = ""
     expected_verification_mode = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
     expected_verification_run_id = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
     required_commands = [
@@ -1026,6 +1036,21 @@ def load_required_smoke_receipts() -> tuple[list[dict[str, object]], list[str]]:
         generated_at_utc = receipt_payload.get("generated_at_utc")
         verification_mode = receipt_payload.get("verification_mode")
         verification_run_id = receipt_payload.get("verification_run_id")
+        authority_binding = (
+            receipt_payload.get("authority_binding")
+            if isinstance(receipt_payload.get("authority_binding"), dict)
+            else {}
+        )
+        binding_source = (
+            authority_binding.get("source")
+            if isinstance(authority_binding.get("source"), dict)
+            else {}
+        )
+        candidate_authority = (
+            authority_binding.get("candidate_authority")
+            if isinstance(authority_binding.get("candidate_authority"), dict)
+            else {}
+        )
         if contract_name != expected_contract:
             errors.append(f"{command_id} receipt contract drifted: {contract_name!r}")
         if status != "pass":
@@ -1040,6 +1065,35 @@ def load_required_smoke_receipts() -> tuple[list[dict[str, object]], list[str]]:
             errors.append(
                 f"{command_id} receipt verification run drifted: {verification_run_id!r}"
             )
+        if authority_binding.get("contract_name") != "chummer6-mobile.evidence_binding.v1":
+            errors.append(f"{command_id} receipt is missing the evidence-binding contract")
+        if authority_binding.get("verification_mode") != verification_mode:
+            errors.append(f"{command_id} evidence binding verification mode drifted")
+        if authority_binding.get("verification_run_id") != verification_run_id:
+            errors.append(f"{command_id} evidence binding verification run drifted")
+        source_commit = str(binding_source.get("commit") or "")
+        source_tree = str(binding_source.get("tree") or "")
+        if len(source_commit) != 40 or len(source_tree) != 40:
+            errors.append(f"{command_id} evidence binding is missing exact source commit/tree")
+        if not isinstance(binding_source.get("file_sha256"), dict) or not binding_source.get("file_sha256"):
+            errors.append(f"{command_id} evidence binding is missing source file digests")
+        if common_source_commit and source_commit != common_source_commit:
+            errors.append(f"{command_id} evidence source commit drifted across smoke receipts")
+        if common_source_tree and source_tree != common_source_tree:
+            errors.append(f"{command_id} evidence source tree drifted across smoke receipts")
+        common_source_commit = common_source_commit or source_commit
+        common_source_tree = common_source_tree or source_tree
+        serialized_candidate_authority = json.dumps(candidate_authority, sort_keys=True)
+        if common_candidate_authority and serialized_candidate_authority != common_candidate_authority:
+            errors.append(f"{command_id} candidate authority drifted across smoke receipts")
+        common_candidate_authority = common_candidate_authority or serialized_candidate_authority
+        if expected_verification_mode == "release":
+            if authority_binding.get("binding_status") != "candidate_bound":
+                errors.append(f"{command_id} release receipt is not candidate-bound")
+            if authority_binding.get("release_evidence_eligible") is not True:
+                errors.append(f"{command_id} release receipt is not release-evidence eligible")
+            if binding_source.get("worktree_clean") is not True:
+                errors.append(f"{command_id} release receipt source worktree was not clean")
 
         summaries.append(
             {
@@ -1051,6 +1105,7 @@ def load_required_smoke_receipts() -> tuple[list[dict[str, object]], list[str]]:
                 "generated_at_utc": generated_at_utc,
                 "verification_mode": verification_mode,
                 "verification_run_id": verification_run_id,
+                "authority_binding": authority_binding,
                 "required_before_materialize": True,
             }
         )

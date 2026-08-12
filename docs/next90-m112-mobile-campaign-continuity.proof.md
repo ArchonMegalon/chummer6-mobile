@@ -3,7 +3,7 @@
 Package: `next90-m112-mobile-campaign-continuity`
 Milestone: `112`
 Owner: `chummer6-mobile`
-Concrete checkout root: `/docker/chummercomplete/chummer-play`
+Checkout policy: `location-independent; source paths are repository-relative`
 Canonical queue/registry repo label: `chummer6-mobile`
 Allowed package paths: `src`, `tests`, `docs`, `scripts`
 Active flagship frontier: `1033794907`
