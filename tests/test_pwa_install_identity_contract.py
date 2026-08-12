@@ -208,6 +208,9 @@ const context = {{
   Object,
   Promise,
   String,
+  AbortController,
+  clearTimeout,
+  setTimeout,
   console,
   caches,
   self,
@@ -232,6 +235,7 @@ async function mediaWrites(url, headers, responseUrl = url) {{
 
 function contentTypeForAsset(url) {{
   const pathname = new URL(url).pathname;
+  if (pathname.endsWith(".css")) return "text/css";
   if (pathname.endsWith(".js")) return "application/javascript";
   if (pathname.endsWith(".svg")) return "image/svg+xml";
   return "application/manifest+json";
@@ -307,7 +311,7 @@ async function installAttempt(cacheControl, vary = "", responseOrigin = workerOr
         "identityVarying": 0,
         "wrongType": 0,
         "crossOrigin": 0,
-        "installPublic": {"rejected": False, "writes": 7},
+        "installPublic": {"rejected": False, "writes": 8},
         "installNoStore": {"rejected": True, "writes": 0},
         "installIdentityVarying": {"rejected": True, "writes": 0},
         "installCrossOriginRedirect": {"rejected": True, "writes": 0},
