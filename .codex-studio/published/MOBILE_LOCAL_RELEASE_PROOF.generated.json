@@ -665,7 +665,7 @@
       "frontier_id": "3720982159",
       "active_flagship_frontier_id": "1033794907",
       "repo": "chummer6-mobile",
-      "checkout_root": "/docker/chummercomplete/.state/worktrees/chummer-mobile-goal-audit-20260812",
+      "checkout_root": "/docker/chummercomplete/chummer-play",
       "allowed_paths": [
         "src",
         "tests",
@@ -687,7 +687,7 @@
       "work_task_id": "119.3",
       "frontier_id": "2766704797",
       "repo": "chummer6-mobile",
-      "checkout_root": "/docker/chummercomplete/.state/worktrees/chummer-mobile-goal-audit-20260812",
+      "checkout_root": "/docker/chummercomplete/chummer-play",
       "allowed_paths": [
         "src",
         "tests",
@@ -709,7 +709,7 @@
       "work_task_id": "121.4",
       "frontier_id": "6121780841",
       "repo": "chummer6-mobile",
-      "checkout_root": "/docker/chummercomplete/.state/worktrees/chummer-mobile-goal-audit-20260812",
+      "checkout_root": "/docker/chummercomplete/chummer-play",
       "allowed_paths": [
         "src",
         "tests",
@@ -743,7 +743,7 @@
       "work_task_id": "122.4",
       "frontier_id": "8138838792",
       "repo": "chummer6-mobile",
-      "checkout_root": "/docker/chummercomplete/.state/worktrees/chummer-mobile-goal-audit-20260812",
+      "checkout_root": "/docker/chummercomplete/chummer-play",
       "allowed_paths": [
         "src",
         "tests",
@@ -769,7 +769,7 @@
       ],
       "active_flagship_frontier_id": "3371889980",
       "repo": "chummer6-mobile",
-      "checkout_root": "/docker/chummercomplete/.state/worktrees/chummer-mobile-goal-audit-20260812",
+      "checkout_root": "/docker/chummercomplete/chummer-play",
       "allowed_paths": [
         "src",
         "tests",
