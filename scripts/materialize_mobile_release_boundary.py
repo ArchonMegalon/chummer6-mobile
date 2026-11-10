@@ -13,19 +13,19 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUN_SERVICES_ROOT = Path("/docker/chummercomplete/chummer.run-services")
-RELEASE_BLOCKERS_RECEIPT = Path("/docker/chummercomplete/RELEASE_BLOCKERS.generated.json")
+RUN_SERVICES_ROOT = Path(os.environ["CHUMMER_RUN_SERVICES_ROOT"]) if os.environ.get("CHUMMER_RUN_SERVICES_ROOT") else None
+RELEASE_BLOCKERS_RECEIPT = Path(os.environ["CHUMMER_RELEASE_ROOT"]) / "RELEASE_BLOCKERS.generated.json" if os.environ.get("CHUMMER_RELEASE_ROOT") else None
 OUT = ROOT / ".codex-studio" / "published" / "MOBILE_RELEASE_BOUNDARY.generated.json"
 DEFAULT_PREFLIGHT_RECEIPT = Path("/tmp/chummer-public-edge-deploy-preflight-current.json")
 DEFAULT_POSTDEPLOY_RECEIPT = Path("/tmp/chummer-public-edge-postdeploy-canonical-current.json")
 VERIFY_DESIGN_MIRROR_SCRIPT = ROOT / "scripts" / "ai" / "verify_design_mirror.py"
 LIVE_BUILD_LOCK_MARKER = "build-chummer6-linux.sh"
 STRICT_PUBLIC_EDGE_PREFLIGHT_COMMAND = (
-    "python3 /docker/chummercomplete/chummer.run-services/scripts/check_public_edge_deploy_preflight.py "
+    'python3 "${CHUMMER_RUN_SERVICES_ROOT}/scripts/check_public_edge_deploy_preflight.py" '
     "--output /tmp/chummer-public-edge-deploy-preflight-current.json"
 )
 STRICT_PUBLIC_EDGE_POSTDEPLOY_COMMAND = (
-    "python3 /docker/chummercomplete/chummer.run-services/scripts/verify_public_edge_postdeploy_gate.py "
+    'python3 "${CHUMMER_RUN_SERVICES_ROOT}/scripts/verify_public_edge_postdeploy_gate.py" '
     "--base-url https://chummer.run --strict-preflight --output /tmp/chummer-public-edge-postdeploy-canonical-current.json"
 )
 STRICT_PUBLIC_EDGE_FOLLOW_THROUGH_COMMAND = (
@@ -444,9 +444,9 @@ def summarize_preflight_receipt(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_preflight_snapshot(path: Path) -> dict[str, Any]:
-    if not path.is_file():
+    if path is None or not path.is_file():
         return {
-            "path": str(path),
+            "path": str(path) if path is not None else "<set CHUMMER_RELEASE_ROOT>",
             "status": "not_found",
             "blocking_findings": [],
         }
@@ -490,9 +490,9 @@ def summarize_postdeploy_receipt(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_postdeploy_snapshot(path: Path) -> dict[str, Any]:
-    if not path.is_file():
+    if path is None or not path.is_file():
         return {
-            "path": str(path),
+            "path": str(path) if path is not None else "<set CHUMMER_RELEASE_ROOT>",
             "status": "not_found",
             "failures": [],
         }
@@ -543,7 +543,7 @@ def load_design_mirror_snapshot() -> dict[str, Any]:
     if not VERIFY_DESIGN_MIRROR_SCRIPT.is_file():
         return summarize_design_mirror_gate(1, "", "")
     completed = subprocess.run(
-        ["python3", str(VERIFY_DESIGN_MIRROR_SCRIPT)],
+        ["python3", str(VERIFY_DESIGN_MIRROR_SCRIPT), "--design-root", os.environ.get("CHUMMER_DESIGN_ROOT", "")],
         check=False,
         text=True,
         capture_output=True,
@@ -605,10 +605,10 @@ def summarize_root_blocker(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def load_canonical_release_blockers(path: Path = RELEASE_BLOCKERS_RECEIPT) -> dict[str, Any]:
-    if not path.is_file():
+def load_canonical_release_blockers(path: Path | None = RELEASE_BLOCKERS_RECEIPT) -> dict[str, Any]:
+    if path is None or not path.is_file():
         return {
-            "path": str(path),
+            "path": str(path) if path is not None else "<set CHUMMER_RELEASE_ROOT>",
             "status": "not_found",
             "generated_at": None,
             "root_blocker_ids": [],
@@ -704,6 +704,8 @@ def main() -> int:
     parser.add_argument("--preflight-receipt", default=str(DEFAULT_PREFLIGHT_RECEIPT))
     parser.add_argument("--postdeploy-receipt", default=str(DEFAULT_POSTDEPLOY_RECEIPT))
     args = parser.parse_args()
+    if RUN_SERVICES_ROOT is None or RELEASE_BLOCKERS_RECEIPT is None or not os.environ.get("CHUMMER_DESIGN_ROOT"):
+        raise SystemExit("release boundary integration requires CHUMMER_RUN_SERVICES_ROOT, CHUMMER_RELEASE_ROOT and CHUMMER_DESIGN_ROOT")
     output_path = Path(args.output).resolve()
     generated_at_utc = iso_now()
 

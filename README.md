@@ -49,17 +49,42 @@ Run the local fast-path verification:
 bash scripts/ai/verify.sh
 ```
 
-Verification is explicit about its evidence strength:
+The default `slice` mode checks repo-owned source, boundaries, Python contracts, the mirrored design files, M121 evidence and PWA asset budgets, then builds and runs the package-plane and local browser smoke checks. A standalone checkout bootstraps real owner packages from exact public source commits and project digests in `eng/package-plane.lock.json`; see [docs/PACKAGE_BOOTSTRAP.md](docs/PACKAGE_BOOTSTRAP.md). Stub fallback is disabled in `slice`. Prerequisites are SDK 10.0.103 for the source bootstrap, Git, public GitHub/NuGet access, Python 3 with PyYAML and Playwright (including its browser), and ripgrep. Missing tools, source verification failures or product failures fail verification. Recorded M121 `checkout_root` is generation provenance, not a requirement to verify from that host directory.
+
+Focused repo-only checks do not need Fleet, parent Git metadata or managed builds:
 
 ```bash
-CHUMMER_VERIFY_MODE=scaffold bash scripts/ai/verify.sh
-CHUMMER_VERIFY_MODE=slice bash scripts/ai/verify.sh
-CHUMMER_VERIFY_MODE=integration CHUMMER_ALLOW_STUB_PACKAGES=0 bash scripts/ai/verify.sh
-CHUMMER_VERIFY_MODE=release CHUMMER_ALLOW_STUB_PACKAGES=0 \
+python3 -m unittest discover -s tests -p 'test_next90_m121_mobile_live_combat_confidence.py'
+python3 -m unittest discover -s tests -p 'test_mobile_pwa_performance_budget.py'
+python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py
+python3 scripts/verify_mobile_pwa_performance_budget.py --check-only
+```
+
+Fleet parity and the external release-controller contract are separate commands with explicit inputs. Missing files fail; neither command discovers sibling layouts or skips an integration test:
+
+```bash
+python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py \
+  --fleet-queue /path/to/fleet/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml
+python3 tests/integration/test_mobile_pwa_release_chain.py \
+  --release-root /path/to/release-checkout --run-services-root /path/to/run-services
+python3 tests/integration/test_next90_m122_mobile_runner_goal_updates.py \
+  --fleet-root /path/to/fleet --design-product-root /path/to/design/products/chummer
+```
+
+Root `tests/test_*.py` are repo tests (the browser tests still need Playwright). Tests under `tests/integration/` must be invoked directly with their required inputs; ordinary root discovery does not claim external contract coverage. The M122 worker-context proof hygiene check stays in repo tests, while both original M122 end-to-end assertions remain in integration.
+
+The M122 integration entry point also requires a current `MOBILE_LOCAL_RELEASE_PROOF.generated.json` for this checkout. Full integration/release verification refreshes that proof before invoking the entry point; a direct invocation must follow the same refresh and retain its actual external evidence.
+
+Full external verification runs both `tests/integration/` entry points and retains the Fleet milestone, canonical mirror comparison, cross-surface/public-edge and release-proof gates. It requires explicit existing roots before it starts product checks:
+
+```bash
+CHUMMER_VERIFY_MODE=integration CHUMMER_ALLOW_STUB_PACKAGES=0 \
+  CHUMMER_FLEET_ROOT=/path/to/fleet CHUMMER_DESIGN_ROOT=/path/to/design \
+  CHUMMER_RELEASE_ROOT=/path/to/release-checkout CHUMMER_RUN_SERVICES_ROOT=/path/to/run-services \
   CHUMMER_PUBLISHED_FEED_SOURCES="<pinned-feed>" bash scripts/ai/verify.sh
 ```
 
-`scaffold` and `slice` may use package stubs unless `CHUMMER_ALLOW_STUB_PACKAGES=0` is set. `integration` and `release` always reject stubs, and their `--no-restore`/`--no-build` steps require a matching same-run package-plane attestation. Release verification also rejects skipped feed or public-edge proof. Every run writes `.codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json` with its mode, run ID, skips, and release-evidence eligibility; release receipts must carry that same mode and run ID.
+Use `CHUMMER_VERIFY_MODE=release` with the same inputs for release certification. Only explicitly selected `scaffold` mode may use the legacy empty package scaffolds; this exercises bootstrap wiring and cannot establish a product build. `slice` always disables stub fallback. `integration` and `release` reject stubs, and their `--no-restore`/`--no-build` steps require matching same-run package-plane provenance. The existing public-edge environment and current strict receipts are also required by their gates. Release verification rejects skipped feed or public-edge proof. Every full default run writes `.codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json` with its mode, run ID, omitted external gates and release-evidence eligibility. Repo success never asserts Fleet or release success. There is no checked-in GitHub Actions workflow in this checkout; automation should invoke the default and explicit integration commands with the same separation.
 
 If the local design mirror drifts from canon, repair only this repo mirror bundle with:
 

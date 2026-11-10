@@ -15,7 +15,7 @@ from pathlib import Path
 repo = Path(os.environ["CHUMMER_PLAY_REPO_ROOT"]).resolve()
 path = repo / ".codex-studio" / "published" / "MOBILE_LOCAL_RELEASE_PROOF.generated.json"
 verification_mode_path = repo / ".codex-studio" / "published" / "MOBILE_VERIFICATION_MODE.generated.json"
-root_release_blockers_path = Path("/docker/chummercomplete/RELEASE_BLOCKERS.generated.json")
+root_release_blockers_path = Path(os.environ["CHUMMER_RELEASE_ROOT"]) / "RELEASE_BLOCKERS.generated.json"
 self_referential_release_wrapper_ids = {"release_truth:release_ready"}
 verification_mode = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
 verification_run_id = os.environ.get("CHUMMER_VERIFY_RUN_ID", "").strip()
@@ -746,7 +746,7 @@ if isinstance(cross_surface_readiness, dict):
     require(cross_surface_readiness.get("contract_name") == "chummer6-mobile.cross_surface_readiness.v1", "cross_surface_readiness contract_name drifted")
     require(cross_surface_readiness.get("status") == "pass", "cross_surface_readiness is not pass")
     require(
-        cross_surface_readiness.get("fleet_flagship_readiness_path") == "/docker/fleet/.codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json",
+        cross_surface_readiness.get("fleet_flagship_readiness_path") == str(Path(os.environ["CHUMMER_FLEET_ROOT"]) / ".codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json"),
         "cross_surface_readiness fleet path drifted",
     )
     require(isinstance(cross_surface_readiness.get("fleet_generated_at"), str) and cross_surface_readiness.get("fleet_generated_at").strip(), "cross_surface_readiness missing fleet_generated_at")

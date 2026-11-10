@@ -23,6 +23,10 @@ def write_fake_dotnet(bin_dir: Path, log_path: Path) -> None:
             f"""\
             #!/usr/bin/env bash
             set -euo pipefail
+            if [[ -e /proc/$$/fd/9 ]]; then
+              echo "package-plane lock leaked to dotnet child" >&2
+              exit 91
+            fi
             printf '%s\n' "$*" >> "{log_path}"
             if [[ "${{1:-}}" == "pack" ]]; then
               output=""
@@ -109,6 +113,52 @@ def run_package_plane(
 
 
 class VerificationModeTests(unittest.TestCase):
+    def test_checkout_bound_integration_checks_follow_fresh_proof_generation(self) -> None:
+        script = VERIFY_SCRIPT.read_text()
+        generation = script.index("\nmaterialize_mobile_release_proof\n")
+        checks = script.index("python3 tests/integration/test_next90_m122_mobile_runner_goal_updates.py")
+        local_exit = script.index('echo "chummer6-mobile repo verification ok;')
+        self.assertLess(local_exit, generation)
+        self.assertLess(generation, checks)
+        self.assertEqual(script.count("python3 tests/integration/test_next90_m122_mobile_runner_goal_updates.py"), 1)
+
+    def test_local_service_key_does_not_inherit_placeholder_words_from_run_id(self) -> None:
+        export = next(line for line in VERIFY_SCRIPT.read_text().splitlines()
+                      if line.startswith("export CHUMMER_PLAY_API_KEY="))
+        result = subprocess.run(["bash", "-c", export + '\n printf "%s" "$CHUMMER_PLAY_API_KEY"'],
+                                env={**os.environ, "CHUMMER_PLAY_API_KEY": "",
+                                     "verification_run_id": "default-example-placeholder-run"},
+                                capture_output=True, text=True, timeout=10, check=True)
+        value = result.stdout
+        self.assertTrue(len(value) >= 32 and len(set(value)) >= 12,
+                        "ephemeral local test key must meet production strength requirements")
+        self.assertFalse(any(word in value.lower() for word in
+                             ("public-edge-play-api-key", "change-me", "changeme", "default", "example", "placeholder")),
+                         "run labels must not contaminate the local test credential")
+
+    def test_owner_package_cache_is_allowed_but_source_copies_are_rejected(self) -> None:
+        script = VERIFY_SCRIPT.read_text()
+        start = script.index("if find . ")
+        end = script.index("if find src/Chummer.Play.Core", start)
+        source_guards = "set -euo pipefail\n" + script[start:end]
+        names = ("Chummer.Contracts", "Chummer.Engine.Contracts", "Chummer.Play.Contracts", "Chummer.Ui.Kit")
+        with tempfile.TemporaryDirectory(prefix="mobile-source-boundary-") as directory:
+            root = Path(directory)
+            for name in names:
+                (root / ".tmp/ai/package-plane/sources/owner" / name).mkdir(parents=True)
+            run = lambda: subprocess.run(["bash", "-c", source_guards], cwd=root,
+                                          capture_output=True, text=True, timeout=10)
+            self.assertEqual(run().returncode, 0)
+            for parent in ("src", "other", ".tmp/unrelated", ".tmp/ai/package-plane/sources-copy"):
+                for name in names:
+                    with self.subTest(parent=parent, name=name):
+                        copied = root / parent / name
+                        copied.mkdir(parents=True)
+                        result = run()
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn("not allowed in chummer6-mobile", result.stderr)
+                        copied.rmdir()
+
     def test_scaffold_mode_may_build_explicit_stub_packages(self) -> None:
         with tempfile.TemporaryDirectory(prefix="mobile-verify-scaffold-") as temp_dir:
             env, log_path = package_plane_env(Path(temp_dir), mode="scaffold")
@@ -307,6 +357,29 @@ class VerificationModeTests(unittest.TestCase):
         self.assertFalse(payload["stubPackagesAllowed"])
         self.assertEqual(payload["skipCount"], 1)
         self.assertFalse(payload["releaseEvidenceEligible"])
+
+    def test_integration_verify_requires_explicit_external_inputs(self) -> None:
+        for provide_roots in (False, True):
+            with self.subTest(provide_roots=provide_roots), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                ai = root / "scripts/ai"
+                ai.mkdir(parents=True)
+                shutil.copy2(VERIFY_SCRIPT, ai / "verify.sh")
+                shutil.copy2(RECEIPT_WRITER, ai / "write_verification_mode_receipt.py")
+                env = {**os.environ, "CHUMMER_VERIFY_MODE": "integration", "CHUMMER_ALLOW_STUB_PACKAGES": "0"}
+                for name in ("CHUMMER_FLEET_ROOT", "CHUMMER_DESIGN_ROOT", "CHUMMER_RELEASE_ROOT", "CHUMMER_RUN_SERVICES_ROOT"):
+                    env.pop(name, None)
+                    if provide_roots:
+                        directory = root / name
+                        directory.mkdir()
+                        env[name] = str(directory)
+                completed = subprocess.run(["bash", str(ai / "verify.sh")], cwd=root, env=env, text=True,
+                                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10)
+                receipt = json.loads((root / ".codex-studio/published/MOBILE_VERIFICATION_MODE.generated.json").read_text())
+                self.assertEqual(completed.returncode, 2, completed.stdout)
+                self.assertIn("missing required external input" if provide_roots else "requires an existing explicit CHUMMER_FLEET_ROOT", completed.stdout)
+                self.assertEqual(receipt["status"], "fail")
+                self.assertFalse(receipt["releaseEvidenceEligible"])
 
     def test_owned_verification_receipt_producers_record_the_mode(self) -> None:
         producers = (

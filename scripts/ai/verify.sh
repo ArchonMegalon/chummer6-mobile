@@ -22,8 +22,8 @@ case "${verification_mode}" in
 esac
 if [[ -z "${allow_stub_packages}" ]]; then
   case "${verification_mode}" in
-    scaffold|slice) allow_stub_packages=1 ;;
-    integration|release) allow_stub_packages=0 ;;
+    scaffold) allow_stub_packages=1 ;;
+    slice|integration|release) allow_stub_packages=0 ;;
   esac
 fi
 case "${allow_stub_packages}" in
@@ -39,13 +39,18 @@ if [[ "${verification_mode}" == "integration" || "${verification_mode}" == "rele
     exit 2
   fi
 fi
+if [[ "${verification_mode}" == "slice" ]]; then
+  allow_stub_packages=0
+fi
 export CHUMMER_VERIFY_MODE="${verification_mode}"
 export CHUMMER_ALLOW_STUB_PACKAGES="${allow_stub_packages}"
 if [[ -z "${verification_run_id}" ]]; then
   verification_run_id="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
 fi
 export CHUMMER_VERIFY_RUN_ID="${verification_run_id}"
-export CHUMMER_PLAY_API_KEY="${CHUMMER_PLAY_API_KEY:-chummer-verification-${verification_run_id}-local-key}"
+# Test-run labels can contain reserved placeholder words such as "default".
+# Use an ephemeral local key independent of those labels; never print it.
+export CHUMMER_PLAY_API_KEY="${CHUMMER_PLAY_API_KEY:-$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')}"
 
 verification_skips=()
 verification_receipt_status="in_progress"
@@ -93,6 +98,31 @@ trap finish_verification_receipt EXIT
 write_verification_mode_receipt
 if [[ "${verification_mode}" == "release" && -z "${published_feed_sources}" ]]; then
   skip_or_fail "published-feed compatibility restore/build checks (set CHUMMER_PUBLISHED_FEED_SOURCES)"
+fi
+
+if [[ "${verification_mode}" == "integration" || "${verification_mode}" == "release" ]]; then
+  for input_name in CHUMMER_FLEET_ROOT CHUMMER_DESIGN_ROOT CHUMMER_RELEASE_ROOT CHUMMER_RUN_SERVICES_ROOT; do
+    if [[ -z "${!input_name:-}" || ! -d "${!input_name}" ]]; then
+      echo "${verification_mode} verification requires an existing explicit ${input_name} directory" >&2
+      exit 2
+    fi
+  done
+  export CHUMMER_DESIGN_PRODUCT_ROOT="${CHUMMER_DESIGN_ROOT}/products/chummer"
+  for required_input in \
+    "${CHUMMER_FLEET_ROOT}/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml" \
+    "${CHUMMER_DESIGN_PRODUCT_ROOT}/NEXT_90_DAY_QUEUE_STAGING.generated.yaml" \
+    "${CHUMMER_DESIGN_PRODUCT_ROOT}/NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml" \
+    "${CHUMMER_FLEET_ROOT}/scripts/materialize_flagship_product_readiness.py" \
+    "${CHUMMER_RUN_SERVICES_ROOT}/scripts/verify_public_edge_postdeploy_gate.py" \
+    "${CHUMMER_RELEASE_ROOT}/scripts/release/verify_chummer6_release_ready.sh" \
+    "${CHUMMER_RELEASE_ROOT}/RELEASE_BLOCKERS.generated.json"; do
+    if [[ ! -f "${required_input}" ]]; then
+      echo "${verification_mode} verification missing required external input: ${required_input}" >&2
+      exit 2
+    fi
+  done
+  python3 tests/integration/test_mobile_pwa_release_chain.py \
+    --release-root "${CHUMMER_RELEASE_ROOT}" --run-services-root "${CHUMMER_RUN_SERVICES_ROOT}"
 fi
 
 mobile_cross_surface_refreshed=0
@@ -179,12 +209,18 @@ test -f tests/test_with_package_plane_locking.py
 python3 -m unittest discover -s tests -p 'test_with_package_plane_locking.py' >/dev/null
 test -f tests/test_verification_modes.py
 python3 -m unittest discover -s tests -p 'test_verification_modes.py' >/dev/null
+python3 -m unittest discover -s tests -p 'test_package_bootstrap.py' >/dev/null
+python3 -m unittest discover -s tests -p 'test_owner_source_bootstrap.py' >/dev/null
 test -f tests/test_cleanup_mobile_disposable_artifacts.py
 python3 -m unittest discover -s tests -p 'test_cleanup_mobile_disposable_artifacts.py' >/dev/null
 test -f tests/test_mobile_strict_public_edge_follow_through.py
 python3 -m unittest discover -s tests -p 'test_mobile_strict_public_edge_follow_through.py' >/dev/null
 test -f tests/test_mobile_release_boundary.py
 python3 -m unittest discover -s tests -p 'test_mobile_release_boundary.py' >/dev/null
+test -f tests/test_next90_m122_mobile_runner_goal_updates.py
+python3 -m unittest discover -s tests -p 'test_next90_m122_mobile_runner_goal_updates.py' >/dev/null
+test -f tests/test_next90_m121_mobile_live_combat_confidence.py
+python3 -m unittest discover -s tests -p 'test_next90_m121_mobile_live_combat_confidence.py' >/dev/null
 test -f tests/test_mobile_pwa_performance_budget.py
 python3 -m unittest discover -s tests -p 'test_mobile_pwa_performance_budget.py' >/dev/null
 python3 scripts/verify_mobile_pwa_performance_budget.py >/dev/null
@@ -204,7 +240,13 @@ test -f eng/package-stubs/ControlContractsStub/ControlContractsStub.csproj
 test -f eng/package-stubs/PlayContractsStub/PlayContractsStub.csproj
 test -f eng/package-stubs/UiKitStub/UiKitStub.csproj
 
-python3 scripts/ai/verify_design_mirror.py >/dev/null
+if [[ "${verification_mode}" == "integration" || "${verification_mode}" == "release" ]]; then
+  python3 scripts/ai/verify_design_mirror.py --design-root "${CHUMMER_DESIGN_ROOT}" >/dev/null
+else
+  test -s .codex-design/product/README.md
+  test -s .codex-design/repo/IMPLEMENTATION_SCOPE.md
+  test -s .codex-design/review/REVIEW_CONTEXT.md
+fi
 
 if rg -n "Chummer\\.Contracts/" src README.md AGENTS.md WORKLIST.md docs >/dev/null 2>&1; then
   echo "copied contract source paths are not allowed in chummer6-mobile" >&2
@@ -216,12 +258,14 @@ if rg -n "<ProjectReference Include=\"\\.\\.\\\\\\.\\.\\\\|<ProjectReference Inc
   exit 1
 fi
 
-if find . -type d -name "Chummer.Contracts" | grep -q .; then
+# The pinned bootstrap downloads owner projects here to build packages. They
+# are build inputs, not mobile source; keep every other location covered.
+if find . -path './.tmp/ai/package-plane/sources' -prune -o -type d -name "Chummer.Contracts" -print | grep -q .; then
   echo "duplicated shared contract source is not allowed in chummer6-mobile" >&2
   exit 1
 fi
 
-if find . -type d \( -name "Chummer.Engine.Contracts" -o -name "Chummer.Play.Contracts" -o -name "Chummer.Ui.Kit" \) | grep -q .; then
+if find . -path './.tmp/ai/package-plane/sources' -prune -o -type d \( -name "Chummer.Engine.Contracts" -o -name "Chummer.Play.Contracts" -o -name "Chummer.Ui.Kit" \) -print | grep -q .; then
   echo "shared package source trees are not allowed in chummer6-mobile" >&2
   exit 1
 fi
@@ -267,7 +311,9 @@ rg -n "<PackageReference Include=\"\\$\\(ChummerCampaignContractsPackageId\\)\""
 rg -n "<PackageReference Include=\"\\$\\(ChummerPlayContractsPackageId\\)\"" src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null
 rg -n "<PackageReference Include=\"\\$\\(ChummerUiKitPackageId\\)\"" src/Chummer.Play.Components/Chummer.Play.Components.csproj >/dev/null
 
-if rg -n "Chummer\\.Control\\.Contracts(\\.Support)?|ChummerControlContractsPackage(Id|Version)" src docs README.md AGENTS.md WORKLIST.md src/Chummer.Play.Core/Chummer.Play.Core.csproj >/dev/null 2>&1; then
+# Check actual product inputs. Documentation may describe the excluded Control
+# package in the bootstrap inventory without making it a mobile dependency.
+if rg -n "Chummer\\.Control\\.Contracts(\\.Support)?|ChummerControlContractsPackage(Id|Version)" src Directory.Packages.props >/dev/null 2>&1; then
   echo "mobile must not consume Chummer.Control.Contracts directly; keep support/control truth projected through play-safe summaries instead" >&2
   exit 1
 fi
@@ -686,15 +732,26 @@ python3 scripts/verify_mobile_pwa_analytics_smoke.py >/dev/null
 python3 scripts/verify_mobile_pwa_runtime_smoke.py >/dev/null
 python3 scripts/verify_mobile_pwa_viewport_smoke.py >/dev/null
 python3 scripts/cleanup_mobile_disposable_artifacts.py >/dev/null
+python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py
+if [[ "${verification_mode}" == "scaffold" || "${verification_mode}" == "slice" ]]; then
+  if [[ -z "${published_feed_sources}" ]]; then
+    verification_skips+=("published-feed compatibility (set CHUMMER_PUBLISHED_FEED_SOURCES)")
+  fi
+  verification_skips+=("Fleet milestone parity, cross-surface/public-edge proof and release certification (run explicit integration/release verification)")
+  echo "chummer6-mobile repo verification ok; Fleet/public-edge integration and release certification not executed"
+  exit 0
+fi
 python3 scripts/run_mobile_strict_public_edge_follow_through.py >/dev/null
 test -f .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json
 rg -n '"contract_name": "chummer6-mobile.strict_public_edge_follow_through.v1"' .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json >/dev/null
 rg -n '"generated_at_utc": "' .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json >/dev/null
 rg -n '"strict_follow_through": \{' .codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json >/dev/null
 materialize_mobile_release_proof
+python3 tests/integration/test_next90_m122_mobile_runner_goal_updates.py \
+  --fleet-root "${CHUMMER_FLEET_ROOT}" --design-product-root "${CHUMMER_DESIGN_PRODUCT_ROOT}"
 python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
 python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
-python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
+python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py --fleet-queue "${CHUMMER_FLEET_ROOT}/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml" >/dev/null
 python3 scripts/verify_next90_m122_mobile_runner_goal_updates.py >/dev/null
 python3 scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py >/dev/null
 test -f .codex-studio/published/MOBILE_LOCAL_RELEASE_PROOF.generated.json
@@ -873,7 +930,7 @@ if [[ -n "${published_feed_sources}" ]]; then
   python3 scripts/verify_next90_m117_mobile_artifact_shelf.py >/dev/null
   python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
   python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
-  python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
+  python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py --fleet-queue "${CHUMMER_FLEET_ROOT}/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml" >/dev/null
   python3 scripts/verify_next90_m122_mobile_runner_goal_updates.py >/dev/null
   python3 scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py >/dev/null
 else
@@ -902,7 +959,7 @@ else
   python3 scripts/verify_next90_m117_mobile_artifact_shelf.py >/dev/null
   python3 scripts/verify_next90_m112_mobile_campaign_continuity.py >/dev/null
   python3 scripts/verify_next90_m119_mobile_onboarding_continuity.py >/dev/null
-  python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py >/dev/null
+  python3 scripts/verify_next90_m121_mobile_live_combat_confidence.py --fleet-queue "${CHUMMER_FLEET_ROOT}/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml" >/dev/null
   python3 scripts/verify_next90_m122_mobile_runner_goal_updates.py >/dev/null
   python3 scripts/verify_next90_m145_mobile_quick_explain_and_follow_up.py >/dev/null
 fi

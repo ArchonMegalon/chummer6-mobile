@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import os
 from pathlib import Path
 
 
@@ -16,9 +17,9 @@ REPO_LABEL = "chummer6-mobile"
 CHECKOUT_ROOT = str(ROOT)
 CHECKOUT_POLICY = "location-independent; source paths are repository-relative"
 QUEUE_PROOF_ROOT = "/docker/chummercomplete/chummer-play"
-REGISTRY = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml")
-DESIGN_QUEUE = Path("/docker/chummercomplete/chummer-design/products/chummer/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
-FLEET_QUEUE = Path("/docker/fleet/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
+REGISTRY = (Path(os.environ["CHUMMER_DESIGN_PRODUCT_ROOT"]) / "NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml" if os.environ.get("CHUMMER_DESIGN_PRODUCT_ROOT") else None)
+DESIGN_QUEUE = (Path(os.environ["CHUMMER_DESIGN_PRODUCT_ROOT"]) / "NEXT_90_DAY_QUEUE_STAGING.generated.yaml" if os.environ.get("CHUMMER_DESIGN_PRODUCT_ROOT") else None)
+FLEET_QUEUE = (Path(os.environ["CHUMMER_FLEET_ROOT"]) / ".codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml" if os.environ.get("CHUMMER_FLEET_ROOT") else None)
 
 PROOF_DOC = ROOT / "docs" / "next90-m145-mobile-quick-explain-and-follow-up.proof.md"
 PLAY_SIGNOFF = ROOT / "docs" / "PLAY_RELEASE_SIGNOFF.md"
@@ -203,6 +204,8 @@ def registry_block(text: str) -> str:
 
 
 def main() -> int:
+    if any(path is None for path in (FLEET_QUEUE, DESIGN_QUEUE, REGISTRY)):
+        raise SystemExit("Fleet integration requires CHUMMER_FLEET_ROOT and CHUMMER_DESIGN_PRODUCT_ROOT; no external inputs were inferred")
     missing: list[str] = []
 
     try:

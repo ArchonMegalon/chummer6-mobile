@@ -8,13 +8,6 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-GIT_COMMON_DIR = Path(
-    subprocess.check_output(
-        ["git", "-C", str(REPO_ROOT), "rev-parse", "--git-common-dir"],
-        text=True,
-    ).strip()
-).resolve()
-WORKSPACE_ROOT = GIT_COMMON_DIR.parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "verify_mobile_pwa_performance_budget.py"
 ASSET_PATHS = [
     "mobile.css",
@@ -163,40 +156,17 @@ class MobilePwaPerformanceBudgetTests(unittest.TestCase):
                 payload["failures"],
             )
 
-    def test_release_chain_executes_the_budget_fail_closed(self) -> None:
+    def test_repo_release_checks_execute_the_budget_fail_closed(self) -> None:
         verify = (REPO_ROOT / "scripts" / "ai" / "verify.sh").read_text(encoding="utf-8")
         mobile_release = (
             REPO_ROOT / "scripts" / "release" / "verify_mobile_release_proof.sh"
         ).read_text(encoding="utf-8")
-        root_release = (
-            WORKSPACE_ROOT / "scripts" / "release" / "verify_chummer6_release_ready.sh"
-        ).read_text(encoding="utf-8")
-        release_materializer = (
-            WORKSPACE_ROOT
-            / "chummer.run-services"
-            / "scripts"
-            / "materialize_release_ready_receipt.py"
-        ).read_text(encoding="utf-8")
-
         self.assertIn("python3 scripts/verify_mobile_pwa_performance_budget.py", verify)
         self.assertIn(
             'python3 "$repo_root/scripts/verify_mobile_pwa_performance_budget.py" --check-only',
             mobile_release,
         )
-        self.assertIn(
-            'MATERIALIZER = RUN_SERVICES_ROOT / "scripts" / "materialize_release_ready_receipt.py"',
-            root_release,
-        )
-        self.assertIn(
-            'configured_run_services_root = os.environ.get("CHUMMER_RUN_SERVICES_ROOT", "").strip()',
-            root_release,
-        )
-        self.assertIn('"--run-authoritative-controller"', root_release)
-        self.assertIn("os.execve(", root_release)
-        self.assertIn(
-            'spec("verify_mobile_release_proof", f"{bash} {root}/chummer-play/scripts/release/verify_mobile_release_proof.sh"',
-            release_materializer,
-        )
+
 
 
 if __name__ == "__main__":
