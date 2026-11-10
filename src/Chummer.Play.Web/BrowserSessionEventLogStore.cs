@@ -32,9 +32,7 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
         {
             if (!IsLedgerValid(existing))
             {
-                var resetInvalid = CreateLedger(sessionId, sceneId, sceneRevision, runtimeFingerprint);
-                await _browserStore.SetAsync(key, resetInvalid, cancellationToken);
-                return resetInvalid;
+                throw MalformedLedger(sessionId);
             }
 
             if (SessionLineage.IsLedgerAligned(existing, sessionId, sceneId, sceneRevision, runtimeFingerprint))
@@ -47,6 +45,7 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
             return reset;
         }
 
+        await EnsureLedgerMissingAsync(sessionId, key, cancellationToken);
         var created = CreateLedger(sessionId, sceneId, sceneRevision, runtimeFingerprint);
         await _browserStore.SetAsync(key, created, cancellationToken);
         return created;
@@ -133,13 +132,13 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
         var current = await _browserStore.GetAsync<OfflineLedgerEnvelope>(key, cancellationToken);
         if (current is null)
         {
-            await RemoveIfKeyPresentAsync(key, cancellationToken);
+            await EnsureLedgerMissingAsync(sessionId, key, cancellationToken);
             throw new InvalidOperationException($"No offline ledger exists for session '{sessionId}'.");
         }
 
         if (!IsLedgerValid(current))
         {
-            throw new InvalidOperationException($"Stored offline ledger for session '{sessionId}' is malformed.");
+            throw MalformedLedger(sessionId);
         }
 
         var trimCount = Math.Min(acceptedEventCount, current.PendingEvents.Count);
@@ -164,25 +163,25 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
         var existing = await _browserStore.GetAsync<OfflineLedgerEnvelope>(key, cancellationToken);
         if (existing is null)
         {
-            await RemoveIfKeyPresentAsync(key, cancellationToken);
+            await EnsureLedgerMissingAsync(sessionId, key, cancellationToken);
             return null;
         }
 
         if (!IsLedgerValid(existing))
         {
-            await _browserStore.RemoveAsync(key, cancellationToken);
-            return null;
+            throw MalformedLedger(sessionId);
         }
 
         return existing;
     }
 
-    private async Task RemoveIfKeyPresentAsync(string key, CancellationToken cancellationToken)
+    private async Task EnsureLedgerMissingAsync(string sessionId, string key, CancellationToken cancellationToken)
     {
         var matchingKeys = await _browserStore.ListKeysAsync(key, cancellationToken);
         if (matchingKeys.Contains(key, StringComparer.Ordinal))
         {
-            await _browserStore.RemoveAsync(key, cancellationToken);
+            throw new InvalidOperationException(
+                $"An offline ledger key exists for session '{sessionId}', but no ledger was read. It has been retained; retry or recover it before creating a new ledger.");
         }
     }
 
@@ -209,6 +208,9 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
 
         return true;
     }
+
+    private static InvalidOperationException MalformedLedger(string sessionId)
+        => new($"Stored offline ledger for session '{sessionId}' is malformed. It has been retained; recover or explicitly remove it before retrying.");
 
     private static OfflineLedgerEnvelope CreateLedger(
         string sessionId,

@@ -23,11 +23,18 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
+if (args.Contains("--file-backed-ledger-only", StringComparer.Ordinal))
+{
+    await FileBackedLedgerChecks.RunAsync();
+    return;
+}
+
 Environment.SetEnvironmentVariable(
     "CHUMMER_PLAY_BROWSER_STATE_DIR",
     Path.Combine(Path.GetTempPath(), "chummer-play-regression-browser-state", Guid.NewGuid().ToString("N")));
 Environment.SetEnvironmentVariable("CHUMMER_PLAY_BROWSER_STATE_ISOLATE_PER_APP", "true");
 
+await FileBackedLedgerChecks.RunAsync();
 await RunCheckAsync(nameof(VerifyLedgerLineageResetAsync), VerifyLedgerLineageResetAsync);
 await RunCheckAsync(nameof(VerifyBootstrapProjectionPreservesReplayStateAsync), VerifyBootstrapProjectionPreservesReplayStateAsync);
 await RunCheckAsync(nameof(VerifyMonotonicSequenceOwnershipAsync), VerifyMonotonicSequenceOwnershipAsync);
@@ -78,8 +85,8 @@ await RunCheckAsync(nameof(VerifyObserverBootstrapAndResumeStayReadMostlyAsync),
 await RunCheckAsync(nameof(VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync), VerifyResumeAndWorkspaceLiteRoutesStayRoleConcreteAsync);
 await RunCheckAsync(nameof(VerifyNoSessionRestoreHrefUsesRealPlayEntryRouteAsync), VerifyNoSessionRestoreHrefUsesRealPlayEntryRouteAsync);
 await RunCheckAsync(nameof(VerifyCachePressureBudgetContractAsync), VerifyCachePressureBudgetContractAsync);
-await RunCheckAsync(nameof(VerifyEventLogDropsMalformedStoredLedgerAsync), VerifyEventLogDropsMalformedStoredLedgerAsync);
-await RunCheckAsync(nameof(VerifyEventLogDropsUnparseableStoredLedgerKeysAsync), VerifyEventLogDropsUnparseableStoredLedgerKeysAsync);
+await RunCheckAsync(nameof(VerifyEventLogRetainsMalformedStoredLedgerAsync), VerifyEventLogRetainsMalformedStoredLedgerAsync);
+await RunCheckAsync(nameof(VerifyEventLogRetainsUnparseableStoredLedgerKeysAsync), VerifyEventLogRetainsUnparseableStoredLedgerKeysAsync);
 await RunCheckAsync(nameof(VerifyOfflineQueueRejectsStaleLineageAsync), VerifyOfflineQueueRejectsStaleLineageAsync);
 await RunCheckAsync(nameof(VerifyReconnectLineageTransitionContinuityAsync), VerifyReconnectLineageTransitionContinuityAsync);
 await RunCheckAsync(nameof(VerifyStoredLineageStaleResponsesAsync), VerifyStoredLineageStaleResponsesAsync);
@@ -1481,7 +1488,7 @@ static async Task VerifyAppBrowserStatePersistsAcrossRebuildAsync()
     }
 }
 
-static async Task VerifyEventLogDropsMalformedStoredLedgerAsync()
+static async Task VerifyEventLogRetainsMalformedStoredLedgerAsync()
 {
     var browserStore = new InMemoryBrowserKeyValueStore();
     var store = new BrowserSessionEventLogStore(browserStore);
@@ -1503,14 +1510,24 @@ static async Task VerifyEventLogDropsMalformedStoredLedgerAsync()
         )
     );
 
-    var existing = await store.GetExistingAsync(sessionId);
-    Assert(existing is null, "event-log should drop malformed stored ledger snapshots on read");
+    await AssertThrowsAsync<InvalidOperationException>(
+        () => store.GetExistingAsync(sessionId),
+        "event-log must report malformed state without discarding pending events"
+    );
+    await AssertThrowsAsync<InvalidOperationException>(
+        () => store.GetOrCreateAsync(sessionId, "scene-a", "scene-r1", "runtime-a"),
+        "event-log must not replace a malformed ledger with a fresh one"
+    );
+    var retained = await browserStore.GetAsync<OfflineLedgerEnvelope>(key);
+    Assert(retained is not null && retained.LastKnownSequence == -1
+        && retained.PendingEvents.SequenceEqual(["evt-1"]),
+        "malformed ledger and its pending events must remain available for recovery");
 
     var keys = await browserStore.ListKeysAsync("play:ledger:");
-    Assert(!keys.Contains(key, StringComparer.Ordinal), "event-log should remove malformed ledger keys from browser storage");
+    Assert(keys.Contains(key, StringComparer.Ordinal), "event-log must retain malformed ledger keys");
 }
 
-static async Task VerifyEventLogDropsUnparseableStoredLedgerKeysAsync()
+static async Task VerifyEventLogRetainsUnparseableStoredLedgerKeysAsync()
 {
     var browserStore = new InMemoryBrowserKeyValueStore();
     var store = new BrowserSessionEventLogStore(browserStore);
@@ -1519,11 +1536,19 @@ static async Task VerifyEventLogDropsUnparseableStoredLedgerKeysAsync()
 
     await browserStore.SetAsync<object>(key, "tampered-ledger-value");
 
-    var existing = await store.GetExistingAsync(sessionId);
-    Assert(existing is null, "event-log should treat unparseable stored ledger snapshots as missing");
+    await AssertThrowsAsync<InvalidOperationException>(
+        () => store.GetExistingAsync(sessionId),
+        "event-log must distinguish unparseable stored state from a missing ledger"
+    );
+    await AssertThrowsAsync<InvalidOperationException>(
+        () => store.GetOrCreateAsync(sessionId, "scene-a", "scene-r1", "runtime-a"),
+        "event-log must not overwrite an unparseable ledger"
+    );
+    Assert(await browserStore.GetAsync<string>(key) == "tampered-ledger-value",
+        "unparseable state must remain unchanged for recovery");
 
     var keys = await browserStore.ListKeysAsync("play:ledger:");
-    Assert(!keys.Contains(key, StringComparer.Ordinal), "event-log should remove unparseable ledger keys from browser storage");
+    Assert(keys.Contains(key, StringComparer.Ordinal), "event-log must retain unparseable ledger keys");
 }
 
 static async Task VerifyOfflineQueueRejectsNegativeSequenceAsync()
