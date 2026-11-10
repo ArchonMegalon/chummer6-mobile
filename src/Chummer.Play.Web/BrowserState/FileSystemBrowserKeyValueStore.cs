@@ -8,11 +8,18 @@ public sealed class FileSystemBrowserKeyValueStore : IBrowserKeyValueStore
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly string _rootDirectory;
+    private readonly Func<CancellationToken, Task>? _beforeCommitAsync;
 
     public FileSystemBrowserKeyValueStore(string rootDirectory)
+        : this(rootDirectory, null)
+    {
+    }
+
+    internal FileSystemBrowserKeyValueStore(string rootDirectory, Func<CancellationToken, Task>? beforeCommitAsync)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
         _rootDirectory = Path.GetFullPath(rootDirectory);
+        _beforeCommitAsync = beforeCommitAsync;
         Directory.CreateDirectory(_rootDirectory);
     }
 
@@ -31,18 +38,18 @@ public sealed class FileSystemBrowserKeyValueStore : IBrowserKeyValueStore
             }
 
             BrowserStateEnvelope? envelope = await ReadEnvelopeAsync(path, cancellationToken);
-            if (envelope is null || !string.Equals(envelope.Key, key, StringComparison.Ordinal))
+            if (envelope is null
+                || !string.Equals(envelope.Key, key, StringComparison.Ordinal)
+                || envelope.PayloadJson is null)
             {
-                TryDelete(path);
-                return default;
+                throw CorruptEntry(path);
             }
 
             return JsonSerializer.Deserialize<TValue>(envelope.PayloadJson, JsonOptions);
         }
-        catch (JsonException)
+        catch (JsonException exception)
         {
-            TryDelete(path);
-            return default;
+            throw CorruptEntry(path, exception);
         }
         finally
         {
@@ -62,20 +69,62 @@ public sealed class FileSystemBrowserKeyValueStore : IBrowserKeyValueStore
             JsonSerializer.Serialize(value, JsonOptions));
 
         await _gate.WaitAsync(cancellationToken);
+        string temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
+        bool ownsTemporaryFile = false;
+        Exception? writeFailure = null;
         try
         {
-            await using FileStream stream = new(
-                path,
-                FileMode.Create,
+            using FileStream writeLock = AcquireWriteLock(path);
+            await using (FileStream stream = new(
+                temporaryPath,
+                FileMode.CreateNew,
                 FileAccess.Write,
                 FileShare.None,
                 bufferSize: 16 * 1024,
-                FileOptions.Asynchronous);
-            await JsonSerializer.SerializeAsync(stream, envelope, JsonOptions, cancellationToken);
+                FileOptions.Asynchronous))
+            {
+                ownsTemporaryFile = true;
+                await JsonSerializer.SerializeAsync(stream, envelope, JsonOptions, cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+                stream.Flush(flushToDisk: true);
+            }
+
+            if (_beforeCommitAsync is not null)
+            {
+                await _beforeCommitAsync(cancellationToken);
+            }
+
+            // Cancellation is safe until this commit point. Once the rename succeeds,
+            // report success even if the caller cancels immediately afterwards.
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporaryPath, path, overwrite: true);
+            ownsTemporaryFile = false;
+        }
+        catch (Exception exception)
+        {
+            writeFailure = exception;
+            throw;
         }
         finally
         {
-            _gate.Release();
+            try
+            {
+                if (ownsTemporaryFile)
+                {
+                    File.Delete(temporaryPath);
+                }
+            }
+            catch (Exception cleanupFailure) when (writeFailure is not null
+                && cleanupFailure is IOException or UnauthorizedAccessException)
+            {
+                // Preserve the original failure (especially cancellation) and its
+                // cleanup evidence rather than replacing it with a secondary error.
+                writeFailure.Data["TemporaryFileCleanupFailure"] = cleanupFailure;
+            }
+            finally
+            {
+                _gate.Release();
+            }
         }
     }
 
@@ -88,6 +137,7 @@ public sealed class FileSystemBrowserKeyValueStore : IBrowserKeyValueStore
         await _gate.WaitAsync(cancellationToken);
         try
         {
+            using FileStream writeLock = AcquireWriteLock(path);
             TryDelete(path);
         }
         finally
@@ -139,7 +189,7 @@ public sealed class FileSystemBrowserKeyValueStore : IBrowserKeyValueStore
             path,
             FileMode.Open,
             FileAccess.Read,
-            FileShare.Read,
+            FileShare.Read | FileShare.Delete,
             bufferSize: 16 * 1024,
             FileOptions.Asynchronous);
         return await JsonSerializer.DeserializeAsync<BrowserStateEnvelope>(stream, JsonOptions, cancellationToken);
@@ -150,6 +200,16 @@ public sealed class FileSystemBrowserKeyValueStore : IBrowserKeyValueStore
             .TrimEnd('=')
             .Replace('+', '-')
             .Replace('/', '_');
+
+    private static InvalidDataException CorruptEntry(string path, Exception? innerException = null)
+        => new($"Stored browser state at '{path}' is malformed. The file has been retained; recover or explicitly remove it before retrying.", innerException);
+
+    private static FileStream AcquireWriteLock(string path)
+    {
+        // Keep this sidecar: deleting a released lock file can split concurrent
+        // writers across different inodes. All store instances use the same lock.
+        return new FileStream($"{path}.lock", FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+    }
 
     private static string? TryDecodeKey(string encodedKey)
     {
