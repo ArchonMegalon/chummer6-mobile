@@ -62,7 +62,7 @@ MOBILE_CROSS_SURFACE_REFRESH_SCRIPT = ROOT / "scripts" / "materialize_mobile_cro
 MOBILE_CROSS_SURFACE_REFRESH_RECEIPT = ROOT / ".codex-studio" / "published" / "MOBILE_CROSS_SURFACE_READINESS.generated.json"
 MOBILE_RELEASE_BOUNDARY_SCRIPT = ROOT / "scripts" / "materialize_mobile_release_boundary.py"
 MOBILE_RELEASE_BOUNDARY_RECEIPT = ROOT / ".codex-studio" / "published" / "MOBILE_RELEASE_BOUNDARY.generated.json"
-FLEET_FLAGSHIP_READINESS = Path("/docker/fleet/.codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json")
+FLEET_FLAGSHIP_READINESS = (Path(os.environ["CHUMMER_FLEET_ROOT"]) / ".codex-studio/published/FLAGSHIP_PRODUCT_READINESS.generated.json" if os.environ.get("CHUMMER_FLEET_ROOT") else None)
 OUT = ROOT / ".codex-studio" / "published" / "MOBILE_LOCAL_RELEASE_PROOF.generated.json"
 M112_ACTIVE_FLAGSHIP_FRONTIER_ID = "1033794907"
 VERIFICATION_COMMANDS = [
@@ -1113,9 +1113,12 @@ def load_required_smoke_receipts() -> tuple[list[dict[str, object]], list[str]]:
     return summaries, errors
 
 
-def load_json_object(path: Path, label: str, errors: list[str]) -> dict[str, object]:
+def load_json_object(path: Path | None, label: str, errors: list[str]) -> dict[str, object]:
+    if path is None:
+        errors.append(f"{label} requires an explicit external input path")
+        return {}
     if not path.is_file():
-        errors.append(f"{label} missing on disk: {path.relative_to(ROOT)}")
+        errors.append(f"{label} missing on disk: {path}")
         return {}
     try:
         loaded = json.loads(path.read_text(encoding="utf-8"))
@@ -1988,6 +1991,8 @@ def load_release_boundary() -> tuple[dict[str, object], list[str]]:
 
 
 def main() -> int:
+    if FLEET_FLAGSHIP_READINESS is None:
+        raise SystemExit("release proof requires an explicit CHUMMER_FLEET_ROOT")
     if not REGRESSION_SOURCE.is_file():
         print(f"missing regression source: {REGRESSION_SOURCE}", file=sys.stderr)
         return 1

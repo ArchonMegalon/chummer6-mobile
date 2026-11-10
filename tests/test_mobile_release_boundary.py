@@ -479,11 +479,11 @@ class MobileReleaseBoundaryTests(unittest.TestCase):
             summary["strict_public_edge"]["follow_through_receipt_path"],
         )
         self.assertIn(
-            "python3 /docker/chummercomplete/chummer.run-services/scripts/check_public_edge_deploy_preflight.py --output /tmp/chummer-public-edge-deploy-preflight-current.json",
+            "python3 \"${CHUMMER_RUN_SERVICES_ROOT}/scripts/check_public_edge_deploy_preflight.py\" --output /tmp/chummer-public-edge-deploy-preflight-current.json",
             summary["strict_public_edge"]["rerun_commands"],
         )
         self.assertIn(
-            "python3 /docker/chummercomplete/chummer.run-services/scripts/verify_public_edge_postdeploy_gate.py --base-url https://chummer.run --strict-preflight --output /tmp/chummer-public-edge-postdeploy-canonical-current.json",
+            "python3 \"${CHUMMER_RUN_SERVICES_ROOT}/scripts/verify_public_edge_postdeploy_gate.py\" --base-url https://chummer.run --strict-preflight --output /tmp/chummer-public-edge-postdeploy-canonical-current.json",
             summary["strict_public_edge"]["rerun_commands"],
         )
         self.assertIn(
@@ -727,8 +727,8 @@ class MobileReleaseBoundaryTests(unittest.TestCase):
                                 "follow_through_command": "python3 scripts/run_mobile_strict_public_edge_follow_through.py --wait-for-clear --execute-rerun --timeout-seconds 21600 --poll-interval-seconds 60",
                                 "follow_through_receipt_path": ".codex-studio/published/MOBILE_STRICT_PUBLIC_EDGE_FOLLOW_THROUGH.generated.json",
                                 "rerun_commands": [
-                                    "python3 /docker/chummercomplete/chummer.run-services/scripts/check_public_edge_deploy_preflight.py --output /tmp/chummer-public-edge-deploy-preflight-current.json",
-                                    "python3 /docker/chummercomplete/chummer.run-services/scripts/verify_public_edge_postdeploy_gate.py --base-url https://chummer.run --strict-preflight --output /tmp/chummer-public-edge-postdeploy-canonical-current.json",
+                                    "python3 \"${CHUMMER_RUN_SERVICES_ROOT}/scripts/check_public_edge_deploy_preflight.py\" --output /tmp/chummer-public-edge-deploy-preflight-current.json",
+                                    "python3 \"${CHUMMER_RUN_SERVICES_ROOT}/scripts/verify_public_edge_postdeploy_gate.py\" --base-url https://chummer.run --strict-preflight --output /tmp/chummer-public-edge-postdeploy-canonical-current.json",
                                     "python3 scripts/materialize_mobile_cross_surface_readiness.py",
                                     "python3 scripts/materialize_mobile_local_release_proof.py",
                                     "bash scripts/release/verify_mobile_release_proof.sh",

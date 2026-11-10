@@ -1,0 +1,48 @@
+{
+  "contract": "chummer-mobile.package-plane-lock/v1",
+  "dotnet_sdk": "10.0.103",
+  "package_version": "0.0.0-packageplane.mobile.20261110.1",
+  "approved_remote_source": "https://api.nuget.org/v3/index.json",
+  "packages": [
+    {
+      "id": "Chummer.Engine.Contracts",
+      "repository": "https://github.com/ArchonMegalon/chummer6-core.git",
+      "commit": "5160e78a60bcefd952e8720aae6032a127c3a755",
+      "checkout_directory": "chummer6-core",
+      "project": "Chummer.Contracts/Chummer.Contracts.csproj",
+      "project_sha256": "08eaef4f072ba66940da55dc7f48ff46742bc0e9e1bd84d891df3b794ec24d2d"
+    },
+    {
+      "id": "Chummer.Campaign.Contracts",
+      "repository": "https://github.com/ArchonMegalon/chummer6-hub.git",
+      "commit": "4f7c98ad4407e860ed68b88d0fc6d15ba2bd9b2e",
+      "checkout_directory": "chummer6-hub",
+      "project": "Chummer.Campaign.Contracts/Chummer.Campaign.Contracts.csproj",
+      "project_sha256": "94c8d6582bc4b902673d5a09e6218adee82fdf7d5478a8b1e3434697b83957e0"
+    },
+    {
+      "id": "Chummer.Control.Contracts",
+      "repository": "https://github.com/ArchonMegalon/chummer6-hub.git",
+      "commit": "4f7c98ad4407e860ed68b88d0fc6d15ba2bd9b2e",
+      "checkout_directory": "chummer6-hub",
+      "project": "Chummer.Control.Contracts/Chummer.Control.Contracts.csproj",
+      "project_sha256": "b6bf897a131057dc3a34c1ba4847f0b85b3f0246b069b6a606027d8a07adb537"
+    },
+    {
+      "id": "Chummer.Play.Contracts",
+      "repository": "https://github.com/ArchonMegalon/chummer6-hub.git",
+      "commit": "4f7c98ad4407e860ed68b88d0fc6d15ba2bd9b2e",
+      "checkout_directory": "chummer6-hub",
+      "project": "Chummer.Play.Contracts/Chummer.Play.Contracts.csproj",
+      "project_sha256": "a1dcb5d03ba73283b2b035ddae9a26da65df169c15c81439096a38d5a7b47532"
+    },
+    {
+      "id": "Chummer.Ui.Kit",
+      "repository": "https://github.com/ArchonMegalon/chummer6-ui-kit.git",
+      "commit": "20028e1f0984521450e6af7d891341ec8bdce150",
+      "checkout_directory": "chummer6-ui-kit",
+      "project": "src/Chummer.Ui.Kit/Chummer.Ui.Kit.csproj",
+      "project_sha256": "9386c6908b5495533729109c022e1cc00906a1285cd730bc35de3c7d5953c560"
+    }
+  ]
+}

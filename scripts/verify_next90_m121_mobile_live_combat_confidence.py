@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -15,11 +16,9 @@ MILESTONE_ID = "121"
 WORK_TASK_ID = "121.4"
 QUEUE_FRONTIER_ID = 6121780841
 REPO_LABEL = "chummer6-mobile"
-CHECKOUT_ROOT = str(ROOT)
 CHECKOUT_POLICY = "location-independent; source paths are repository-relative"
 REGISTRY = ROOT / ".codex-design" / "product" / "NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml"
 DESIGN_QUEUE = ROOT / ".codex-design" / "product" / "NEXT_90_DAY_QUEUE_STAGING.generated.yaml"
-FLEET_QUEUE = Path("/docker/fleet/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
 
 PROOF_DOC = ROOT / "docs" / "next90-m121-mobile-live-combat-confidence.proof.md"
 PLAY_SIGNOFF = ROOT / "docs" / "PLAY_RELEASE_SIGNOFF.md"
@@ -296,14 +295,13 @@ def require_single_registry_row(rows: list[dict[str, object]]) -> list[str]:
     return []
 
 
-def main() -> int:
+def main(fleet_queue: Path | None = None) -> int:
     missing: list[str] = []
 
     try:
-        queue_text = read_text(FLEET_QUEUE)
         design_queue_text = read_text(DESIGN_QUEUE)
         registry_text = read_text(REGISTRY)
-        queue_payload = read_yaml(FLEET_QUEUE)
+        queue_payload = read_yaml(fleet_queue) if fleet_queue is not None else None
         design_queue_payload = read_yaml(DESIGN_QUEUE)
         registry_payload = read_yaml(REGISTRY)
         proof_text = read_text(PROOF_DOC)
@@ -324,18 +322,19 @@ def main() -> int:
         source_text = read_text(ROOT / relative_path)
         missing.extend(require_tokens(relative_path, source_text, markers))
 
-    missing.extend(require_single_queue_row("fleet queue", queue_rows_found))
     missing.extend(require_single_queue_row("design queue", design_queue_rows_found))
     missing.extend(require_single_registry_row(registry_rows_found))
-    missing.extend(require_tokens("fleet queue", render_yaml_block(queue_row), QUEUE_TOKENS))
     missing.extend(require_tokens("design queue", render_yaml_block(design_queue_row), QUEUE_TOKENS))
     missing.extend(require_tokens("registry row", render_yaml_block(registry_row), REGISTRY_TOKENS))
-    missing.extend(require_equal_block("fleet queue", queue_row, EXPECTED_QUEUE_ROW))
     missing.extend(require_equal_block("design queue", design_queue_row, EXPECTED_QUEUE_ROW))
-    missing.extend(require_equal_block("queue mirror parity", queue_row, design_queue_row))
     missing.extend(require_equal_block("registry row", registry_row, EXPECTED_REGISTRY_ROW))
-    missing.extend(require_clean_markers("fleet queue", render_yaml_block(queue_row), FORBIDDEN_IN_PROGRESS_ROW_MARKERS))
     missing.extend(require_clean_markers("design queue", render_yaml_block(design_queue_row), FORBIDDEN_IN_PROGRESS_ROW_MARKERS))
+    if fleet_queue is not None:
+        missing.extend(require_single_queue_row("fleet queue", queue_rows_found))
+        missing.extend(require_tokens("fleet queue", render_yaml_block(queue_row), QUEUE_TOKENS))
+        missing.extend(require_equal_block("fleet queue", queue_row, EXPECTED_QUEUE_ROW))
+        missing.extend(require_equal_block("queue mirror parity", queue_row, design_queue_row))
+        missing.extend(require_clean_markers("fleet queue", render_yaml_block(queue_row), FORBIDDEN_IN_PROGRESS_ROW_MARKERS))
     missing.extend(require_tokens("proof_doc", proof_text, PROOF_TOKENS))
     missing.extend(require_tokens("play_signoff", signoff_text, SIGNOFF_TOKENS))
     missing.extend(require_tokens("generated_proof_text", generated_text, GENERATED_TOKENS))
@@ -449,8 +448,11 @@ def main() -> int:
                 missing.append("generated_proof_payload: wrong proof marker set for M121 receipt")
             if receipt.get("repo") != REPO_LABEL:
                 missing.append("generated_proof_payload: wrong repo label for M121 receipt")
-            if receipt.get("checkout_root") != CHECKOUT_ROOT:
-                missing.append("generated_proof_payload: wrong checkout_root for M121 receipt")
+            recorded_root = receipt.get("checkout_root")
+            # This records where the proof was generated, not where it is verified.
+            # Repo identity and all owned source/proof paths are checked separately.
+            if not isinstance(recorded_root, str) or not recorded_root or not Path(recorded_root).is_absolute() or ".." in Path(recorded_root).parts:
+                missing.append("generated_proof_payload: invalid checkout_root provenance for M121 receipt")
             if receipt.get("proof_receipt") != "docs/next90-m121-mobile-live-combat-confidence.proof.md":
                 missing.append("generated_proof_payload: wrong proof receipt for M121 receipt")
             if receipt.get("owned_surfaces") != ["add_player_table_cards_between:mobile"]:
@@ -463,9 +465,11 @@ def main() -> int:
             print(f"m121_mobile_live_combat_confidence_verify_failed: {item}", file=sys.stderr)
         return 1
 
-    print("m121_mobile_live_combat_confidence_verify_ok")
+    print("m121_mobile_live_combat_confidence_verify_ok; " + ("Fleet integration checked" if fleet_queue is not None else "repo checks only; Fleet integration not executed"))
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    parser = argparse.ArgumentParser(description="Verify repo-local M121 evidence, or explicitly compare it with a Fleet queue.")
+    parser.add_argument("--fleet-queue", type=Path, help="Required Fleet queue file for the opt-in external parity check")
+    raise SystemExit(main(parser.parse_args().fleet_queue))

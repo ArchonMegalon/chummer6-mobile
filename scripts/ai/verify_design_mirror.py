@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -8,14 +9,12 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DESIGN_ROOT = Path("/docker/chummercomplete/chummer-design")
-MANIFEST_PATH = DESIGN_ROOT / "products" / "chummer" / "sync" / "sync-manifest.yaml"
 TARGET_REPO = "chummer6-mobile"
 LOCAL_REPAIR_SCRIPT = REPO_ROOT / "scripts" / "ai" / "repair_design_mirror.sh"
 
 
-def load_manifest() -> dict[str, object]:
-    data = yaml.safe_load(MANIFEST_PATH.read_text(encoding="utf-8")) or {}
+def load_manifest(manifest_path: Path) -> dict[str, object]:
+    data = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
     if not isinstance(data, dict):
         raise ValueError("sync_manifest_not_object")
     return data
@@ -57,6 +56,9 @@ def relative_product_target(source_rel: str, product_target: str) -> Path:
 
 
 def check_file(source: Path, destination: Path, problems: list[str]) -> None:
+    if not source.is_file():
+        problems.append(f"missing canonical source {source}")
+        return
     if not destination.is_file():
         problems.append(f"missing {destination.relative_to(REPO_ROOT)}")
         return
@@ -65,7 +67,14 @@ def check_file(source: Path, destination: Path, problems: list[str]) -> None:
 
 
 def main() -> int:
-    manifest = load_manifest()
+    parser = argparse.ArgumentParser(description="External canonical design mirror comparison")
+    parser.add_argument("--design-root", type=Path, required=True)
+    design_root = parser.parse_args().design_root.resolve()
+    manifest_path = design_root / "products/chummer/sync/sync-manifest.yaml"
+    if not manifest_path.is_file():
+        print(f"design mirror integration missing required input: {manifest_path}", file=sys.stderr)
+        return 1
+    manifest = load_manifest(manifest_path)
     mirrors = manifest.get("mirrors") or []
     if not isinstance(mirrors, list):
         raise ValueError("sync_manifest_mirrors_not_list")
@@ -81,16 +90,14 @@ def main() -> int:
     problems: list[str] = []
 
     for source_rel in expand_product_sources(manifest, mirror):
-        source = DESIGN_ROOT / source_rel
-        if not source.is_file():
-            continue
+        source = design_root / source_rel
         destination = REPO_ROOT / relative_product_target(source_rel, product_target)
         check_file(source, destination, problems)
 
     repo_source = str(mirror.get("repo_source") or "").strip()
     if repo_source:
         check_file(
-            DESIGN_ROOT / repo_source,
+            design_root / repo_source,
             REPO_ROOT / str(mirror.get("repo_target") or ".codex-design/repo/IMPLEMENTATION_SCOPE.md").strip(),
             problems,
         )
@@ -98,7 +105,7 @@ def main() -> int:
     review_source = str(mirror.get("review_source") or "").strip()
     if review_source:
         check_file(
-            DESIGN_ROOT / review_source,
+            design_root / review_source,
             REPO_ROOT / str(mirror.get("review_target") or ".codex-design/review/REVIEW_CONTEXT.md").strip(),
             problems,
         )
@@ -110,7 +117,7 @@ def main() -> int:
         if LOCAL_REPAIR_SCRIPT.is_file():
             print(f"repair with: bash {LOCAL_REPAIR_SCRIPT.relative_to(REPO_ROOT)}", file=sys.stderr)
         print(
-            "repair with: python3 /docker/chummercomplete/chummer-design/scripts/ai/publish_local_mirrors.py",
+            f"repair with: python3 {design_root}/scripts/ai/publish_local_mirrors.py",
             file=sys.stderr,
         )
         return 1

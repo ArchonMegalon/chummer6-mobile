@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import os
 from pathlib import Path
 
 
@@ -18,7 +19,7 @@ CHECKOUT_POLICY = "location-independent; source paths are repository-relative"
 
 REGISTRY = ROOT / ".codex-design" / "product" / "NEXT_90_DAY_PRODUCT_ADVANCE_REGISTRY.yaml"
 DESIGN_QUEUE = ROOT / ".codex-design" / "product" / "NEXT_90_DAY_QUEUE_STAGING.generated.yaml"
-FLEET_QUEUE = Path("/docker/fleet/.codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml")
+FLEET_QUEUE = (Path(os.environ["CHUMMER_FLEET_ROOT"]) / ".codex-studio/published/NEXT_90_DAY_QUEUE_STAGING.generated.yaml" if os.environ.get("CHUMMER_FLEET_ROOT") else None)
 PROOF_DOC = ROOT / "docs" / "next90-m119-mobile-onboarding-continuity.proof.md"
 PLAY_SIGNOFF = ROOT / "docs" / "PLAY_RELEASE_SIGNOFF.md"
 GENERATED_PROOF = ROOT / ".codex-studio" / "published" / "MOBILE_LOCAL_RELEASE_PROOF.generated.json"
@@ -237,6 +238,8 @@ def registry_block(text: str) -> str:
 
 
 def main() -> int:
+    if any(path is None for path in (FLEET_QUEUE, DESIGN_QUEUE, REGISTRY)):
+        raise SystemExit("Fleet integration requires CHUMMER_FLEET_ROOT and CHUMMER_DESIGN_PRODUCT_ROOT; no external inputs were inferred")
     missing: list[str] = []
 
     for relative_path, markers in IMPLEMENTATION_MARKERS.items():

@@ -59,9 +59,8 @@ class VerifyNext90M121MobileLiveCombatConfidenceTests(unittest.TestCase):
         self.assertIn("proof_doc: forbidden marker present: TASK_LOCAL_TELEMETRY.generated.json", stderr.getvalue())
 
     def test_verifier_fails_closed_when_queue_row_claims_completion(self) -> None:
-        original_fleet_queue = self.module.FLEET_QUEUE
         original_design_queue = self.module.DESIGN_QUEUE
-        queue_payload = yaml.safe_load(original_fleet_queue.read_text(encoding="utf-8"))
+        queue_payload = yaml.safe_load(original_design_queue.read_text(encoding="utf-8"))
         for row in queue_payload["items"]:
             if row.get("package_id") == self.module.PACKAGE_ID:
                 row["status"] = "complete"
@@ -69,9 +68,8 @@ class VerifyNext90M121MobileLiveCombatConfidenceTests(unittest.TestCase):
                 break
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            queue_override = Path(temp_dir) / original_fleet_queue.name
+            queue_override = Path(temp_dir) / original_design_queue.name
             queue_override.write_text(yaml.safe_dump(queue_payload, sort_keys=False), encoding="utf-8")
-            self.module.FLEET_QUEUE = queue_override
             self.module.DESIGN_QUEUE = queue_override
             try:
                 stdout = io.StringIO()
@@ -79,12 +77,47 @@ class VerifyNext90M121MobileLiveCombatConfidenceTests(unittest.TestCase):
                 with redirect_stdout(stdout), redirect_stderr(stderr):
                     exit_code = self.module.main()
             finally:
-                self.module.FLEET_QUEUE = original_fleet_queue
                 self.module.DESIGN_QUEUE = original_design_queue
 
         self.assertEqual(exit_code, 1)
-        self.assertIn("fleet queue: block drifted from the canonical M121 implementation-only shape", stderr.getvalue())
-        self.assertIn("fleet queue: forbidden marker present: landed_commit:", stderr.getvalue())
+        self.assertIn("design queue: block drifted from the canonical M121 implementation-only shape", stderr.getvalue())
+        self.assertIn("design queue: forbidden marker present: landed_commit:", stderr.getvalue())
+
+    def test_explicit_fleet_input_must_exist(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as stderr:
+            code = self.module.main(Path(tmp) / "missing.yaml")
+        self.assertEqual(code, 1)
+        self.assertIn("missing file", stderr.getvalue())
+
+    def test_explicit_fleet_queue_drift_fails(self) -> None:
+        queue_payload = yaml.safe_load(self.module.DESIGN_QUEUE.read_text(encoding="utf-8"))
+        row = next(item for item in queue_payload["items"] if item.get("package_id") == self.module.PACKAGE_ID)
+        row["status"] = "complete"
+        with tempfile.TemporaryDirectory() as tmp:
+            queue = Path(tmp) / "queue.yaml"
+            queue.write_text(yaml.safe_dump(queue_payload, sort_keys=False), encoding="utf-8")
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as stderr:
+                code = self.module.main(queue)
+        self.assertEqual(code, 1)
+        self.assertIn("fleet queue: block drifted", stderr.getvalue())
+        self.assertIn("queue mirror parity: block drifted", stderr.getvalue())
+
+    def test_recorded_checkout_provenance_cannot_be_empty(self) -> None:
+        original = self.module.GENERATED_PROOF
+        payload = json.loads(original.read_text(encoding="utf-8"))
+        receipt = next(item for item in payload["package_receipts"] if item["package_id"] == self.module.PACKAGE_ID)
+        receipt["checkout_root"] = ""
+        with tempfile.TemporaryDirectory() as tmp:
+            proof = Path(tmp) / "proof.json"
+            proof.write_text(json.dumps(payload), encoding="utf-8")
+            self.module.GENERATED_PROOF = proof
+            try:
+                with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as stderr:
+                    code = self.module.main()
+            finally:
+                self.module.GENERATED_PROOF = original
+        self.assertEqual(code, 1)
+        self.assertIn("invalid checkout_root provenance", stderr.getvalue())
 
     def test_verifier_fails_closed_when_generated_proof_duplicates_m121_receipt(self) -> None:
         original_generated_proof = self.module.GENERATED_PROOF

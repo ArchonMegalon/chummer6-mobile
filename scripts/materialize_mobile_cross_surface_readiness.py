@@ -15,8 +15,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / ".codex-studio" / "published" / "MOBILE_CROSS_SURFACE_READINESS.generated.json"
-FLEET_MATERIALIZER = Path("/docker/fleet/scripts/materialize_flagship_product_readiness.py")
-PUBLIC_EDGE_GATE = Path("/docker/chummercomplete/chummer.run-services/scripts/verify_public_edge_postdeploy_gate.py")
+FLEET_MATERIALIZER = (Path(os.environ["CHUMMER_FLEET_ROOT"]) / "scripts/materialize_flagship_product_readiness.py" if os.environ.get("CHUMMER_FLEET_ROOT") else None)
+PUBLIC_EDGE_GATE = (Path(os.environ["CHUMMER_RUN_SERVICES_ROOT"]) / "scripts/verify_public_edge_postdeploy_gate.py" if os.environ.get("CHUMMER_RUN_SERVICES_ROOT") else None)
 STRICT_PUBLIC_EDGE_PREFLIGHT_RECEIPT = Path("/tmp/chummer-public-edge-deploy-preflight-current.json")
 STRICT_PUBLIC_EDGE_POSTDEPLOY_RECEIPT = Path("/tmp/chummer-public-edge-postdeploy-canonical-current.json")
 LIVE_BUILD_LOCK_MARKER = "build-chummer6-linux.sh"
@@ -188,6 +188,9 @@ def main() -> int:
     verification_mode = os.environ.get("CHUMMER_VERIFY_MODE", "slice").strip() or "slice"
     if args.skip_public_edge and verification_mode == "release":
         raise SystemExit("release verification cannot skip public-edge proof")
+
+    if FLEET_MATERIALIZER is None or (not args.skip_public_edge and PUBLIC_EDGE_GATE is None):
+        raise SystemExit("cross-surface integration requires CHUMMER_FLEET_ROOT and CHUMMER_RUN_SERVICES_ROOT")
 
     output_path = Path(args.output).resolve()
     generated_at = iso_now()
