@@ -83,7 +83,7 @@ public sealed class BrowserSessionOfflineQueueService
         {
             // Resume may initialize the ledger. Keep it inside the same mutation
             // lock so concurrent first submissions cannot replace a committed batch.
-            var resume = await PlayWebApplication.ResolveResumeStateAsync(
+            var resume = await PlayWebApplication.ResolveResumeStateLockedAsync(
                 sessionId, _eventLogStore, _offlineCacheService, cancellationToken);
             var session = resume.Session;
             var appliedThroughSequence = Math.Max(resume.Ledger.LastKnownSequence, resume.Checkpoint?.AppliedThroughSequence ?? 0);

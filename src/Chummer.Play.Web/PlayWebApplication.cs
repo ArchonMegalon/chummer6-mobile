@@ -962,7 +962,8 @@ public static class PlayWebApplication
         }
     }
 
-    private static async Task<PlayResumeState> ResolveResumeStateLockedAsync(
+    // Caller holds the same session lock as queue mutation.
+    internal static async Task<PlayResumeState> ResolveResumeStateLockedAsync(
         string sessionId,
         IPlayEventLogStore eventLogStore,
         IPlayOfflineCacheService offlineCacheService,
