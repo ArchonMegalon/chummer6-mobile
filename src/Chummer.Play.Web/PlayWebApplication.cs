@@ -139,7 +139,7 @@ public static class PlayWebApplication
                 PlayTurnCompanionReplayRequest request,
                 PlayTurnCompanionService turnCompanionService,
                 CancellationToken cancellationToken) =>
-                Results.Json(await turnCompanionService.ReplayClientQueueAsync(sessionId, role, request.Events ?? Array.Empty<string>(), deviceId, cancellationToken))
+                Results.Json(await turnCompanionService.ReplayClientQueueAsync(sessionId, role, request, deviceId, cancellationToken))
         );
         app.MapPost(
             "/api/play/turn-companion/{sessionId}/acknowledge",

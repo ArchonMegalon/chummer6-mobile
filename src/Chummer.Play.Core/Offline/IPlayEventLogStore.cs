@@ -2,6 +2,12 @@ namespace Chummer.Play.Core.Offline;
 
 public interface IPlayEventLogStore
 {
+    Task<OfflineLedgerEnvelope> AppendReplayBatchAsync(
+        string sessionId, string sceneId, string sceneRevision, string runtimeFingerprint,
+        string scope, PlayReplayBatch batch, long appliedThroughSequence,
+        CancellationToken cancellationToken = default)
+        => throw new NotSupportedException("This ledger does not support durable replay identities.");
+
     Task<OfflineLedgerEnvelope> GetOrCreateAsync(
         string sessionId,
         string sceneId,

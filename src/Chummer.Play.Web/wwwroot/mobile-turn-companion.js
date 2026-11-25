@@ -114,6 +114,7 @@
       manualHits: 0,
       manualGlitch: false,
       localReplayQueue: [],
+      pendingReplayBatch: null,
       continuityPayload: null,
       serviceWorkerStatus: "Checking service worker and install cache posture for this shell.",
       installPromptEvent: null,
@@ -604,6 +605,7 @@
 
     if (client) {
       client.localReplayQueue = [];
+      client.pendingReplayBatch = null;
       client.continuityPayload = null;
       client.visibleHandoffUrl = "";
       client.ownerRouteShareStatus = "";
@@ -1304,18 +1306,45 @@
   }
 
   async function replayLocalQueue(client) {
+    if (client.networkBusy) {
+      return;
+    }
     if (!client.localReplayQueue.length) {
       client.statusMessage = "No local replay receipts are queued in this open tab.";
       render(client);
       return;
     }
-
     if (!navigator.onLine) {
       client.statusMessage = "Reconnect first, then replay the local queue into the server ledger.";
       render(client);
       return;
     }
 
+    // A pre-upgrade text receipt may already have been submitted. Giving it a new
+    // identity would silently make an uncertain action replayable a second time.
+    if (client.localReplayQueue.some(function (item) {
+      return !item || typeof item.eventId !== "string" || !item.eventId || typeof item.text !== "string";
+    })) {
+      client.statusMessage = "Legacy receipts have no reliable replay identity. Reconcile them with the owner before replaying; they remain in this open tab.";
+      render(client);
+      return;
+    }
+    if (!client.pendingReplayBatch) {
+      var batchId = makeReplayIdentity();
+      if (!batchId) {
+        client.statusMessage = "Secure replay identities are unavailable. Keep this tab open and reconnect through a secure owner route.";
+        render(client);
+        return;
+      }
+      client.pendingReplayBatch = Object.freeze({
+        batchId: batchId,
+        identifiedEvents: Object.freeze(client.localReplayQueue.slice(0, 100).map(function (item) {
+          return Object.freeze({ eventId: item.eventId, text: item.text });
+        }))
+      });
+      persistClientState(client);
+    }
+    var submitted = client.pendingReplayBatch;
     client.networkBusy = true;
     client.statusMessage = "Replaying local receipts into the server queue.";
     render(client);
@@ -1324,22 +1353,49 @@
       var response = await fetch(replayRoute(client.sessionId, client.roleName, client.deviceId), {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ events: client.localReplayQueue })
+        body: JSON.stringify(submitted)
       });
       var payload = parseJson(await response.text());
+      if (client.pendingReplayBatch !== submitted) {
+        return; // The user cleared this private page while the request was pending.
+      }
       if (!response.ok || !payload) {
         throw new Error("replay_failed");
       }
-
-      applyServerQueueStatus(client, payload);
-      await refreshClaimedDeviceStatus(client);
-      if (payload.accepted) {
-        client.localReplayQueue = [];
+      if (!payload.accepted) {
+        client.statusMessage = payload.message || "Replay was not accepted. The submitted batch remains queued.";
+        return;
       }
-      client.statusMessage = payload.message || "Replay request completed.";
+      var submittedIds = new Set(submitted.identifiedEvents.map(function (item) { return item.eventId; }));
+      var acknowledged = payload.acknowledgedEventIds;
+      if (payload.retrySafe !== true || payload.acknowledgedBatchId !== submitted.batchId
+          || !Array.isArray(acknowledged) || !acknowledged.length
+          || acknowledged.some(function (id) { return !submittedIds.has(id); })
+          || new Set(acknowledged).size !== acknowledged.length) {
+        throw new Error("replay_identity_unconfirmed");
+      }
+      var acknowledgedIds = new Set(acknowledged);
+      client.localReplayQueue = client.localReplayQueue.filter(function (item) {
+        return !acknowledgedIds.has(item.eventId);
+      });
+      if (acknowledgedIds.size === submittedIds.size) {
+        client.pendingReplayBatch = null;
+      }
+      // The server has durably committed the ledger and identities before this
+      // reply. Settle open-tab state before any separate observation can fail.
+      // persistClientState deliberately never writes private browser storage.
+      persistClientState(client);
+      client.statusMessage = payload.message || "Replay receipts confirmed.";
+      try {
+        applyServerQueueStatus(client, payload);
+        await refreshClaimedDeviceStatus(client);
+      } catch (observationError) {
+        void observationError;
+        client.statusMessage = "Replay receipts confirmed. Device status refresh failed; refresh status when connected.";
+      }
     } catch (error) {
       void error;
-      client.statusMessage = "Replay failed before the server queue could confirm the local receipts.";
+      client.statusMessage = "Replay confirmation unavailable. The same identified batch remains queued for a safe retry.";
     } finally {
       client.networkBusy = false;
       render(client);
@@ -2094,11 +2150,21 @@
       return;
     }
 
-    client.localReplayQueue.push(replayEvent);
+    client.localReplayQueue.push(Object.freeze({ eventId: makeReplayIdentity(), text: replayEvent }));
+    persistClientState(client);
     var entries = client.projection.history.entries || [];
     if (entries.length > 0) {
       entries[0].queued = true;
     }
+  }
+
+  function makeReplayIdentity() {
+    if (!window.crypto || typeof window.crypto.getRandomValues !== "function") {
+      return null;
+    }
+    var bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    return Array.from(bytes, function (value) { return value.toString(16).padStart(2, "0"); }).join("");
   }
 
   function replayRoute(sessionId, roleName, deviceId) {
