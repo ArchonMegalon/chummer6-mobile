@@ -23,6 +23,12 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
+if (args.Contains("--companion-replay-only", StringComparer.Ordinal))
+{
+    await CompanionReplayChecks.RunAsync();
+    return;
+}
+
 if (args.Contains("--file-backed-ledger-only", StringComparer.Ordinal))
 {
     await FileBackedLedgerChecks.RunAsync();
@@ -34,6 +40,7 @@ Environment.SetEnvironmentVariable(
     Path.Combine(Path.GetTempPath(), "chummer-play-regression-browser-state", Guid.NewGuid().ToString("N")));
 Environment.SetEnvironmentVariable("CHUMMER_PLAY_BROWSER_STATE_ISOLATE_PER_APP", "true");
 
+await CompanionReplayChecks.RunAsync();
 await FileBackedLedgerChecks.RunAsync();
 await RunCheckAsync(nameof(VerifyLedgerLineageResetAsync), VerifyLedgerLineageResetAsync);
 await RunCheckAsync(nameof(VerifyBootstrapProjectionPreservesReplayStateAsync), VerifyBootstrapProjectionPreservesReplayStateAsync);

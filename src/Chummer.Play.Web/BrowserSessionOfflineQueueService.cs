@@ -72,6 +72,38 @@ public sealed class BrowserSessionOfflineQueueService
         }
     }
 
+    public async Task<OfflineQueueEnqueueResult> EnqueueReplayBatchAsync(
+        string sessionId, string scope, PlayReplayBatch batch,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        var sessionLock = GetSessionLock(sessionId);
+        await sessionLock.WaitAsync(cancellationToken);
+        try
+        {
+            // Resume may initialize the ledger. Keep it inside the same mutation
+            // lock so concurrent first submissions cannot replace a committed batch.
+            var resume = await PlayWebApplication.ResolveResumeStateLockedAsync(
+                sessionId, _eventLogStore, _offlineCacheService, cancellationToken);
+            var session = resume.Session;
+            var appliedThroughSequence = Math.Max(resume.Ledger.LastKnownSequence, resume.Checkpoint?.AppliedThroughSequence ?? 0);
+            await EnsureStoredLineageAlignedAsync(session, cancellationToken);
+            var ledger = await _eventLogStore.AppendReplayBatchAsync(
+                session.SessionId, session.SceneId, session.SceneRevision, session.RuntimeFingerprint,
+                scope, batch, appliedThroughSequence, cancellationToken);
+            var checkpoint = new SyncCheckpoint(
+                session.SessionId, session.SceneId, session.SceneRevision, session.RuntimeFingerprint,
+                ledger.LastKnownSequence, DateTimeOffset.UtcNow);
+            // A failure here leaves the committed receipt available to the identical retry.
+            await _offlineCacheService.SetCheckpointAsync(checkpoint, cancellationToken);
+            return new OfflineQueueEnqueueResult(ledger, checkpoint, ledger.LastKnownSequence);
+        }
+        finally
+        {
+            sessionLock.Release();
+        }
+    }
+
     public async Task<OfflineQueueSyncResult> SyncReplayAsync(
         PlaySyncRequest request,
         CancellationToken cancellationToken = default
@@ -119,7 +151,7 @@ public sealed class BrowserSessionOfflineQueueService
         }
     }
 
-    private static SemaphoreSlim GetSessionLock(string sessionId) =>
+    internal static SemaphoreSlim GetSessionLock(string sessionId) =>
         SessionEnqueueLocks.GetOrAdd(sessionId, static _ => new SemaphoreSlim(1, 1));
 
     private async Task EnsureStoredLineageAlignedAsync(EngineSessionEnvelope session, CancellationToken cancellationToken)

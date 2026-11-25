@@ -139,7 +139,7 @@ public static class PlayWebApplication
                 PlayTurnCompanionReplayRequest request,
                 PlayTurnCompanionService turnCompanionService,
                 CancellationToken cancellationToken) =>
-                Results.Json(await turnCompanionService.ReplayClientQueueAsync(sessionId, role, request.Events ?? Array.Empty<string>(), deviceId, cancellationToken))
+                Results.Json(await turnCompanionService.ReplayClientQueueAsync(sessionId, role, request, deviceId, cancellationToken))
         );
         app.MapPost(
             "/api/play/turn-companion/{sessionId}/acknowledge",
@@ -948,6 +948,27 @@ public static class PlayWebApplication
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
 
+        // Refreshing resume state may write the checkpoint. Serialize that read/repair with
+        // queue commits so a concurrent status response cannot overwrite a newer sequence.
+        var sessionLock = BrowserSessionOfflineQueueService.GetSessionLock(sessionId);
+        await sessionLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await ResolveResumeStateLockedAsync(sessionId, eventLogStore, offlineCacheService, cancellationToken);
+        }
+        finally
+        {
+            sessionLock.Release();
+        }
+    }
+
+    // Caller holds the same session lock as queue mutation.
+    internal static async Task<PlayResumeState> ResolveResumeStateLockedAsync(
+        string sessionId,
+        IPlayEventLogStore eventLogStore,
+        IPlayOfflineCacheService offlineCacheService,
+        CancellationToken cancellationToken)
+    {
         var checkpoint = await offlineCacheService.GetCheckpointAsync(sessionId, cancellationToken);
         var runtimeBundle = await offlineCacheService.GetRuntimeBundleAsync(sessionId, cancellationToken);
         var existingLedger = await eventLogStore.GetExistingAsync(sessionId, cancellationToken);

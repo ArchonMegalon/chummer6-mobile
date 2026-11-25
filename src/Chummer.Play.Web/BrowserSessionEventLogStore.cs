@@ -27,7 +27,7 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
         cancellationToken.ThrowIfCancellationRequested();
 
         var key = PlayBrowserStateKeys.Ledger(sessionId);
-        var existing = await _browserStore.GetAsync<OfflineLedgerEnvelope>(key, cancellationToken);
+        var existing = await ReadLedgerAsync(sessionId, cancellationToken);
         if (existing is not null)
         {
             if (!IsLedgerValid(existing))
@@ -41,13 +41,13 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
             }
 
             var reset = CreateLedger(sessionId, sceneId, sceneRevision, runtimeFingerprint);
-            await _browserStore.SetAsync(key, reset, cancellationToken);
+            await SaveLedgerAsync(reset, cancellationToken);
             return reset;
         }
 
         await EnsureLedgerMissingAsync(sessionId, key, cancellationToken);
         var created = CreateLedger(sessionId, sceneId, sceneRevision, runtimeFingerprint);
-        await _browserStore.SetAsync(key, created, cancellationToken);
+        await SaveLedgerAsync(created, cancellationToken);
         return created;
     }
 
@@ -112,7 +112,7 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
             UpdatedAtUtc = DateTimeOffset.UtcNow,
         };
 
-        await _browserStore.SetAsync(PlayBrowserStateKeys.Ledger(sessionId), updated, cancellationToken);
+        await SaveLedgerAsync(updated, cancellationToken);
         return updated;
     }
 
@@ -129,7 +129,7 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
         }
 
         var key = PlayBrowserStateKeys.Ledger(sessionId);
-        var current = await _browserStore.GetAsync<OfflineLedgerEnvelope>(key, cancellationToken);
+        var current = await ReadLedgerAsync(sessionId, cancellationToken);
         if (current is null)
         {
             await EnsureLedgerMissingAsync(sessionId, key, cancellationToken);
@@ -150,7 +150,7 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
             LastAcceptedEventCount = trimCount,
         };
 
-        await _browserStore.SetAsync(key, updated, cancellationToken);
+        await SaveLedgerAsync(updated, cancellationToken);
         return updated;
     }
 
@@ -160,7 +160,7 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
     )
     {
         var key = PlayBrowserStateKeys.Ledger(sessionId);
-        var existing = await _browserStore.GetAsync<OfflineLedgerEnvelope>(key, cancellationToken);
+        var existing = await ReadLedgerAsync(sessionId, cancellationToken);
         if (existing is null)
         {
             await EnsureLedgerMissingAsync(sessionId, key, cancellationToken);
@@ -173,6 +173,126 @@ public sealed class BrowserSessionEventLogStore : IPlayEventLogStore
         }
 
         return existing;
+    }
+
+    public async Task<OfflineLedgerEnvelope> AppendReplayBatchAsync(
+        string sessionId, string sceneId, string sceneRevision, string runtimeFingerprint,
+        string scope, PlayReplayBatch batch, long appliedThroughSequence,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(scope);
+        ValidateReplayBatch(batch);
+        if (appliedThroughSequence < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(appliedThroughSequence));
+        }
+
+        batch = batch with { Events = batch.Events.ToArray() };
+        var current = await GetOrCreateAsync(sessionId, sceneId, sceneRevision, runtimeFingerprint, cancellationToken);
+        var stored = await ReadReplayStateAsync(sessionId, cancellationToken);
+        var receipts = stored?.ReplayBatches ?? Array.Empty<ScopedReplayBatch>();
+        var priorBatch = receipts.FirstOrDefault(item => item.Scope == scope && item.Batch.BatchId == batch.BatchId);
+        if (priorBatch is not null)
+        {
+            if (!priorBatch.Batch.Events.SequenceEqual(batch.Events))
+            {
+                throw new ArgumentException("A replay batch identity cannot be reused with different events.", nameof(batch));
+            }
+
+            return current;
+        }
+
+        var knownEvents = receipts.Where(item => item.Scope == scope)
+            .SelectMany(item => item.Batch.Events)
+            .GroupBy(item => item.EventId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First().Text, StringComparer.Ordinal);
+        foreach (var item in batch.Events)
+        {
+            if (knownEvents.TryGetValue(item.EventId, out var text) && text != item.Text)
+            {
+                throw new ArgumentException("A replay event identity cannot be reused with different text.", nameof(batch));
+            }
+        }
+
+        var added = batch.Events.Where(item => !knownEvents.ContainsKey(item.EventId)).ToArray();
+        var updated = current with
+        {
+            PendingEvents = current.PendingEvents.Concat(added.Select(item => item.Text)).ToArray(),
+            LastKnownSequence = added.Length == 0 ? current.LastKnownSequence
+                : checked(Math.Max(current.LastKnownSequence, appliedThroughSequence) + added.Length),
+            UpdatedAtUtc = DateTimeOffset.UtcNow
+        };
+        await _browserStore.SetAsync(PlayBrowserStateKeys.Ledger(sessionId), new ReplayLedgerState(
+            1, updated, receipts.Append(new ScopedReplayBatch(scope, batch)).ToArray()), cancellationToken);
+        return updated;
+    }
+
+    internal static void ValidateReplayBatch(PlayReplayBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        if (!IsReplayIdentity(batch.BatchId) || batch.Events is null || batch.Events.Count is < 1 or > 100
+            || batch.Events.Any(item => item is null || !IsReplayIdentity(item.EventId) || string.IsNullOrWhiteSpace(item.Text))
+            || batch.Events.Select(item => item.EventId).Distinct(StringComparer.Ordinal).Count() != batch.Events.Count)
+        {
+            throw new ArgumentException("Replay requires a bounded batch with unique stable event identities.", nameof(batch));
+        }
+    }
+
+    private static bool IsReplayIdentity(string? value) => value is { Length: > 0 and <= 80 }
+        && value.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_');
+
+    private async Task<ReplayLedgerState?> ReadReplayStateAsync(string sessionId, CancellationToken cancellationToken)
+    {
+        var stored = await _browserStore.GetAsync<ReplayLedgerState>(PlayBrowserStateKeys.Ledger(sessionId), cancellationToken);
+        if (stored is null || (stored.ReplayFormatVersion == 0 && stored.Ledger is null && stored.ReplayBatches is null))
+        {
+            return null; // Pre-upgrade plain ledger. Never infer IDs from its text or position.
+        }
+
+        if (stored.ReplayFormatVersion != 1 || stored.Ledger is null || !IsLedgerValid(stored.Ledger)
+            || stored.Ledger.SessionId != sessionId || stored.ReplayBatches is null)
+        {
+            throw MalformedLedger(sessionId);
+        }
+
+        try
+        {
+            var batches = new HashSet<(string, string)>();
+            var events = new Dictionary<(string, string), string>();
+            foreach (var receipt in stored.ReplayBatches)
+            {
+                if (receipt is null || string.IsNullOrWhiteSpace(receipt.Scope)) throw MalformedLedger(sessionId);
+                ValidateReplayBatch(receipt.Batch);
+                if (!batches.Add((receipt.Scope, receipt.Batch.BatchId))) throw MalformedLedger(sessionId);
+                foreach (var item in receipt.Batch.Events)
+                {
+                    if (events.TryGetValue((receipt.Scope, item.EventId), out var text) && text != item.Text)
+                        throw MalformedLedger(sessionId);
+                    events[(receipt.Scope, item.EventId)] = item.Text;
+                }
+            }
+        }
+        catch (ArgumentException)
+        {
+            throw MalformedLedger(sessionId);
+        }
+
+        return stored;
+    }
+
+    private async Task<OfflineLedgerEnvelope?> ReadLedgerAsync(string sessionId, CancellationToken cancellationToken)
+    {
+        var stored = await ReadReplayStateAsync(sessionId, cancellationToken);
+        return stored?.Ledger ?? await _browserStore.GetAsync<OfflineLedgerEnvelope>(PlayBrowserStateKeys.Ledger(sessionId), cancellationToken);
+    }
+
+    private async Task SaveLedgerAsync(OfflineLedgerEnvelope ledger, CancellationToken cancellationToken)
+    {
+        var stored = await ReadReplayStateAsync(ledger.SessionId, cancellationToken);
+        if (stored is null)
+            await _browserStore.SetAsync(PlayBrowserStateKeys.Ledger(ledger.SessionId), ledger, cancellationToken);
+        else
+            await _browserStore.SetAsync(PlayBrowserStateKeys.Ledger(ledger.SessionId), stored with { Ledger = ledger }, cancellationToken);
     }
 
     private async Task EnsureLedgerMissingAsync(string sessionId, string key, CancellationToken cancellationToken)

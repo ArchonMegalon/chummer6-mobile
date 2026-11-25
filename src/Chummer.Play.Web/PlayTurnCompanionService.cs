@@ -9,7 +9,9 @@ using Chummer.Play.Web.BrowserState;
 namespace Chummer.Play.Web;
 
 public sealed record PlayTurnCompanionReplayRequest(
-    IReadOnlyList<string> Events
+    IReadOnlyList<string>? Events = null,
+    string? BatchId = null,
+    IReadOnlyList<PlayReplayEvent>? IdentifiedEvents = null
 );
 
 public sealed record PlayTurnCompanionQueueStatusResponse(
@@ -20,7 +22,10 @@ public sealed record PlayTurnCompanionQueueStatusResponse(
     int PendingQueueCount,
     string CurrentSceneSummary,
     PlayTurnTrustSurface Trust,
-    PlayTurnSyncSurface Sync
+    PlayTurnSyncSurface Sync,
+    bool RetrySafe = false,
+    string? AcknowledgedBatchId = null,
+    IReadOnlyList<string>? AcknowledgedEventIds = null
 );
 
 public sealed class PlayTurnCompanionService
@@ -161,13 +166,17 @@ public sealed class PlayTurnCompanionService
             deviceId,
             cancellationToken);
 
+    // Compatibility for pre-upgrade callers: text-only events cannot be deduplicated.
+    public Task<PlayTurnCompanionQueueStatusResponse> ReplayClientQueueAsync(
+        string sessionId, PlaySurfaceRole role, IReadOnlyList<string> queuedEvents,
+        string? deviceId = null, CancellationToken cancellationToken = default)
+        => ReplayClientQueueAsync(sessionId, role, new PlayTurnCompanionReplayRequest(queuedEvents), deviceId, cancellationToken);
+
     public async Task<PlayTurnCompanionQueueStatusResponse> ReplayClientQueueAsync(
-        string sessionId,
-        PlaySurfaceRole role,
-        IReadOnlyList<string> queuedEvents,
-        string? deviceId = null,
-        CancellationToken cancellationToken = default)
+        string sessionId, PlaySurfaceRole role, PlayTurnCompanionReplayRequest request,
+        string? deviceId = null, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
         if (role == PlaySurfaceRole.Observer)
         {
             return await BuildQueueStatusResponseAsync(
@@ -181,7 +190,21 @@ public sealed class PlayTurnCompanionService
                 cancellationToken);
         }
 
-        IReadOnlyList<string> normalizedEvents = NormalizeReplayEvents(role, queuedEvents);
+        PlayReplayBatch? batch = null;
+        IReadOnlyList<string> normalizedEvents;
+        if (request.BatchId is not null || request.IdentifiedEvents is not null)
+        {
+            if (request.Events is { Count: > 0 })
+                throw new ArgumentException("Do not mix legacy and identified replay events.", nameof(request));
+            batch = new PlayReplayBatch(request.BatchId!, request.IdentifiedEvents?.ToArray()!);
+            BrowserSessionEventLogStore.ValidateReplayBatch(batch);
+            normalizedEvents = NormalizeReplayEvents(role, batch.Events.Select(item => item.Text).ToArray());
+            batch = batch with { Events = batch.Events.Select((item, index) => item with { Text = normalizedEvents[index] }).ToArray() };
+        }
+        else
+        {
+            normalizedEvents = NormalizeReplayEvents(role, request.Events ?? Array.Empty<string>());
+        }
         if (normalizedEvents.Count == 0)
         {
             return await BuildQueueStatusResponseAsync(
@@ -197,33 +220,43 @@ public sealed class PlayTurnCompanionService
 
         try
         {
-            PlayResumeState resumeState = await PlayWebApplication.ResolveResumeStateAsync(
-                sessionId,
-                _eventLogStore,
-                _offlineCacheService,
-                cancellationToken);
-            long appliedThroughSequence = Math.Max(
-                resumeState.Ledger.LastKnownSequence,
-                resumeState.Checkpoint?.AppliedThroughSequence ?? 0);
-
-            foreach (string queuedEvent in normalizedEvents)
+            if (batch is not null)
             {
-                OfflineQueueEnqueueResult result = await _offlineQueueService.EnqueueAsync(
-                    new EngineSessionCursor(resumeState.Session, appliedThroughSequence),
-                    queuedEvent,
-                    cancellationToken);
-                appliedThroughSequence = result.AppliedThroughSequence;
+                // Same owner route boundary as TurnCompanion state; device IDs are not authentication.
+                string scope = $"{role}:{(string.IsNullOrWhiteSpace(deviceId) ? "unclaimed" : deviceId.Trim())}";
+                await _offlineQueueService.EnqueueReplayBatchAsync(sessionId, scope, batch, cancellationToken);
+            }
+            else
+            {
+                PlayResumeState resumeState = await PlayWebApplication.ResolveResumeStateAsync(
+                    sessionId, _eventLogStore, _offlineCacheService, cancellationToken);
+                long appliedThroughSequence = Math.Max(
+                    resumeState.Ledger.LastKnownSequence, resumeState.Checkpoint?.AppliedThroughSequence ?? 0);
+                foreach (string queuedEvent in normalizedEvents)
+                {
+                    OfflineQueueEnqueueResult result = await _offlineQueueService.EnqueueAsync(
+                        new EngineSessionCursor(resumeState.Session, appliedThroughSequence), queuedEvent, cancellationToken);
+                    appliedThroughSequence = result.AppliedThroughSequence;
+                }
             }
 
-            return await BuildQueueStatusResponseAsync(
+            var response = await BuildQueueStatusResponseAsync(
                 sessionId,
                 role,
                 accepted: true,
                 stale: false,
-                message: $"Replayed {normalizedEvents.Count} local receipt(s) into the server queue.",
+                message: batch is null
+                    ? $"Replayed {normalizedEvents.Count} legacy receipt(s). Identity unavailable; do not automatically retry a lost reply."
+                    : $"Confirmed {normalizedEvents.Count} identified local receipt(s) in the server ledger.",
                 acceptedEventCount: normalizedEvents.Count,
                 deviceId,
                 cancellationToken);
+            return batch is null ? response : response with
+            {
+                RetrySafe = true,
+                AcknowledgedBatchId = batch.BatchId,
+                AcknowledgedEventIds = batch.Events.Select(item => item.EventId).ToArray()
+            };
         }
         catch (InvalidOperationException)
         {
