@@ -151,7 +151,7 @@ public sealed class BrowserSessionOfflineQueueService
         }
     }
 
-    private static SemaphoreSlim GetSessionLock(string sessionId) =>
+    internal static SemaphoreSlim GetSessionLock(string sessionId) =>
         SessionEnqueueLocks.GetOrAdd(sessionId, static _ => new SemaphoreSlim(1, 1));
 
     private async Task EnsureStoredLineageAlignedAsync(EngineSessionEnvelope session, CancellationToken cancellationToken)

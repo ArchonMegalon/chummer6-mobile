@@ -948,6 +948,26 @@ public static class PlayWebApplication
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
 
+        // Refreshing resume state may write the checkpoint. Serialize that read/repair with
+        // queue commits so a concurrent status response cannot overwrite a newer sequence.
+        var sessionLock = BrowserSessionOfflineQueueService.GetSessionLock(sessionId);
+        await sessionLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await ResolveResumeStateLockedAsync(sessionId, eventLogStore, offlineCacheService, cancellationToken);
+        }
+        finally
+        {
+            sessionLock.Release();
+        }
+    }
+
+    private static async Task<PlayResumeState> ResolveResumeStateLockedAsync(
+        string sessionId,
+        IPlayEventLogStore eventLogStore,
+        IPlayOfflineCacheService offlineCacheService,
+        CancellationToken cancellationToken)
+    {
         var checkpoint = await offlineCacheService.GetCheckpointAsync(sessionId, cancellationToken);
         var runtimeBundle = await offlineCacheService.GetRuntimeBundleAsync(sessionId, cancellationToken);
         var existingLedger = await eventLogStore.GetExistingAsync(sessionId, cancellationToken);
